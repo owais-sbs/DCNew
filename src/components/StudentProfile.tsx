@@ -1,0 +1,1151 @@
+import { useParams, useNavigate } from "react-router-dom"
+import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck } from "lucide-react"
+import { useState, useEffect } from "react"
+
+export default function StudentProfile() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState("profile")
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [openModal, setOpenModal] = useState<string | null>(null)
+  
+  console.log('StudentProfile rendered with id:', id)
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdown && !(event.target as Element).closest('.dropdown-container')) {
+        setOpenDropdown(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openDropdown])
+
+  const student = {
+    id,
+    name: "Abdurrakhim Umirbyek",
+    gender: "Male",
+    age: 18,
+    email: "omirbekrakhim@gmail.com",
+    idNumber: "DCE2848",
+    courseTitle: "General English With Exam Preparation",
+    level: "B1",
+    weeks: 25,
+    department: "English DCE-Dublin 7",
+    externalExam: "TIE"
+  }
+
+  const tabs = [
+    "Profile", "Activity", "Classes", "Attendance", "Fees", "Receipts", 
+    "Related contacts", "Notes", "Attachments", "Assignments", "Grades", 
+    "Create documents", "Holidays"
+  ]
+
+  const renderActivityContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Activity</h2>
+          <p className="text-gray-600 mt-1">Student activity is logged here</p>
+        </div>
+        <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
+          Activity type <ChevronDown size={14} />
+        </button>
+      </div>
+      
+      <div className="space-y-4">
+        {[
+          { date: "17-10-2025", time: "11:15", recorded: "11:50, Oct 17 2025" },
+          { date: "17-10-2025", time: "09:00", recorded: "09:15, Oct 17 2025" },
+          { date: "16-10-2025", time: "11:15", recorded: "11:45, Oct 16 2025" },
+          { date: "16-10-2025", time: "09:00", recorded: "09:10, Oct 16 2025" },
+          { date: "15-10-2025", time: "11:15", recorded: "11:30, Oct 15 2025" },
+          { date: "15-10-2025", time: "09:00", recorded: "09:05, Oct 15 2025" },
+          { date: "14-10-2025", time: "11:15", recorded: "11:40, Oct 14 2025" },
+          { date: "14-10-2025", time: "09:00", recorded: "09:20, Oct 14 2025" },
+          { date: "13-10-2025", time: "11:15", recorded: "11:25, Oct 13 2025" },
+          { date: "13-10-2025", time: "09:00", recorded: "09:00, Oct 13 2025" }
+        ].map((activity, i) => (
+          <div key={i} className="flex items-start gap-4 p-4 border border-gray-200 rounded-xl">
+            <div className="flex flex-col items-center">
+              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                <CheckCircle size={16} className="text-blue-600" />
+              </div>
+              {i < 9 && <div className="w-0.5 h-8 bg-gray-200 mt-2" />}
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-sm font-medium">Attendance:</span>
+                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Present</span>
+                <span className="text-sm text-gray-600">was recorded for Class Roon12 D7 - lesson on {activity.date} {activity.time}</span>
+              </div>
+              <div className="text-xs text-gray-500">{activity.recorded}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const renderClassesContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Classes</h2>
+          <p className="text-gray-600 mt-1">The classes that {student.name} is enrolled in</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm">Classes</button>
+            <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Lessons</button>
+            <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Events</button>
+          </div>
+          <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-1">
+            <Plus size={14} /> Enroll
+          </button>
+        </div>
+      </div>
+      
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200">
+              <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-700">Teacher</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-700">Date & time</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-700">Enrolled</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-700">Unenrolled</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+              <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              { class: "Room 7 D7", level: "A2 am", teacher: "2 teachers", schedule: "Monday (9:00-12:00), Tuesday (9:00-12:00) and 8 more", enrolled: "07-07-2025", unenrolled: "06-07-2025", status: "Unenrolled", statusColor: "bg-red-100 text-red-800" },
+              { class: "Room 7 D7", level: "A2 am", teacher: "2 teachers", schedule: "Monday (9:00-12:00), Tuesday (9:00-12:00) and 8 more", enrolled: "22-07-2025", unenrolled: "27-07-2025", status: "Unenrolled", statusColor: "bg-red-100 text-red-800" },
+              { class: "Room9 D7", level: "B1 am", teacher: "2 teachers", schedule: "Monday (9:00-11:00), Friday (11:15-12:15) and 8 more", enrolled: "28-07-2025", unenrolled: "10-08-2025", status: "Unenrolled", statusColor: "bg-red-100 text-red-800" },
+              { class: "Roon12 D7", level: "B2 new am", teacher: "Edmund Patrick Teacher", schedule: "Monday (9:00-11:00), Monday (11:15-12:15) and 8 more", enrolled: "11-08-2025", unenrolled: "", status: "Active", statusColor: "bg-green-100 text-green-800" }
+            ].map((cls, i) => (
+              <tr key={i} className="border-b border-gray-100">
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-red-500" />
+                    <div>
+                      <div className="font-medium text-gray-900">{cls.class}</div>
+                      <div className="text-sm text-gray-500">{cls.level}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-gray-700">{cls.teacher}</td>
+                <td className="py-3 px-4 text-gray-700">{cls.schedule}</td>
+                <td className="py-3 px-4 text-gray-700">{cls.enrolled}</td>
+                <td className="py-3 px-4 text-gray-700">{cls.unenrolled}</td>
+                <td className="py-3 px-4">
+                  <span className={`px-2 py-1 rounded-full text-xs ${cls.statusColor}`}>
+                    {cls.status}
+                  </span>
+                </td>
+                <td className="py-3 px-4">
+                  <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+                    <MoreHorizontal size={16} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+
+  const renderAttendanceContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Attendance</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
+            Class: <ChevronDown size={14} />
+          </button>
+          <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
+            Date: Total <ChevronDown size={14} />
+          </button>
+          <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white text-gray-700 flex items-center justify-center">
+            <Clock size={16} />
+          </button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Donut Chart Placeholder */}
+        <div className="flex items-center justify-center">
+          <div className="relative">
+            <div className="h-48 w-48 rounded-full border-8 border-gray-200 flex items-center justify-center">
+              <div className="h-32 w-32 rounded-full border-8 border-green-500 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900">88.8%</div>
+                  <div className="text-sm text-gray-600">Present</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Attendance Details Table */}
+        <div>
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Time</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Count</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Percentage (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-gray-100">
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
+                    <span className="text-gray-700">Present</span>
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-gray-700">167 hours</td>
+                <td className="py-3 px-4 text-gray-700">111</td>
+                <td className="py-3 px-4 text-gray-700">88.80</td>
+              </tr>
+              <tr className="border-b border-gray-100">
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-red-500" />
+                    <span className="text-gray-700">Absent</span>
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-gray-700">21 hours</td>
+                <td className="py-3 px-4 text-gray-700">14</td>
+                <td className="py-3 px-4 text-gray-700">11.20</td>
+              </tr>
+              <tr className="border-b border-gray-100">
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
+                    <span className="text-gray-700">Late</span>
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-gray-700">0</td>
+                <td className="py-3 px-4 text-gray-700">0</td>
+                <td className="py-3 px-4 text-gray-700">0</td>
+              </tr>
+              <tr>
+                <td className="py-3 px-4">
+                  <span className="text-gray-700">Excused</span>
+                </td>
+                <td className="py-3 px-4 text-gray-700">0</td>
+                <td className="py-3 px-4 text-gray-700">0</td>
+                <td className="py-3 px-4 text-gray-700">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderFeesContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Fees</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm">Grouped</button>
+          <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Individual fees</button>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Class fees */}
+        <div className="text-center py-12">
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+            <DollarSign size={32} className="text-blue-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Class fees</h3>
+          <p className="text-gray-600 mb-4">Class fees will appear here when you enroll {student.name} in a class.</p>
+          <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+            <Plus size={16} /> Enroll student
+          </button>
+        </div>
+        
+        {/* Additional fees */}
+        <div className="text-center py-12">
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+            <FileText size={32} className="text-blue-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Additional fees</h3>
+          <p className="text-gray-600 mb-4">Add any other fees here, such as registration fees, exam fees, books, bus service etc.</p>
+          <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+            <Plus size={16} /> Add fee
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderReceiptsContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Receipts</h2>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm">Receipts</button>
+          <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Invoices</button>
+          <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Refund</button>
+        </div>
+      </div>
+      
+      <div className="text-center py-12">
+        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+          <Receipt size={32} className="text-blue-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {student.name}'s first payment.</h3>
+        <p className="text-gray-600 mb-4">{student.name}'s receipts will appear here once a payment is made.</p>
+        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+          <Plus size={16} /> New payment
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderRelatedContactsContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="text-center py-12">
+        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+          <Users size={32} className="text-blue-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {student.name}'s relationships</h3>
+        <p className="text-gray-600 mb-4">Add {student.name}'s mother, father and any other related contacts here.</p>
+        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+          <Plus size={16} /> Add relationship
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderNotesContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Notes</h2>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
+            Note type: All <ChevronDown size={14} />
+          </button>
+          <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
+            Note privacy: All <ChevronDown size={14} />
+          </button>
+          <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+            <Plus size={16} /> New note
+          </button>
+        </div>
+      </div>
+      
+      <div className="space-y-4">
+        {[
+          { author: "Asif Omer", date: "19-09-2025", category: "Communication", content: "An invitation email was sent to the Student.", privacy: "Admin" },
+          { author: "Asif Omer", date: "07-08-2025", category: "Communication", content: "An invitation email was sent to the Student.", privacy: "Admin" }
+        ].map((note, i) => (
+          <div key={i} className="p-4 bg-gray-50 rounded-xl">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-900">{note.author}</span>
+                <span className="text-sm text-gray-500">on {note.date}</span>
+                <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">{note.category}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">{note.privacy}</span>
+                <button className="h-6 w-6 grid place-items-center rounded hover:bg-gray-200">
+                  <FileText size={14} />
+                </button>
+                <button className="h-6 w-6 grid place-items-center rounded hover:bg-gray-200">
+                  <MoreHorizontal size={14} />
+                </button>
+              </div>
+            </div>
+            <p className="text-sm text-gray-700">
+              {note.content.split('invitation email').map((part, idx) => 
+                idx === 0 ? part : (
+                  <span key={idx}>
+                    <span className="text-blue-600">invitation email</span>
+                    {part}
+                  </span>
+                )
+              )}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  const renderAttachmentsContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="text-center py-12">
+        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+          <Paperclip size={32} className="text-blue-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add attachments</h3>
+        <p className="text-gray-600 mb-4">You can add and store relevant documents and files here.</p>
+        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+          <Plus size={16} /> Add attachment
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderAssignmentsContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Assignments</h2>
+        <p className="text-gray-600">View this student's assignments.</p>
+      </div>
+      
+      <div className="text-center py-12">
+        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+          <BookOpen size={32} className="text-blue-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Assignments</h3>
+        <p className="text-gray-600">Assignments will appear here when the student has uploaded them.</p>
+      </div>
+    </div>
+  )
+
+  const renderGradesContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="text-center py-12">
+        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+          <Award size={32} className="text-blue-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{student.name}'s Grade Results</h3>
+        <p className="text-gray-600">{student.name}'s grades will appear here when their result have been added to a gradebook.</p>
+      </div>
+    </div>
+  )
+
+  const renderCreateDocumentsContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">Create documents</h2>
+      </div>
+      
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {[
+          "Confirmation of Enrolment (Colm Delmar)",
+          "Letter of Acceptance (Colm)",
+          "Bank Letter (Ahmed)",
+          "Letter of Acceptance (Ahmed)",
+          "Leap Card Letter",
+          "Confirmation of Enrolment (Ahmed)",
+          "Holiday Letter (Carla)",
+          "Student Status Letter (Colm Delmar)",
+          "Student Reference Letter for GNIB",
+          "Christmas Holiday Letter (Carla)",
+          "Summer Holiday - Reference Letter",
+          "Exit Letter - No Show (Colm)",
+          "Exit Letter - Exam Later Date",
+          "Exit Letter - Exam Taken",
+          "Exit Letter - Covid-19",
+          "Exit Letter - Short Term",
+          "gnib 2025",
+          "Certificate of Attendance (2025)",
+          "Letter of Acceptance (2025)",
+          "Confirmation of Enrollment (2025)"
+        ].map((doc, i) => (
+          <button key={i} className="h-12 px-3 rounded-lg bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left">
+            {doc}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
+  const renderHolidaysContent = () => (
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="text-center py-12">
+        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+          <Sun size={32} className="text-blue-600" />
+        </div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add a holiday for {student.name}</h3>
+        <p className="text-gray-600 mb-4">Holidays for {student.name} will appear here.</p>
+        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+          <Plus size={16} /> Add holiday
+        </button>
+      </div>
+    </div>
+  )
+
+  const renderProfileContent = () => (
+    <div className="space-y-6">
+      {/* Contact Details */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-500">Email</div>
+              <div className="text-sm text-gray-900 mt-1">{student.email}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Phone</div>
+              <div className="text-sm text-gray-900 mt-1">+353 89 944 4444</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Address</div>
+              <div className="text-sm text-gray-900 mt-1">123 Main St</div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-500">City</div>
+              <div className="text-sm text-gray-900 mt-1">Dublin</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Country</div>
+              <div className="text-sm text-gray-900 mt-1">Ireland</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Postcode</div>
+              <div className="text-sm text-gray-900 mt-1">D01 A1B2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Identity Information */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Identity Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-500">Nationality</div>
+              <div className="text-sm text-gray-900 mt-1">Mongolian</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Passport Number</div>
+              <div className="text-sm text-gray-900 mt-1">E3464538</div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-500">Passport Expiry Date</div>
+              <div className="text-sm text-gray-900 mt-1">06-06-2033</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">GNIB Expiry Date</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Course Details */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Details</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-500">Course Title</div>
+              <div className="text-sm text-gray-900 mt-1">General English With Exam Preparation</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Course Start Date</div>
+              <div className="text-sm text-gray-900 mt-1">21-07-2025</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Course End Date</div>
+              <div className="text-sm text-gray-900 mt-1">20-03-2026</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Attendance</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Course Level</div>
+              <div className="text-sm text-gray-900 mt-1">B1</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Mode of Study</div>
+              <div className="text-sm text-gray-900 mt-1">Full Time</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Number of Weeks</div>
+              <div className="text-sm text-gray-900 mt-1">25 Weeks</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Hours Per Week</div>
+              <div className="text-sm text-gray-900 mt-1">15</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Tuition Fees</div>
+              <div className="text-sm text-gray-900 mt-1">Fully Paid</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Course Code</div>
+              <div className="text-sm text-gray-900 mt-1">0355/0003</div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-500">Date of External Exam</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Duration</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">End of Exam paid</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Department</div>
+              <div className="text-sm text-gray-900 mt-1">English DCE-Dublin 7</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">External Exam</div>
+              <div className="text-sm text-gray-900 mt-1">TIE</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Score External Exam</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Date of Payment</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Schedule</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">ILEP reference number</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* School Portal */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">School Portal</h3>
+        <p className="text-sm text-gray-600 mb-6">Enable or disable this student's access to your school portal.</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-500 mb-2">Access to School Portal</div>
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-6 bg-blue-600 rounded-full relative">
+                  <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
+                </div>
+                <span className="text-sm text-gray-700">Enabled</span>
+              </div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Username</div>
+              <div className="text-sm text-gray-900 mt-1">{student.email}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500 mb-2">Automatic reminders</div>
+              <div className="flex items-center gap-2">
+                <div className="w-12 h-6 bg-blue-600 rounded-full relative">
+                  <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
+                </div>
+                <span className="text-sm text-gray-700">Enabled</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-500">Invitation</div>
+              <div className="mt-1">
+                <button className="text-sm text-blue-600 hover:text-blue-700">Invite to portal</button>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">Abdurrakhim has created an account</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Password</div>
+              <div className="mt-1">
+                <button className="text-sm text-blue-600 hover:text-blue-700">Change password</button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <div className="text-sm text-gray-500">Last login</div>
+              <div className="text-sm text-gray-900 mt-1">never</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-500">Delete account</div>
+              <div className="mt-1">
+                <button className="text-sm text-blue-600 hover:text-blue-700">Delete portal account</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="text-xs text-gray-500">Created by: Asif Omer</div>
+          <div className="text-xs text-gray-500">Created date: 04-04-2025 15:25</div>
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderContent = () => {
+    switch(activeTab.toLowerCase()) {
+      case "profile": return renderProfileContent()
+      case "activity": return renderActivityContent()
+      case "classes": return renderClassesContent()
+      case "attendance": return renderAttendanceContent()
+      case "fees": return renderFeesContent()
+      case "receipts": return renderReceiptsContent()
+      case "related contacts": return renderRelatedContactsContent()
+      case "notes": return renderNotesContent()
+      case "attachments": return renderAttachmentsContent()
+      case "assignments": return renderAssignmentsContent()
+      case "grades": return renderGradesContent()
+      case "create documents": return renderCreateDocumentsContent()
+      case "holidays": return renderHolidaysContent()
+      default: return renderProfileContent()
+    }
+  }
+
+  return (
+    <div className="pl-[72px]">
+      <div className="px-6 py-6">
+        
+        {/* Header card */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
+          <div className="flex items-start gap-4">
+            <img src={`https://i.pravatar.cc/96?img=${(Number(id||1)%70)+1}`} className="h-16 w-16 rounded-full object-cover" />
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-xl font-semibold text-gray-900 truncate">{student.name}</h1>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Student</span>
+              </div>
+              <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                <div>Male</div>
+                <div>18 years old</div>
+                <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add phone')}>+ add phone</button>
+                <a className="text-blue-700" href={`mailto:${student.email}`}>{student.email}</a>
+                <div className="inline-flex items-center gap-1 text-emerald-700">
+                  <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                  1
+                </div>
+                <div className="text-emerald-700">€0</div>
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-6 text-sm text-gray-600">
+                <div>Joined April 2025</div>
+                <div>Attended 3 days ago</div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Payment Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setOpenDropdown(openDropdown === 'payment' ? null : 'payment')}
+                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
+                >
+                  Payment <ChevronDown size={14} />
+                </button>
+                {openDropdown === 'payment' && (
+                  <div className="absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <CreditCard size={16} /> New payment
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <FileText size={16} /> New invoice
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <Archive size={16} /> New refund
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Message Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setOpenDropdown(openDropdown === 'message' ? null : 'message')}
+                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
+                >
+                  Message <ChevronDown size={14} />
+                </button>
+                {openDropdown === 'message' && (
+                  <div className="dropdown-container absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
+                    <div 
+                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+                      onClick={() => {
+                        setOpenDropdown(null)
+                        setOpenModal('sms')
+                      }}
+                    >
+                      <Megaphone size={16} /> Send SMS
+                    </div>
+                    <div 
+                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+                      onClick={() => {
+                        setOpenDropdown(null)
+                        setOpenModal('email')
+                      }}
+                    >
+                      <Mail size={16} /> Send email
+                    </div>
+                    <div 
+                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+                      onClick={() => {
+                        setOpenDropdown(null)
+                        setOpenModal('announcement')
+                      }}
+                    >
+                      <Megaphone size={16} /> Send announcement
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Reports Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setOpenDropdown(openDropdown === 'reports' ? null : 'reports')}
+                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
+                >
+                  Reports <ChevronDown size={14} />
+                </button>
+                {openDropdown === 'reports' && (
+                  <div className="absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <BarChart3 size={16} /> Student report
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <CalendarIcon size={16} /> Student schedule
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <FileCheck size={16} /> Student transcript
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* More Dropdown */}
+              <div className="relative">
+                <button 
+                  onClick={() => setOpenDropdown(openDropdown === 'more' ? null : 'more')}
+                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
+                >
+                  More <ChevronDown size={14} />
+                </button>
+                {openDropdown === 'more' && (
+                  <div className="absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <FileText size={16} /> Edit
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <Sun size={16} /> Set holiday
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <User size={16} /> Invite to portal
+                    </div>
+                    <div className="border-t border-gray-200 my-1"></div>
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                      <Archive size={16} /> Archive
+                    </div>
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer">
+                      <Trash2 size={16} /> Delete
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation tabs */}
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            {tabs.map((tab, i) => (
+              <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab)}
+                className={`relative h-9 px-3 text-sm transition-colors ${
+                  activeTab === tab 
+                    ? 'text-blue-700 font-medium' 
+                    : 'text-gray-700 hover:text-gray-900'
+                }`}
+              >
+                {tab}
+                {activeTab === tab && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Content based on active tab */}
+        <div className="mt-6">
+          {renderContent()}
+        </div>
+      </div>
+
+      {/* Modals */}
+      {openModal === 'sms' && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
+          <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Send sms message</h3>
+              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+                <span className="text-gray-500">×</span>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                <div className="text-sm text-blue-600 cursor-pointer">0 people selected</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    value="InfoSMS" 
+                    className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                    readOnly
+                  />
+                  <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">
+                    <span className="text-sm">i</span>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Message *</label>
+                  <button className="text-sm text-gray-500">▼</button>
+                  <button className="h-4 w-4 grid place-items-center rounded-full border border-gray-300 text-gray-500">
+                    <span className="text-xs">i</span>
+                  </button>
+                </div>
+                <textarea 
+                  className="w-full h-32 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm resize-none"
+                  placeholder="Type your message here..."
+                />
+                <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                  <span>You have 459 characters left</span>
+                  <span>1 message</span>
+                </div>
+              </div>
+              <div className="text-sm text-gray-600">
+                Message will be delivered to <span className="text-blue-600">0 people</span> and cost 0 credits
+              </div>
+              <div className="flex items-center gap-3 pt-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span>Remaining SMS credits: 0</span>
+                </div>
+                <button className="h-8 px-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-1">
+                  <CreditCard size={14} /> Add credit
+                </button>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <button 
+                  onClick={() => setOpenModal(null)}
+                  className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm"
+                >
+                  Cancel
+                </button>
+                <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openModal === 'email' && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
+          <div className="w-full max-w-lg bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Send email message</h3>
+              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+                <span className="text-gray-500">×</span>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                <div className="text-sm text-blue-600 cursor-pointer">0 people selected</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                <input 
+                  type="text" 
+                  value="Asif Omer (info@dcedu.ie)" 
+                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  readOnly
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                <input 
+                  type="text" 
+                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  placeholder="Enter subject"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Message *</label>
+                <textarea 
+                  className="w-full h-32 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm resize-none"
+                  placeholder="Type your message here..."
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <button 
+                  onClick={() => setOpenModal(null)}
+                  className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm"
+                >
+                  Cancel
+                </button>
+                <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {openModal === 'announcement' && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
+          <div className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Send announcement message</h3>
+              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+                <span className="text-gray-500">×</span>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-blue-600 cursor-pointer">1 person selected</span>
+                  <button className="h-6 w-6 grid place-items-center rounded text-blue-600">
+                    <User size={14} />
+                  </button>
+                  <button className="h-6 w-6 grid place-items-center rounded text-blue-600">
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text" 
+                    value="Asif Omer (info@dcedu.ie)" 
+                    className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                    readOnly
+                  />
+                  <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">
+                    <span className="text-sm">i</span>
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                <input 
+                  type="text" 
+                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  placeholder="Enter subject"
+                />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <label className="block text-sm font-medium text-gray-700">Message *</label>
+                  <button className="text-sm text-blue-600">Insert variable ▼</button>
+                  <button className="h-4 w-4 grid place-items-center rounded-full border border-gray-300 text-gray-500">
+                    <span className="text-xs">i</span>
+                  </button>
+                </div>
+                {/* Rich text editor toolbar */}
+                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-sm font-bold">B</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-sm italic">I</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-sm underline">U</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-sm line-through">S</button>
+                    <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">≡</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">≡</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">≡</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">≡</button>
+                    <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 bg-yellow-200">A</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-xs">14</button>
+                    <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">•</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">1.</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">→</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">←</button>
+                    <div className="w-px h-6 bg-gray-300 mx-1"></div>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">🔗</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">📹</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">📷</button>
+                    <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">📎</button>
+                  </div>
+                  <textarea 
+                    className="w-full h-32 px-3 py-2 text-sm resize-none border-0 focus:ring-0"
+                    placeholder="Type your message here..."
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Schedule send (optional)</label>
+                  <input 
+                    type="text" 
+                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                    placeholder="Select date and time"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Expiry date (optional)</label>
+                  <input 
+                    type="text" 
+                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                    placeholder="Select expiry date"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <button 
+                  onClick={() => setOpenModal(null)}
+                  className="h-10 px-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm"
+                >
+                  Cancel
+                </button>
+                <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
+                  Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

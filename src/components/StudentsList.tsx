@@ -1,4 +1,5 @@
 import { ChevronDown, Download, Plus, Filter, MoreHorizontal } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 const rows = Array.from({ length: 10 }).map((_, i) => ({
   id: i + 1,
@@ -24,6 +25,7 @@ const rows = Array.from({ length: 10 }).map((_, i) => ({
 }))
 
 export default function StudentsList() {
+  const navigate = useNavigate()
   return (
     <div className="pl-[72px]">
       <div className="px-6 py-6">
@@ -100,7 +102,21 @@ export default function StudentsList() {
               {rows.map((r, i) => (
                 <tr key={r.id} className="border-b last:border-0 border-gray-100 hover:bg-gray-50">
                   <td className="px-4 py-3"><input type="checkbox" /></td>
-                  <td className="px-4 py-3 text-indigo-700">{r.name}</td>
+                  <td className="px-4 py-3 text-indigo-700 flex items-center gap-2">
+                    <img 
+                      src={`https://i.pravatar.cc/32?img=${(i % 70) + 1}`} 
+                      className="h-8 w-8 rounded-full object-cover cursor-pointer hover:ring-2 hover:ring-blue-200 transition-all" 
+                      onClick={() => {
+                        console.log('Navigating to:', `/people/students/${r.id}`)
+                        navigate(`/people/students/${r.id}`)
+                      }}
+                      alt={`${r.name} profile`}
+                    />
+                    <div>
+                      <div className="font-medium">{r.name}</div>
+                      <div className="text-xs text-gray-500">{r.idNum}</div>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-gray-700">{r.phone}</td>
                   <td className="px-4 py-3 text-blue-600">{r.email}</td>
                   <td className="px-4 py-3">{r.reg}</td>

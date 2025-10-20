@@ -34,6 +34,53 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
   const navigate = useNavigate()
   const location = useLocation()
 
+  // dropdown state
+  const [openFilter, setOpenFilter] = useState<string | null>(null)
+  const [query, setQuery] = useState("")
+
+  const datasets: Record<string, string[]> = {
+    Student: [
+      "Abdurrakhim Umirbyek",
+      "Abraham Emmanuel Acosta Garcia",
+      "Adiyadorj Erdev",
+      "Adriana Jaimes Garcia",
+      "Adriana Martins De Abreu",
+      "Adriana Xavier Arruda",
+      "Aldo Valencia Pantoja",
+      "Alejandro Diaz Salinas"
+    ],
+    Teacher: [
+      "Abbey teacher",
+      "Adao Lopes Teacher",
+      "Anne Smiddy Elisabeth",
+      "Aoife Sinead Buckley",
+      "Ava Collopy",
+      "Beni Teacher",
+      "Carla Kerr"
+    ],
+    Class: [
+      "AM B1 WALID/ABBEY",
+      "Advanced_AM_DCE1_PART 1",
+      "Advanced_PM_DCE1_PART 1",
+      "Cork Classroom C1 AM ABAIGH/ANNE",
+      "Elementary_AM_DCE1_PART 1"
+    ],
+    Level: ["P2", "B1", "C1", "A1", "B2", "A2(2) pm", "A1(2) pm"],
+    Subject: ["General English with Exam Preparation"],
+    Classroom: [
+      "Class 1",
+      "Cork",
+      "France",
+      "Galway",
+      "Limerick",
+      "Online Lesson",
+      "Part 1",
+      "Part 2"
+    ],
+    Type: ["Academic", "Non Academic"]
+  }
+
+
   // Handle tab navigation
   const handleTabChange = (t: string) => {
     setTab(t)
@@ -83,12 +130,37 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-2 ml-auto">
             {["Student", "Teacher", "Class", "Level", "Subject", "Classroom", "Type"].map((f) => (
-              <button
-                key={f}
-                className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
-              >
-                {f}: All <ChevronDown size={14} className="text-gray-500" />
-              </button>
+              <div key={f} className="relative">
+                <button
+                  onClick={() => {
+                    setQuery("")
+                    setOpenFilter((o) => (o === f ? null : f))
+                  }}
+                  className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
+                  aria-expanded={openFilter === f}
+                >
+                  {f}: All <ChevronDown size={14} className="text-gray-500" />
+                </button>
+                {openFilter === f && (
+                  <div className={`absolute z-50 mt-2 w-80 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 top-full ${f === 'Classroom' || f === 'Type' ? 'right-0' : 'left-0'}`}>
+                    <input
+                      autoFocus
+                      className="w-full h-9 px-3 rounded-lg border border-gray-200 mb-2 text-sm"
+                      placeholder=""
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                    />
+                    <div className="text-xs text-gray-500 px-2 py-1">All</div>
+                    <div className="max-h-72 overflow-auto">
+                      {(query ? (datasets[f] || []).filter((x) => x.toLowerCase().includes(query.toLowerCase())) : (datasets[f] || [])).map((it) => (
+                        <div key={it} className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={() => setOpenFilter(null)}>
+                          {it}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
