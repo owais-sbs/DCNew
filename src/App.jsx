@@ -7,21 +7,18 @@ import PeopleDashboard from "./components/PeopleDashboard"
 import StudentProfile from "./components/StudentProfile"
 import TeacherProfile from "./components/TeacherProfile"
 import StaffProfile from "./components/StaffProfile"
+import StudentCreate from "./components/StudentCreate"
+import TeacherCreate from "./components/TeacherCreate"
+import StaffCreate from "./components/StaffCreate"
+import RelatedContactCreate from "./components/RelatedContactCreate"
+import ProspectCreate from "./components/ProspectCreate"
 import NotesDashboard from "./components/NotesDashboard"
 import NotesClasses from "./components/NotesClasses"
 import NotesEvents from "./components/NotesEvents"
 import PaymentsDashboard from "./components/PaymentsDashboard"
 import CommunicationDashboard from "./components/CommunicationDashboard"
-import Compose from "./components/Compose"
 import Reports from "./components/Reports"
-import AttendanceReports from "./components/AttendanceReports"
-import LessonReports from "./components/LessonReports"
 import SchoolManagement from "./components/SchoolManagement"
-import ExpenseForm from "./components/ExpenseForm"
-import InventoryForm from "./components/InventoryForm"
-import AddRefund from "./components/AddRefund"
-import AddInvoice from "./components/AddInvoice"
-import AddPayment from "./components/AddPayment"
 import "react-datepicker/dist/react-datepicker.css";
 
 
@@ -52,10 +49,15 @@ import "react-datepicker/dist/react-datepicker.css";
             <Route path="/people" element={<PeopleDashboard />} />
             <Route path="/people/students/:id" element={<StudentProfile />} />
             <Route path="/people/students" element={<PeopleDashboard />} />
+            <Route path="/people/students/new" element={<StudentCreate />} />
             <Route path="/people/teachers/:id" element={<TeacherProfile />} />
             <Route path="/people/teachers" element={<PeopleDashboard />} />
+            <Route path="/people/teachers/new" element={<TeacherCreate />} />
             <Route path="/people/staffs/:id" element={<StaffProfile />} />
             <Route path="/people/staffs" element={<PeopleDashboard />} />
+            <Route path="/people/staffs/new" element={<StaffCreate />} />
+            <Route path="/people/related/new" element={<RelatedContactCreate />} />
+            <Route path="/people/prospects/new" element={<ProspectCreate />} />
             <Route path="/people/related" element={<PeopleDashboard />} />
             <Route path="/people/prospects" element={<PeopleDashboard />} />
 
@@ -71,29 +73,21 @@ import "react-datepicker/dist/react-datepicker.css";
             <Route path="/payments/future" element={<PaymentsDashboard />} />
             <Route path="/payments/invoices" element={<PaymentsDashboard />} />
             <Route path="/payments/refunds" element={<PaymentsDashboard />} />
-            <Route path="/payments/add-refund" element={<AddRefund />} />
-            <Route path="/payments/add-invoice" element={<AddInvoice />} />
-            <Route path="/payments/add-payment" element={<AddPayment />} />
 
             {/* Communication */}
             <Route path="/communication" element={<CommunicationDashboard />} />
             <Route path="/communication/email" element={<CommunicationDashboard />} />
             <Route path="/communication/sms" element={<CommunicationDashboard />} />
             <Route path="/communication/announcements" element={<CommunicationDashboard />} />
-            <Route path="/compose" element={<Compose />} />
 
             {/* Reports */}
             <Route path="/reports" element={<Reports />} />
-            <Route path="/reports/attendance" element={<AttendanceReports />} />
-            <Route path="/reports/lessons" element={<LessonReports />} />
 
             {/* School Management */}
             <Route path="/school" element={<SchoolManagement />} />
             <Route path="/school/inventory" element={<SchoolManagement />} />
             <Route path="/school/signatures" element={<SchoolManagement />} />
             <Route path="/school/library" element={<SchoolManagement />} />
-            <Route path="/school/expenses/new" element={<ExpenseForm />} />
-            <Route path="/school/inventory/new" element={<InventoryForm />} />
           </Routes>
         </div>
       </Router>

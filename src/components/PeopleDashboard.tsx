@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
-import AddStudentForm from "./AddStudentForm"
-import AddTeacherForm from "./AddTeacherForm"
-import AddStaffForm from "./AddStaffForm"
 import {
   Users,
   GraduationCap,
@@ -81,9 +78,7 @@ export default function PeopleDashboard() {
   // Students filters state (Teacher, Classes, Payments, Status)
   const [studentsOpenFilter, setStudentsOpenFilter] = useState<string | null>(null)
   const [studentsQuery, setStudentsQuery] = useState("")
-  const [openAddStudent, setOpenAddStudent] = useState(false)
-  const [openAddTeacher, setOpenAddTeacher] = useState(false)
-  const [openAddStaff, setOpenAddStaff] = useState(false)
+  // Add forms are routed screens now; no modal state
   const [teachersStatusFilter, setTeachersStatusFilter] = useState<string | null>(null)
   const [staffStatusFilter, setStaffStatusFilter] = useState<string | null>(null)
   const [studentsSelected, setStudentsSelected] = useState<{ teacher: string; class: string; payment: string; status: string }>({
@@ -116,6 +111,10 @@ export default function PeopleDashboard() {
   return (
     <div className="pl-[72px]">
       <div className="px-6 py-6">
+        {/* Page Title */}
+        <div className="mb-4">
+          <h1 className="text-2xl font-semibold text-gray-900">People</h1>
+        </div>
         {/* Tabs Row */}
         <div className="flex items-center gap-6 border-b border-gray-200 pb-3">
           {tabs.map((t) => (
@@ -305,7 +304,7 @@ export default function PeopleDashboard() {
                   <Download size={16} /> Export
                 </button>
                 <button 
-                  onClick={() => setOpenAddStudent(true)}
+                  onClick={() => navigate('/people/students/new')}
                   className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
                 >
                   + Add student
@@ -487,7 +486,7 @@ export default function PeopleDashboard() {
                   <Download size={16} /> Export
                 </button>
                 <button 
-                  onClick={() => setOpenAddTeacher(true)}
+                  onClick={() => navigate('/people/teachers/new')}
                   className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
                 >
                   + Add teacher
@@ -580,7 +579,7 @@ export default function PeopleDashboard() {
                   <Download size={16} /> Export
                 </button>
                 <button 
-                  onClick={() => setOpenAddStaff(true)}
+                  onClick={() => navigate('/people/staffs/new')}
                   className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
                 >
                   + Add staff
@@ -650,6 +649,14 @@ export default function PeopleDashboard() {
           <div className="mt-6">
             <div className="flex items-center justify-between">
               <div className="text-xl font-semibold text-gray-800">6 Related contacts</div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate('/people/related/new')}
+                  className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
+                >
+                  + Add related contact
+                </button>
+              </div>
             </div>
             <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
@@ -692,19 +699,33 @@ export default function PeopleDashboard() {
                 <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
                   <Download size={16} /> Export
                 </button>
-                <button className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm">
+                <button onClick={() => navigate('/people/prospects/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm">
                   + Add prospect
                 </button>
               </div>
             </div>
 
-            <div className="mt-4 flex items-center gap-3 justify-end">
-              {["Subject: All","Level: All","Status: Active Prospects"].map((f)=> (
-                <button key={f} className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                  {f} <ChevronDown size={14} className="text-gray-500" />
-                </button>
-              ))}
+          <div className="mt-4 flex items-center gap-3 justify-end">
+            {/* Subjects dropdown (img7) */}
+            <div className="relative">
+              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
+                Subject: All <ChevronDown size={14} className="text-gray-500" />
+              </button>
+              {/* Implement options same as calendar subjects if needed */}
             </div>
+            {/* All dropdown (img8) */}
+            <div className="relative">
+              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
+                Level: All <ChevronDown size={14} className="text-gray-500" />
+              </button>
+            </div>
+            {/* Status dropdown (img9) */}
+            <div className="relative">
+              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
+                Status: Active Prospects <ChevronDown size={14} className="text-gray-500" />
+              </button>
+            </div>
+          </div>
 
             <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
               <table className="w-full text-sm">
@@ -722,10 +743,7 @@ export default function PeopleDashboard() {
         )}
       </div>
 
-      {/* Forms */}
-      <AddStudentForm isOpen={openAddStudent} onClose={() => setOpenAddStudent(false)} />
-      <AddTeacherForm isOpen={openAddTeacher} onClose={() => setOpenAddTeacher(false)} />
-      <AddStaffForm isOpen={openAddStaff} onClose={() => setOpenAddStaff(false)} />
+      {/* No modals here; forms are full-screen pages */}
     </div>
   )
 }

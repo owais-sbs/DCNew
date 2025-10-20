@@ -2,13 +2,7 @@ import { useEffect, useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { NotebookPen, Users2, CalendarDays, Repeat2 } from "lucide-react"
 
-interface Tab {
-  id: string
-  label: string
-  path: string
-}
-
-const tabs: Tab[] = [
+const tabs = [
   { id: "dashboard", label: "Dashboard", path: "/notes" },
   { id: "classes", label: "Classes", path: "/notes/classes" },
   { id: "events", label: "Events", path: "/notes/events" }
@@ -24,7 +18,7 @@ export default function NotesDashboard() {
     setActive(f ? f.id : "dashboard")
   }, [location.pathname])
 
-  const go = (t: Tab) => { setActive(t.id); navigate(t.path) }
+  const go = (t:any) => { setActive(t.id); navigate(t.path) }
 
   return (
     <div className="pl-[72px]">

@@ -4,9 +4,10 @@ import { X } from "lucide-react"
 interface AddTeacherFormProps {
   isOpen: boolean
   onClose: () => void
+  asPage?: boolean
 }
 
-export default function AddTeacherForm({ isOpen, onClose }: AddTeacherFormProps) {
+export default function AddTeacherForm({ isOpen, onClose, asPage }: AddTeacherFormProps) {
   const [formData, setFormData] = useState({
     name: "",
     surname: "",
@@ -43,16 +44,18 @@ export default function AddTeacherForm({ isOpen, onClose }: AddTeacherFormProps)
     onClose()
   }
 
-  if (!isOpen) return null
+  if (!asPage && !isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={onClose}>
-      <div className="w-full max-w-4xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+    <div className={asPage ? "" : "fixed inset-0 z-50 grid place-items-center bg-black/30 px-4"} onClick={asPage ? undefined : onClose}>
+      <div className={`w-full ${asPage ? "" : "max-w-4xl"} bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden ${asPage ? "" : "max-h-[90vh] overflow-y-auto"}`} onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">Add teacher</h2>
-          <button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
-            <X size={20} />
-          </button>
+          {!asPage && (
+            <button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+              <X size={20} />
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
