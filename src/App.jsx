@@ -3,8 +3,10 @@
   import Header from "./components/Header"
   import Dashboard from "./components/Dashboard"
   import Calendar from "./components/Calendar"
-  import PeopleDashboard from "./components/PeopleDashboard"
-  import StudentsList from "./components/StudentsList"
+import PeopleDashboard from "./components/PeopleDashboard"
+import StudentProfile from "./components/StudentProfile"
+import TeacherProfile from "./components/TeacherProfile"
+import StaffProfile from "./components/StaffProfile"
 import NotesDashboard from "./components/NotesDashboard"
 import NotesClasses from "./components/NotesClasses"
 import NotesEvents from "./components/NotesEvents"
@@ -48,7 +50,14 @@ import "react-datepicker/dist/react-datepicker.css";
 
             {/* People */}
             <Route path="/people" element={<PeopleDashboard />} />
-            <Route path="/people/students" element={<StudentsList />} />
+            <Route path="/people/students/:id" element={<StudentProfile />} />
+            <Route path="/people/students" element={<PeopleDashboard />} />
+            <Route path="/people/teachers/:id" element={<TeacherProfile />} />
+            <Route path="/people/teachers" element={<PeopleDashboard />} />
+            <Route path="/people/staffs/:id" element={<StaffProfile />} />
+            <Route path="/people/staffs" element={<PeopleDashboard />} />
+            <Route path="/people/related" element={<PeopleDashboard />} />
+            <Route path="/people/prospects" element={<PeopleDashboard />} />
 
             {/* Notes section (Classes & events) */}
             <Route path="/notes" element={<NotesDashboard />} />

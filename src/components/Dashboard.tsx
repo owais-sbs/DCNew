@@ -180,7 +180,7 @@ function Donut({ present = 45, absent = 22 }: { present?: number; absent?: numbe
    Main component
    ------------------------- */
 export default function Dashboard() {
-  // selected lesson card
+  // selected lesson card (opens details modal)
   const [selected, setSelected] = useState<string | null>(null)
   // which card is hovered
   const [hovered, setHovered] = useState<string | null>(null)
@@ -348,7 +348,7 @@ export default function Dashboard() {
                     key={l.id}
                     onMouseEnter={() => setHovered(l.id)}
                     onMouseLeave={() => setHovered((h) => (h === l.id ? null : h))}
-                    onClick={() => setSelected((s) => (s === l.id ? null : l.id))}
+                    onClick={() => setSelected(l.id)}
                     role="button"
                     tabIndex={0}
                     className={`group cursor-pointer bg-white border border-gray-200 rounded-xl transition-transform duration-150 flex items-center ${l.accent} ${
@@ -580,6 +580,212 @@ export default function Dashboard() {
               <button onClick={() => { setAddOpen(false); alert("Saved (placeholder)"); }} className="px-4 py-2 rounded-lg bg-indigo-600 text-white">Save</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lesson details modal (click on a lesson card) */}
+      {selected && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setSelected(null)}>
+          {(() => {
+            const lesson = lessons.find((l) => l.id === selected)
+            if (!lesson) return null
+            const students = [
+              { name: "Ana Carolina Bitencourt Forgi...", initials: "AC", status: "Take attendance" },
+              { name: "Andriele Paz De Moraes", initials: "AP", status: "Take attendance" },
+              { name: "Francisco Braian Fernandes De B...", initials: "FB", status: "Excused" },
+              { name: "Gutierre Silva Dos Santos", initials: "GS", status: "Take attendance" },
+              { name: "Isis Aparecida De Lima Silva", initials: "IS", status: "Take attendance" },
+              { name: "Jovane De Oliveira Junior", initials: "JO", status: "Excused" },
+              { name: "Larissa Isabele Tiago", initials: "LI", status: "Take attendance" },
+              { name: "Manoel Lucena De Arruda Neto Se...", initials: "ML", status: "Take attendance" },
+              { name: "Manuela Andreoletti", initials: "MA", status: "Take attendance" }
+            ]
+            return (
+              <div className="w-full max-w-7xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <div className="text-lg font-semibold text-gray-900">{lesson.time} - {lesson.room} ({lesson.subtitle || lesson.location})</div>
+                      <div className="text-sm text-gray-600">20-10-2025 #{lesson.id} {lesson.room}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-indigo-500 text-white grid place-items-center text-sm font-semibold">{lesson.teacher.initials}</div>
+                      <div className="text-sm text-gray-700">{lesson.teacher.name}</div>
+                    </div>
+                    <button className="text-gray-500 hover:text-gray-700" onClick={() => setSelected(null)}>
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
+                  {/* Main content */}
+                  <div className="p-6">
+                    {/* Students section */}
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">Students {students.length}</h3>
+                        <div className="flex items-center gap-2">
+                          <button className="px-3 h-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50">
+                            Select/deselect all
+                          </button>
+                          {["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
+                            <button key={label} className="px-3 h-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1">
+                              {label}
+                              <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Students grid */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {students.map((student, i) => (
+                          <div key={student.name} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
+                                alt={student.name}
+                                className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                                onError={(e) => {
+                                  const target = e.currentTarget as HTMLImageElement
+                                  target.style.display = 'none'
+                                }}
+                              />
+                              <div className="h-10 w-10 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center text-sm font-semibold">
+                                {student.initials}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">{student.name}</div>
+                                <button className="mt-2 w-full h-8 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50">
+                                  {student.status}
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Prospects section */}
+                    <div className="mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">Prospects 0</h3>
+                        <button className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700">
+                          + Add prospects
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Notes sections */}
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-800">Teacher notes</h3>
+                        <div className="flex items-center gap-2">
+                          <button className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          </button>
+                          <button className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700">
+                            + Add teacher notes
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-800">Student notes</h3>
+                        <div className="flex items-center gap-2">
+                          <button className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                          </button>
+                          <button className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700">
+                            + Add student notes
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right sidebar */}
+                  <aside className="border-l border-gray-200 p-6 bg-gray-50">
+                    <div className="space-y-6">
+                      {/* Edit section */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <h3 className="text-lg font-semibold text-gray-800">Edit</h3>
+                        </div>
+                        <div className="space-y-2">
+                          {[
+                            { label: "Teacher", icon: "🎓" },
+                            { label: "Date & time", icon: "📅" },
+                            { label: "Cancel lesson", icon: "❌" },
+                            { label: "Location", icon: "📍" },
+                            { label: "Class details", icon: "📄" }
+                          ].map((item) => (
+                            <button key={item.label} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                              <span>{item.icon}</span>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Actions section */}
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <h3 className="text-lg font-semibold text-gray-800">Actions</h3>
+                        </div>
+                        <div className="space-y-2">
+                          {[
+                            { label: "Add students", icon: "👥" },
+                            { label: "Add prospects", icon: "👥" },
+                            { label: "Add attachment", icon: "📎" },
+                            { label: "Add assignment", icon: "📋" },
+                            { label: "Invite to portal", icon: "➡️" },
+                            { label: "Print register", icon: "🖨️" }
+                          ].map((item) => (
+                            <button key={item.label} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                              <span>{item.icon}</span>
+                              {item.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
+                </div>
+              </div>
+            )
+          })()}
         </div>
       )}
     </div>
