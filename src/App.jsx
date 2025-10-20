@@ -2,6 +2,7 @@
   import Sidebar from "./components/Sidebar"
   import Header from "./components/Header"
   import Dashboard from "./components/Dashboard"
+  import Login from "./components/Login"
   import Calendar from "./components/Calendar"
 import PeopleDashboard from "./components/PeopleDashboard"
 import StudentProfile from "./components/StudentProfile"
@@ -29,21 +30,29 @@ import "react-datepicker/dist/react-datepicker.css";
           className="min-h-screen bg-gray-100 text-neutral-700"
           style={{ fontFamily: "Inter, ui-sans-serif, system-ui" }}
         >
-          {/* Sidebar */}
-          <Sidebar />
-
-          {/* Header */}
-          <Header />
-
           {/* Routed Pages */}
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            {/* Login is the default route */}
+            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+
+            {/* Main app layout with Sidebar + Header */}
+            <Route
+              path="/dashboard"
+              element={
+                <>
+                  <Sidebar />
+                  <Header />
+                  <Dashboard />
+                </>
+              }
+            />
             <Route path="/dashboard" element={<Dashboard />} />
 
             {/* Calendar Tabs */}
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/calendar/teacher" element={<Calendar showTeacher />} />
-            <Route path="/calendar/classroom" element={<Calendar />} />
+            <Route path="/calendar" element={<><Sidebar /><Header /><Calendar /></>} />
+            <Route path="/calendar/teacher" element={<><Sidebar /><Header /><Calendar showTeacher /></>} />
+            <Route path="/calendar/classroom" element={<><Sidebar /><Header /><Calendar /></>} />
 
             {/* People */}
             <Route path="/people" element={<PeopleDashboard />} />
@@ -62,9 +71,9 @@ import "react-datepicker/dist/react-datepicker.css";
             <Route path="/people/prospects" element={<PeopleDashboard />} />
 
             {/* Notes section (Classes & events) */}
-            <Route path="/notes" element={<NotesDashboard />} />
-            <Route path="/notes/classes" element={<NotesClasses />} />
-            <Route path="/notes/events" element={<NotesEvents />} />
+            <Route path="/notes" element={<><Sidebar /><Header /><NotesDashboard /></>} />
+            <Route path="/notes/classes" element={<><Sidebar /><Header /><NotesClasses /></>} />
+            <Route path="/notes/events" element={<><Sidebar /><Header /><NotesEvents /></>} />
 
             {/* Payments */}
             <Route path="/payments" element={<PaymentsDashboard />} />

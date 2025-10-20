@@ -61,8 +61,8 @@ import {
                       : "text-gray-500 hover:text-indigo-600 hover:bg-white hover:shadow-[0_0_8px_rgba(99,102,241,0.15)] hover:scale-105"
                   }`}
               >
-                <Icon
-                  size={24}
+                 <Icon
+                   size={20}
                   strokeWidth={1.8}
                   className={`transition-all duration-200 ${
                     isActive ? "text-indigo-600" : "text-gray-600 group-hover:text-indigo-500"
