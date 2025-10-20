@@ -1,5 +1,6 @@
 // CommunicationDashboard.tsx
 import React, { useEffect, useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { 
   Calendar as CalendarIcon,
   ChevronDown,
@@ -8,7 +9,11 @@ import {
   MessageCircle,
   Megaphone,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye,
+  Edit,
+  X,
+  Check
 } from "lucide-react"
 import {
   BarChart,
@@ -41,8 +46,10 @@ const sampleChartData = [
 ]
 
 export default function CommunicationDashboard() {
+  const navigate = useNavigate()
+  
   // UI state
-  const [activeTab, setActiveTab] = useState<string>("dashboard")
+  const [activeTab, setActiveTab] = useState<string>("email")
   const [dateOpen, setDateOpen] = useState(false)
   const [range, setRange] = useState<{ start: string; end: string }>({
     start: "2025-10-01",
@@ -249,92 +256,334 @@ export default function CommunicationDashboard() {
             </div>
 
             {/* New message button */}
-            <button className="ml-3 h-10 px-4 rounded-xl bg-indigo-600 text-white inline-flex items-center gap-2">
+            <button onClick={() => navigate("/compose")} className="ml-3 h-10 px-4 rounded-xl bg-indigo-600 text-white inline-flex items-center gap-2">
               <Plus size={16} />
               New message
             </button>
           </div>
         </div>
 
-        {/* Subtitle */}
-        <div className="mt-6">
-          <h3 className="text-lg font-semibold text-gray-800">Communications dashboard</h3>
-          <p className="text-sm text-gray-500 mt-1">Overview of all communications sent</p>
-        </div>
+        {/* Content based on active tab */}
+        {activeTab === "dashboard" && <DashboardContent />}
+        {activeTab === "email" && <EmailContent />}
+        {activeTab === "sms" && <SMSContent />}
+        {activeTab === "ann" && <AnnouncementsContent />}
+      </div>
+    </div>
+  )
+}
 
-        {/* Metric cards */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="relative overflow-hidden rounded-2xl border border-sky-100 bg-sky-50 p-5">
-            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-sky-100 to-transparent" />
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-white/60 grid place-items-center">
-                <Mail size={20} className="text-sky-700" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-sky-700">Emails sent</div>
-                <div className="mt-3 text-2xl font-semibold text-gray-900">{emailsSent}</div>
-              </div>
+// Content components for each tab
+function DashboardContent() {
+  const emailsSent = 39
+  const smsSent = 0
+  const announcementsSent = 0
+  const chartData = useMemo(() => sampleChartData, [])
+
+  return (
+    <>
+      {/* Subtitle */}
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold text-gray-800">Communications dashboard</h3>
+        <p className="text-sm text-gray-500 mt-1">Overview of all communications sent</p>
+      </div>
+
+      {/* Metric cards */}
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="relative overflow-hidden rounded-2xl border border-sky-100 bg-sky-50 p-5">
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-sky-100 to-transparent" />
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-white/60 grid place-items-center">
+              <Mail size={20} className="text-sky-700" />
             </div>
-          </div>
-
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
-            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-emerald-100 to-transparent" />
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-white/60 grid place-items-center">
-                <MessageCircle size={20} className="text-emerald-700" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-emerald-700">SMS messages sent</div>
-                <div className="mt-3 text-2xl font-semibold text-gray-900">{smsSent}</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="relative overflow-hidden rounded-2xl border border-rose-100 bg-rose-50 p-5">
-            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-rose-100 to-transparent" />
-            <div className="flex items-start gap-4">
-              <div className="p-3 rounded-lg bg-white/60 grid place-items-center">
-                <Megaphone size={20} className="text-rose-700" />
-              </div>
-              <div>
-                <div className="text-sm font-semibold text-rose-700">Announcements sent</div>
-                <div className="mt-3 text-2xl font-semibold text-gray-900">{announcementsSent}</div>
-              </div>
+            <div>
+              <div className="text-sm font-semibold text-sky-700">Emails sent</div>
+              <div className="mt-3 text-2xl font-semibold text-gray-900">{emailsSent}</div>
             </div>
           </div>
         </div>
 
-        {/* Main content - chart + message sender */}
-        <div className="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {/* Chart */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm h-96">
-            <div className="font-semibold text-gray-800 mb-3">Email delivery status</div>
-            <div className="h-[78%]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="delivered" fill="#34D399" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-emerald-100 to-transparent" />
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-white/60 grid place-items-center">
+              <MessageCircle size={20} className="text-emerald-700" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-emerald-700">SMS messages sent</div>
+              <div className="mt-3 text-2xl font-semibold text-gray-900">{smsSent}</div>
             </div>
           </div>
+        </div>
 
-          {/* Message sender */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <div className="font-semibold text-gray-800 mb-3">Message sender</div>
+        <div className="relative overflow-hidden rounded-2xl border border-rose-100 bg-rose-50 p-5">
+          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-rose-100 to-transparent" />
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-lg bg-white/60 grid place-items-center">
+              <Megaphone size={20} className="text-rose-700" />
+            </div>
+            <div>
+              <div className="text-sm font-semibold text-rose-700">Announcements sent</div>
+              <div className="mt-3 text-2xl font-semibold text-gray-900">{announcementsSent}</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-            <div className="flex items-center justify-between border-t border-gray-200 pt-3">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full bg-indigo-100 grid place-items-center text-indigo-700 font-semibold">DCE</div>
-                <div className="text-gray-800">Asif Omer</div>
+      {/* Main content - chart + message sender */}
+      <div className="mt-6 grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {/* Chart */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm h-96">
+          <div className="font-semibold text-gray-800 mb-3">Email delivery status</div>
+          <div className="h-[78%]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="delivered" fill="#34D399" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Message sender */}
+        <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+          <div className="font-semibold text-gray-800 mb-3">Message sender</div>
+
+          <div className="flex items-center justify-between border-t border-gray-200 pt-3">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-full bg-indigo-100 grid place-items-center text-indigo-700 font-semibold">DCE</div>
+              <div className="text-gray-800">Asif Omer</div>
+            </div>
+            <div className="text-gray-700">{emailsSent}</div>
+          </div>
+
+          <div className="text-sm text-gray-500 mt-2">Number of messages</div>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function EmailContent() {
+  const [showMessageModal, setShowMessageModal] = useState(false)
+  
+  const emailRows = Array.from({ length: 8 }).map((_, i) => ({
+    date: "17-10-2025 17:00",
+    sentBy: "Asif Omer",
+    status: "Sent",
+    recipients: "1 recipient",
+    subject: ":fname, you're invited to our school portal",
+    notes: "",
+  }))
+
+  return (
+    <>
+      {/* Email count */}
+      <div className="mt-6 flex items-center gap-2">
+        <Mail size={16} className="text-gray-500" />
+        <span className="text-sm text-gray-500">759 Email messages</span>
+      </div>
+
+      {/* Search and filters */}
+      <div className="mt-4 flex items-center gap-3">
+        <input placeholder="Search table" className="w-80 h-10 px-4 rounded-xl border border-gray-200 bg-white" />
+        <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+          <option>Recipients: ▾</option>
+        </select>
+        <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+          <option>Sent by: Any</option>
+        </select>
+        <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+          <option>Status: All</option>
+        </select>
+        <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">⟳</button>
+      </div>
+
+      {/* Email table */}
+      <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-auto">
+        <table className="w-full text-sm min-w-[1000px]">
+          <thead className="bg-gray-50 text-gray-600">
+            <tr>
+              {["Date","Sent by","Status","Recipients","Email subject","Notes","Actions"].map(h => (
+                <th key={h} className="text-left px-4 py-3 border-b border-gray-200 font-medium">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {emailRows.map((r, i) => (
+              <tr key={i} className="border-b last:border-0 border-gray-100">
+                <td className="px-4 py-3">{r.date}</td>
+                <td className="px-4 py-3">{r.sentBy}</td>
+                <td className="px-4 py-3">
+                  <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-700">{r.status}</span>
+                </td>
+                <td className="px-4 py-3">{r.recipients}</td>
+                <td className="px-4 py-3">{r.subject}</td>
+                <td className="px-4 py-3">{r.notes}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setShowMessageModal(true)}
+                      className="h-8 w-8 rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 flex items-center justify-center"
+                    >
+                      <Eye size={14} />
+                    </button>
+                    <button className="h-8 w-8 rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 flex items-center justify-center">
+                      <Edit size={14} />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Pagination */}
+      <div className="mt-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">25 ▾</button>
+          <span className="text-sm text-gray-500">Showing 1 - 8 of 759 entries</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button className="h-9 w-9 rounded-xl border border-gray-200 bg-white text-gray-600">⟨</button>
+          <button className="h-9 w-9 rounded-xl border border-gray-200 bg-white text-gray-600">⟩</button>
+        </div>
+      </div>
+
+      {/* Message Details Modal */}
+      {showMessageModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-[600px] max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800">Message details</h3>
+              <button 
+                onClick={() => setShowMessageModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Status */}
+              <div>
+                <span className="px-3 py-1 rounded-full text-sm bg-green-100 text-green-700 font-medium">Sent</span>
               </div>
-              <div className="text-gray-700">{emailsSent}</div>
+
+              {/* Sent on */}
+              <div>
+                <span className="text-sm text-gray-600">Sent on:</span>
+                <span className="ml-2 text-sm text-gray-800">17-10-2025 at 17:00</span>
+              </div>
+
+              {/* Sent by */}
+              <div>
+                <span className="text-sm text-gray-600">Sent by:</span>
+                <span className="ml-2 text-sm text-gray-800">Asif Omer</span>
+              </div>
+
+              {/* Email subject */}
+              <div>
+                <span className="text-sm text-gray-600">Email subject:</span>
+                <div className="mt-1 text-sm text-gray-800">:fname, you're invited to our school portal</div>
+              </div>
+
+              {/* Email body */}
+              <div>
+                <span className="text-sm text-gray-600">Email body:</span>
+                <div className="mt-1 p-3 bg-gray-50 rounded-lg text-sm text-gray-500 min-h-[100px]">
+                  {/* Empty email body */}
+                </div>
+              </div>
+
+              {/* Recipients */}
+              <div>
+                <span className="text-sm text-gray-600">Recipients:</span>
+                <span className="ml-2 text-sm text-gray-800">1</span>
+              </div>
+
+              {/* Recipients table */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-600">
+                    <tr>
+                      <th className="text-left px-4 py-3 border-b border-gray-200 font-medium">Name</th>
+                      <th className="text-left px-4 py-3 border-b border-gray-200 font-medium">Group</th>
+                      <th className="text-left px-4 py-3 border-b border-gray-200 font-medium">Email</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td className="px-4 py-3 border-b border-gray-100">Carlos Alberto Munoz Azagra</td>
+                      <td className="px-4 py-3 border-b border-gray-100">Students</td>
+                      <td className="px-4 py-3 border-b border-gray-100">c.munoz.azagra@gmail.coM</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
-            <div className="text-sm text-gray-500 mt-2">Number of messages</div>
+            {/* Modal Footer */}
+            <div className="p-6 border-t border-gray-200 flex items-center justify-end">
+              <button 
+                onClick={() => setShowMessageModal(false)}
+                className="h-10 px-6 rounded-xl bg-indigo-600 text-white text-sm"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+function SMSContent() {
+  const navigate = useNavigate()
+  
+  return (
+    <div className="mt-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-10 shadow-sm">
+        <div className="h-52 w-full grid place-items-center">
+          <div className="text-center">
+            <div className="text-5xl text-sky-400">💬</div>
+            <div className="mt-4 text-lg font-semibold text-gray-800">Start sending SMS messages</div>
+            <div className="mt-2 text-sm text-gray-500 max-w-md">
+              You can send group (and individual) SMS messages to students, prospects, teachers, related contacts and classes.
+            </div>
+            <button onClick={() => navigate("/compose")} className="mt-4 h-10 px-6 rounded-xl bg-indigo-600 text-white inline-flex items-center gap-2">
+              <Plus size={16} />
+              Send your first group SMS
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AnnouncementsContent() {
+  const navigate = useNavigate()
+  
+  return (
+    <div className="mt-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-10 shadow-sm">
+        <div className="h-52 w-full grid place-items-center">
+          <div className="text-center">
+            <div className="text-5xl text-sky-400">📢</div>
+            <div className="mt-4 text-lg font-semibold text-gray-800">Start sending announcements</div>
+            <div className="mt-2 text-sm text-gray-500 max-w-md">
+              You can send group (and individual) announcements to Students, Prospects, Teachers, Related contacts and Classes.
+            </div>
+            <button onClick={() => navigate("/compose")} className="mt-4 h-10 px-6 rounded-xl bg-indigo-600 text-white inline-flex items-center gap-2">
+              <Plus size={16} />
+              Send your first announcement
+            </button>
           </div>
         </div>
       </div>

@@ -31,7 +31,8 @@ import {
   export default function Sidebar() {
     const navigate = useNavigate();
     const location = useLocation();
-    const active = items.find((i) => location.pathname.startsWith(i.path))?.id || "dashboard";
+    const active = items.find((i) => location.pathname.startsWith(i.path))?.id || 
+                   (location.pathname === "/compose" ? "communication" : "dashboard");
   
     return (
       <aside className="fixed left-0 top-0 h-screen w-[90px] bg-gradient-to-b from-indigo-50 to-blue-50 border-r border-blue-100 flex flex-col items-center shadow-md">

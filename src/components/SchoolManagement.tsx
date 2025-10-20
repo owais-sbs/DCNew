@@ -8,7 +8,7 @@ const tabs = [
   { id: "library", label: "Library", path: "/school/library" },
 ]
 
-function EmptyPanel({ icon, title, cta }: { icon: React.ReactNode; title: string; cta?: string }) {
+function EmptyPanel({ icon, title, cta, onCta }: { icon: React.ReactNode; title: string; cta?: string; onCta?: () => void }) {
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-10 shadow-sm">
       <div className="h-52 w-full grid place-items-center">
@@ -16,7 +16,7 @@ function EmptyPanel({ icon, title, cta }: { icon: React.ReactNode; title: string
           <div className="text-5xl text-sky-400">{icon}</div>
           <div className="mt-4 text-lg font-semibold text-gray-800">{title}</div>
           {cta && (
-            <button className="mt-3 h-9 px-4 rounded-full bg-indigo-50 text-indigo-700 text-sm">+ {cta}</button>
+            <button onClick={onCta} className="mt-3 h-9 px-4 rounded-full bg-indigo-50 text-indigo-700 text-sm">+ {cta}</button>
           )}
         </div>
       </div>
@@ -55,10 +55,10 @@ export default function SchoolManagement() {
         {/* Content */}
         <div className="mt-6">
           {active === "expenses" && (
-            <EmptyPanel icon={"💲"} title="Start tracking expenses" cta="Add your first expense" />
+            <EmptyPanel icon={"💲"} title="Start tracking expenses" cta="Add your expense" onCta={()=>navigate("/school/expenses/new")} />
           )}
           {active === "inventory" && (
-            <EmptyPanel icon={"🏠"} title="Start tracking your inventory" cta="Add your first inventory item" />
+            <EmptyPanel icon={"🏠"} title="Start tracking your inventory" cta="Add your inventory" onCta={()=>navigate("/school/inventory/new")} />
           )}
           {active === "signatures" && (
             <EmptyPanel icon={"✍️"} title="Signature requests" cta="Learn more" />
