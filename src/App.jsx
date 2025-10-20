@@ -2,6 +2,7 @@
   import Sidebar from "./components/Sidebar"
   import Header from "./components/Header"
   import Dashboard from "./components/Dashboard"
+  import Login from "./components/Login"
   import Calendar from "./components/Calendar"
 import PeopleDashboard from "./components/PeopleDashboard"
 import StudentProfile from "./components/StudentProfile"
@@ -32,68 +33,76 @@ import "react-datepicker/dist/react-datepicker.css";
           className="min-h-screen bg-gray-100 text-neutral-700"
           style={{ fontFamily: "Inter, ui-sans-serif, system-ui" }}
         >
-          {/* Sidebar */}
-          <Sidebar />
-
-          {/* Header */}
-          <Header />
-
           {/* Routed Pages */}
           <Routes>
-            <Route path="/" element={<Dashboard />} />
+            {/* Login is the default route */}
+            <Route path="/" element={<Login />} />
+            <Route path="/login" element={<Login />} />
+
+            {/* Main app layout with Sidebar + Header */}
+            <Route
+              path="/dashboard"
+              element={
+                <>
+                  <Sidebar />
+                  <Header />
+                  <Dashboard />
+                </>
+              }
+            />
             <Route path="/dashboard" element={<Dashboard />} />
 
             {/* Calendar Tabs */}
-            <Route path="/calendar" element={<Calendar />} />
-            <Route path="/calendar/teacher" element={<Calendar showTeacher />} />
-            <Route path="/calendar/classroom" element={<Calendar />} />
+            <Route path="/calendar" element={<><Sidebar /><Header /><Calendar /></>} />
+            <Route path="/calendar/teacher" element={<><Sidebar /><Header /><Calendar showTeacher /></>} />
+            <Route path="/calendar/classroom" element={<><Sidebar /><Header /><Calendar /></>} />
 
             {/* People */}
-            <Route path="/people" element={<PeopleDashboard />} />
-            <Route path="/people/students/:id" element={<StudentProfile />} />
-            <Route path="/people/students" element={<PeopleDashboard />} />
-            <Route path="/people/teachers/:id" element={<TeacherProfile />} />
-            <Route path="/people/teachers" element={<PeopleDashboard />} />
-            <Route path="/people/staffs/:id" element={<StaffProfile />} />
-            <Route path="/people/staffs" element={<PeopleDashboard />} />
-            <Route path="/people/related" element={<PeopleDashboard />} />
-            <Route path="/people/prospects" element={<PeopleDashboard />} />
+            <Route path="/people" element={<><Sidebar /><Header /><PeopleDashboard /></>} />
+            <Route path="/people/students/:id" element={<><Sidebar /><Header /><StudentProfile /></>} />
+            <Route path="/people/students" element={<><Sidebar /><Header /><PeopleDashboard /></>} />
+            <Route path="/people/teachers/:id" element={<><Sidebar /><Header /><TeacherProfile /></>} />
+            <Route path="/people/teachers" element={<><Sidebar /><Header /><PeopleDashboard /></>} />
+            <Route path="/people/staffs/:id" element={<><Sidebar /><Header /><StaffProfile /></>} />
+            <Route path="/people/staffs" element={<><Sidebar /><Header /><PeopleDashboard /></>} />
+            <Route path="/people/related" element={<><Sidebar /><Header /><PeopleDashboard /></>} />
+            <Route path="/people/prospects" element={<><Sidebar /><Header /><PeopleDashboard /></>} />
 
             {/* Notes section (Classes & events) */}
-            <Route path="/notes" element={<NotesDashboard />} />
-            <Route path="/notes/classes" element={<NotesClasses />} />
-            <Route path="/notes/events" element={<NotesEvents />} />
+            <Route path="/notes" element={<><Sidebar /><Header /><NotesDashboard /></>} />
+            <Route path="/notes/classes" element={<><Sidebar /><Header /><NotesClasses /></>} />
+            <Route path="/notes/events" element={<><Sidebar /><Header /><NotesEvents /></>} />
 
             {/* Payments */}
-            <Route path="/payments" element={<PaymentsDashboard />} />
-            <Route path="/payments/received" element={<PaymentsDashboard />} />
-            <Route path="/payments/overdue" element={<PaymentsDashboard />} />
-            <Route path="/payments/future" element={<PaymentsDashboard />} />
-            <Route path="/payments/invoices" element={<PaymentsDashboard />} />
-            <Route path="/payments/refunds" element={<PaymentsDashboard />} />
-            <Route path="/payments/add-refund" element={<AddRefund />} />
-            <Route path="/payments/add-invoice" element={<AddInvoice />} />
-            <Route path="/payments/add-payment" element={<AddPayment />} />
+            <Route path="/payments" element={<><Sidebar /><Header /><PaymentsDashboard /></>} />
+            <Route path="/payments/received" element={<><Sidebar /><Header /><PaymentsDashboard /></>} />
+            <Route path="/payments/overdue" element={<><Sidebar /><Header /><PaymentsDashboard /></>} />
+            <Route path="/payments/future" element={<><Sidebar /><Header /><PaymentsDashboard /></>} />
+            <Route path="/payments/invoices" element={<><Sidebar /><Header /><PaymentsDashboard /></>} />
+            <Route path="/payments/refunds" element={<><Sidebar /><Header /><PaymentsDashboard /></>} />
+            <Route path="/payments/add-refund" element={<><Sidebar /><Header /><AddRefund /></>} />
+            <Route path="/payments/add-invoice" element={<><Sidebar /><Header /><AddInvoice /></>} />
+            <Route path="/payments/add-payment" element={<><Sidebar /><Header /><AddPayment /></>} />
 
             {/* Communication */}
-            <Route path="/communication" element={<CommunicationDashboard />} />
-            <Route path="/communication/email" element={<CommunicationDashboard />} />
-            <Route path="/communication/sms" element={<CommunicationDashboard />} />
-            <Route path="/communication/announcements" element={<CommunicationDashboard />} />
-            <Route path="/compose" element={<Compose />} />
+            <Route path="/communication" element={<><Sidebar /><Header /><CommunicationDashboard /></>} />
+            <Route path="/communication/email" element={<><Sidebar /><Header /><CommunicationDashboard /></>} />
+            <Route path="/communication/sms" element={<><Sidebar /><Header /><CommunicationDashboard /></>} />
+            <Route path="/communication/announcements" element={<><Sidebar /><Header /><CommunicationDashboard /></>} />
+            <Route path="/compose" element={<><Sidebar /><Header /><Compose /></>} />
 
             {/* Reports */}
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/reports/attendance" element={<AttendanceReports />} />
-            <Route path="/reports/lessons" element={<LessonReports />} />
+            <Route path="/reports" element={<><Sidebar /><Header /><Reports /></>} />
+            <Route path="/reports/attendance" element={<><Sidebar /><Header /><AttendanceReports /></>} />
+            <Route path="/reports/lessons" element={<><Sidebar /><Header /><LessonReports /></>} />
 
             {/* School Management */}
-            <Route path="/school" element={<SchoolManagement />} />
-            <Route path="/school/inventory" element={<SchoolManagement />} />
-            <Route path="/school/signatures" element={<SchoolManagement />} />
-            <Route path="/school/library" element={<SchoolManagement />} />
-            <Route path="/school/expenses/new" element={<ExpenseForm />} />
-            <Route path="/school/inventory/new" element={<InventoryForm />} />
+            <Route path="/school" element={<><Sidebar /><Header /><SchoolManagement /></>} />
+            <Route path="/school/inventory" element={<><Sidebar /><Header /><SchoolManagement /></>} />
+            <Route path="/school/signatures" element={<><Sidebar /><Header /><SchoolManagement /></>} />
+            <Route path="/school/library" element={<><Sidebar /><Header /><SchoolManagement /></>} />
+            <Route path="/school/expenses/new" element={<><Sidebar /><Header /><ExpenseForm /></>} />
+            <Route path="/school/inventory/new" element={<><Sidebar /><Header /><InventoryForm /></>} />
           </Routes>
         </div>
       </Router>
