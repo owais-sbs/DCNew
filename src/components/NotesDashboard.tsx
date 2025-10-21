@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { NotebookPen, Users2, CalendarDays, Repeat2 } from "lucide-react"
+import ClassesScreen from "./ClassesScreen"
+import EventsScreen from "./EventsScreen"
+import AddEventModal from "./AddEventModal"
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", path: "/notes" },
@@ -12,6 +15,7 @@ export default function NotesDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
   const [active, setActive] = useState("dashboard")
+  const [showAddEventModal, setShowAddEventModal] = useState(false)
 
   useEffect(() => {
     const f = tabs.find(t => location.pathname === t.path)
@@ -20,9 +24,81 @@ export default function NotesDashboard() {
 
   const go = (t:any) => { setActive(t.id); navigate(t.path) }
 
+  // Render different content based on active tab
+  if (active === "classes") {
+    return (
+      <div>
+        <div className="px-6 py-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Classes & Events</h1>
+          
+          {/* Tabs */}
+          <div className="flex items-center gap-6 border-b border-gray-200 pb-3 mb-6">
+            <button 
+              onClick={() => go(tabs[0])} 
+              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[0].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+            >
+              {tabs[0].label}
+            </button>
+            <button 
+              onClick={() => go(tabs[1])} 
+              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[1].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+            >
+              {tabs[1].label}
+            </button>
+            <button 
+              onClick={() => go(tabs[2])} 
+              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[2].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+            >
+              {tabs[2].label}
+            </button>
+          </div>
+        </div>
+        <ClassesScreen />
+      </div>
+    );
+  }
+  
+  if (active === "events") {
+    return (
+      <div>
+        <div className="px-6 py-6">
+          <h1 className="text-2xl font-bold text-gray-800 mb-6">Classes & Events</h1>
+          
+          {/* Tabs */}
+          <div className="flex items-center gap-6 border-b border-gray-200 pb-3 mb-6">
+            <button 
+              onClick={() => go(tabs[0])} 
+              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[0].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+            >
+              {tabs[0].label}
+            </button>
+            <button 
+              onClick={() => go(tabs[1])} 
+              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[1].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+            >
+              {tabs[1].label}
+            </button>
+            <button 
+              onClick={() => go(tabs[2])} 
+              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[2].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+            >
+              {tabs[2].label}
+            </button>
+          </div>
+        </div>
+        <EventsScreen onAddEvent={() => setShowAddEventModal(true)} />
+        <AddEventModal 
+          isOpen={showAddEventModal} 
+          onClose={() => setShowAddEventModal(false)} 
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="pl-[72px]">
+    <div>
       <div className="px-6 py-6">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Classes & Events</h1>
         <div className="flex items-center gap-6 border-b border-gray-200 pb-3">
           {tabs.map(t => (
             <button key={t.id} onClick={() => go(t)} className={`px-4 h-10 rounded-xl text-sm ${active===t.id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}>{t.label}</button>

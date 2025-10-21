@@ -93,8 +93,9 @@ export default function CommunicationDashboard() {
   }, [])
 
   return (
-    <div className="pl-[72px]">
+    <div>
       <div className="px-6 py-6">
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Communication</h1>
         {/* Header row: Tabs + New message */}
         <div className="flex items-center gap-6 border-b border-gray-200 pb-3">
           <div className="flex items-center gap-3">
