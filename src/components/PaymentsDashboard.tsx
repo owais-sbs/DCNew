@@ -171,7 +171,7 @@ export default function PaymentsDashboard() {
   }
 
   return (
-    <div className="pl-[72px]">
+    <div>
       <div className="px-6 py-6">
         {/* Header */}
         <div className="text-2xl font-semibold text-gray-800 mb-4">Payments</div>

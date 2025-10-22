@@ -39,7 +39,7 @@ export default function SchoolManagement() {
   const go = (t:any) => { setActive(t.id); navigate(t.path) }
 
   return (
-    <div className="pl-[72px]">
+    <div>
       <div className="px-6 py-6">
         <div className="text-2xl font-semibold text-gray-800 mb-4">School management</div>
         {/* Tabs */}

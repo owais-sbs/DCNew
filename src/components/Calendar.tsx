@@ -90,7 +90,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
   }
 
   return (
-    <div className="pl-[72px] bg-[#f8fafc] min-h-screen">
+    <div className="bg-[#f8fafc] min-h-screen">
       <div className="px-6 py-4">
 
         {/* Tabs */}

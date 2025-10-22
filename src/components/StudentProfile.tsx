@@ -88,6 +88,8 @@ export default function StudentProfile() {
     </div>
   )
 
+  const [classesSubTab, setClassesSubTab] = useState<'classes'|'lessons'|'events'>('classes')
+
   const renderClassesContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
@@ -97,65 +99,180 @@ export default function StudentProfile() {
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm">Classes</button>
-            <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Lessons</button>
-            <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Events</button>
+            <button 
+              onClick={() => setClassesSubTab('classes')}
+              className={`h-8 px-3 rounded-lg text-sm transition-colors ${
+                classesSubTab === 'classes' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Classes
+            </button>
+            <button 
+              onClick={() => setClassesSubTab('lessons')}
+              className={`h-8 px-3 rounded-lg text-sm transition-colors ${
+                classesSubTab === 'lessons' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Lessons
+            </button>
+            <button 
+              onClick={() => setClassesSubTab('events')}
+              className={`h-8 px-3 rounded-lg text-sm transition-colors ${
+                classesSubTab === 'events' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              Events
+            </button>
           </div>
-          <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-1">
+          <button 
+            onClick={() => setOpenModal('enroll-event')}
+            className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-1"
+          >
             <Plus size={14} /> Enroll
           </button>
         </div>
       </div>
       
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Teacher</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Date & time</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Enrolled</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Unenrolled</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              { class: "Room 7 D7", level: "A2 am", teacher: "2 teachers", schedule: "Monday (9:00-12:00), Tuesday (9:00-12:00) and 8 more", enrolled: "07-07-2025", unenrolled: "06-07-2025", status: "Unenrolled", statusColor: "bg-red-100 text-red-800" },
-              { class: "Room 7 D7", level: "A2 am", teacher: "2 teachers", schedule: "Monday (9:00-12:00), Tuesday (9:00-12:00) and 8 more", enrolled: "22-07-2025", unenrolled: "27-07-2025", status: "Unenrolled", statusColor: "bg-red-100 text-red-800" },
-              { class: "Room9 D7", level: "B1 am", teacher: "2 teachers", schedule: "Monday (9:00-11:00), Friday (11:15-12:15) and 8 more", enrolled: "28-07-2025", unenrolled: "10-08-2025", status: "Unenrolled", statusColor: "bg-red-100 text-red-800" },
-              { class: "Roon12 D7", level: "B2 new am", teacher: "Edmund Patrick Teacher", schedule: "Monday (9:00-11:00), Monday (11:15-12:15) and 8 more", enrolled: "11-08-2025", unenrolled: "", status: "Active", statusColor: "bg-green-100 text-green-800" }
-            ].map((cls, i) => (
-              <tr key={i} className="border-b border-gray-100">
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-red-500" />
-                    <div>
-                      <div className="font-medium text-gray-900">{cls.class}</div>
-                      <div className="text-sm text-gray-500">{cls.level}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-gray-700">{cls.teacher}</td>
-                <td className="py-3 px-4 text-gray-700">{cls.schedule}</td>
-                <td className="py-3 px-4 text-gray-700">{cls.enrolled}</td>
-                <td className="py-3 px-4 text-gray-700">{cls.unenrolled}</td>
-                <td className="py-3 px-4">
-                  <span className={`px-2 py-1 rounded-full text-xs ${cls.statusColor}`}>
-                    {cls.status}
-                  </span>
-                </td>
-                <td className="py-3 px-4">
-                  <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
-                    <MoreHorizontal size={16} />
-                  </button>
-                </td>
+      {classesSubTab === 'classes' && (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Teacher</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Date & time</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Enrolled</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Unenrolled</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {[
+                { class: "PM A2 WALID/DIMITRO", level: "A2", teacher: "2 teachers", schedule: "Monday (15:15-17:00), Tuesday (15:15-17:00) and 6 more", enrolled: "20-10-2025", unenrolled: "", status: "Active", statusColor: "bg-green-100 text-green-800" }
+              ].map((cls, i) => (
+                <tr key={i} className="border-b border-gray-100">
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-red-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">{cls.class}</div>
+                        <div className="text-sm text-gray-500">{cls.level}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-gray-700">{cls.teacher}</td>
+                  <td className="py-3 px-4 text-gray-700">{cls.schedule}</td>
+                  <td className="py-3 px-4 text-gray-700">{cls.enrolled}</td>
+                  <td className="py-3 px-4 text-gray-700">{cls.unenrolled}</td>
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-1 rounded-full text-xs ${cls.statusColor}`}>
+                      {cls.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+                      <MoreHorizontal size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {classesSubTab === 'lessons' && (
+        <div>
+          <div className="flex items-center gap-4 mb-4">
+            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+              <option>Attendance: All</option>
+            </select>
+            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+              <option>Behaviour: All</option>
+            </select>
+            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+              <option>Class: All</option>
+            </select>
+            <div className="relative">
+              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+                Date: 01-01-2013 - 01-01-2030 <ChevronDown size={14} />
+              </button>
+            </div>
+            <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center">
+              <Clock size={16} className="text-gray-500" />
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Behaviour</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Grade</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Notes</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { date: "20-10-2025 13:00-15:00", class: "PM A2 WALID/DIMITRO A2", attendance: "Present", attendanceColor: "bg-green-100 text-green-800" },
+                  { date: "21-10-2025 13:00-15:00", class: "PM A2 WALID/DIMITRO A2", attendance: "Present", attendanceColor: "bg-green-100 text-green-800" },
+                  { date: "22-10-2025 13:00-15:00", class: "PM A2 WALID/DIMITRO A2", attendance: "Absent", attendanceColor: "bg-red-100 text-red-800" },
+                  { date: "23-10-2025 13:00-15:00", class: "PM A2 WALID/DIMITRO A2", attendance: "Present", attendanceColor: "bg-green-100 text-green-800" }
+                ].map((lesson, i) => (
+                  <tr key={i} className="border-b border-gray-100">
+                    <td className="py-3 px-4 text-gray-700">{lesson.date}</td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-red-500" />
+                        <div className="font-medium text-gray-900">{lesson.class}</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs ${lesson.attendanceColor}`}>
+                        {lesson.attendance}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-gray-700">-</td>
+                    <td className="py-3 px-4 text-gray-700">-</td>
+                    <td className="py-3 px-4 text-gray-700">-</td>
+                    <td className="py-3 px-4">
+                      <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+                        <FileText size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {classesSubTab === 'events' && (
+        <div className="text-center py-12">
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+            <BookOpen size={32} className="text-blue-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Enroll {student.name} in an Event</h3>
+          <p className="text-gray-600 mb-4">Events will appear here when you invite {student.name} to an event.</p>
+          <button 
+            onClick={() => setOpenModal('enroll-event')}
+            className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2"
+          >
+            <Plus size={16} /> Register for an event
+          </button>
+        </div>
+      )}
     </div>
   )
 
@@ -766,7 +883,7 @@ export default function StudentProfile() {
   }
 
   return (
-    <div className="pl-[72px]">
+    <div>
       <div className="px-6 py-6">
         
         {/* Header card */}
@@ -1179,6 +1296,62 @@ export default function StudentProfile() {
                 </button>
                 <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
                   Send
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Register for Event Modal */}
+      {openModal === 'enroll-event' && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
+          <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Enroll Student</h3>
+              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+                <span className="text-gray-500">×</span>
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
+                <button className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg">
+                  <CalendarIcon size={16} />
+                  Select a event
+                </button>
+                <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
+                  <BarChart3 size={16} />
+                  Select by event type
+                </button>
+              </div>
+              <p className="text-sm text-gray-600">
+                Enroll this student in an event. Select an event and the date on which the student(s) will be enrolled.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Select event:</label>
+                <select className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+                  <option>Select</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Only active and scheduled event are shown.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment date:</label>
+                <input 
+                  type="text" 
+                  value="22-10-2025"
+                  placeholder="dd-mm-yyyy"
+                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                />
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-4">
+                <button 
+                  onClick={() => setOpenModal(null)}
+                  className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm"
+                >
+                  Cancel
+                </button>
+                <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
+                  Enroll
                 </button>
               </div>
             </div>

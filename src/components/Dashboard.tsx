@@ -221,18 +221,16 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="pl-[80px] pt-6 bg-slate-50 min-h-screen">
-      <div className="px-6 pb-6">
+    <div className="bg-slate-50 min-h-screen">
+      <div className="px-6 py-6">
         {/* Top row: Greeting */}
-        <div className="mb-6">
+        <div>
           <h1 className="text-2xl font-semibold text-gray-800">Welcome, Asif</h1>
-          <div className="mt-2 text-sm text-gray-600"></div>
         </div>
 
-        {/* (Announcement card moved into right sidebar) */}
 
         {/* MAIN GRID: Left lessons list + Right widgets */}
-        <div className="grid grid-cols-1 xl:grid-cols-[3fr_1fr] gap-6 mt-2">
+        <div className="grid grid-cols-1 xl:grid-cols-[3fr_1fr] gap-6 mt-4">
           {/* Left column (lessons list) */}
           <main>
             {/* Section header */}
@@ -241,40 +239,26 @@ export default function Dashboard() {
               <h2 className="text-lg font-semibold text-gray-800">Lessons</h2>
               <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-white border border-gray-200 rounded-full text-gray-600">59</span>
               {/* Controls inline on the right */}
-              <div className="ml-auto flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <button
-                    title="Previous"
-                    className="h-10 w-10 grid place-items-center rounded-full border border-blue-100 bg-white hover:bg-blue-50 text-blue-600 transition"
-                    onClick={() => {
-                      const d = new Date(currentDate)
-                      d.setDate(d.getDate() - 1)
-                      setCurrentDate(d.toISOString().slice(0, 10))
-                    }}
-                  >
-                    <ArrowLeft size={18} />
-                  </button>
-                  <button
-                    title="Next"
-                    className="h-10 w-10 grid place-items-center rounded-full border border-blue-100 bg-white hover:bg-blue-50 text-blue-600 transition"
-                    onClick={() => {
-                      const d = new Date(currentDate)
-                      d.setDate(d.getDate() + 1)
-                      setCurrentDate(d.toISOString().slice(0, 10))
-                    }}
-                  >
-                    <ArrowRight size={18} />
-                  </button>
-                </div>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  title="Previous"
+                  className="h-10 w-10 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition"
+                  onClick={() => {
+                    const d = new Date(currentDate)
+                    d.setDate(d.getDate() - 1)
+                    setCurrentDate(d.toISOString().slice(0, 10))
+                  }}
+                >
+                  <ArrowLeft size={18} />
+                </button>
                 <div className="relative">
                   <button
                     onClick={() => setDateOpen((v) => !v)}
-                    className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-white text-blue-700 text-sm hover:bg-blue-50 shadow-sm"
+                    className="h-10 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
                     aria-expanded={dateOpen}
                   >
-                    <CalendarIcon size={18} className="text-indigo-600" />
+                    <CalendarIcon size={18} className="text-blue-500" />
                     <span>Today</span>
-                    <span className="text-xs text-gray-500 ml-1">· {formatDateFriendly(currentDate)}</span>
                     <svg className="ml-1 w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd" /></svg>
                   </button>
                   {dateOpen && (
@@ -303,6 +287,17 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+                <button
+                  title="Next"
+                  className="h-10 w-10 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition"
+                  onClick={() => {
+                    const d = new Date(currentDate)
+                    d.setDate(d.getDate() + 1)
+                    setCurrentDate(d.toISOString().slice(0, 10))
+                  }}
+                >
+                  <ArrowRight size={18} />
+                </button>
               </div>
             </div>
 
@@ -405,7 +400,7 @@ export default function Dashboard() {
 
           {/* Right column: widgets */}
           <aside className="flex flex-col gap-4">
-            {/* Announcements Card (now above Unread notes) */}
+            {/* Announcement Card (above Unread notes) */}
             <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -417,7 +412,7 @@ export default function Dashboard() {
                 <div className="flex items-center gap-2">
                   <Info size={16} className="text-gray-400" />
                   <button
-                    onClick={() => navigate('/compose?type=announcement')}
+                    onClick={() => navigate("/compose?type=announcement")}
                     className="h-6 w-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm"
                   >
                     +

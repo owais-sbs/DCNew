@@ -109,7 +109,7 @@ export default function PeopleDashboard() {
   const statusOptions = ["Live", "Enrolled", "Not Enrolled", "Archived"]
 
   return (
-    <div className="pl-[72px]">
+    <div>
       <div className="px-6 py-6">
         {/* Page Title */}
         <div className="mb-4">

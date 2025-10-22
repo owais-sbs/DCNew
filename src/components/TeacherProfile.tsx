@@ -625,7 +625,7 @@ export default function TeacherProfile() {
   }
 
   return (
-    <div className="pl-[72px]">
+    <div>
       <div className="px-6 py-6">
         {/* Header card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">

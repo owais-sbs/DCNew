@@ -93,7 +93,10 @@ export default function MessagesModal({ onClose, onNavigate, activeModal, onHome
         <div className="flex-1 overflow-y-auto">
           <div className="p-4">
             {/* Ask a question button */}
-            <button className="w-full bg-blue-600 text-white rounded-xl p-4 mb-4 flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors">
+            <button 
+              onClick={() => onNavigate('fin')}
+              className="w-full bg-blue-600 text-white rounded-xl p-4 mb-4 flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors"
+            >
               <Plus className="h-5 w-5" />
               Ask a question
             </button>
@@ -140,10 +143,13 @@ export default function MessagesModal({ onClose, onNavigate, activeModal, onHome
           <div className="flex items-center justify-around">
             <button 
               onClick={onHome}
-              className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+              className="flex flex-col items-center gap-1 p-2 text-blue-600"
             >
-              <Home className="h-5 w-5" />
-              <span className="text-xs">Home</span>
+              <div className="relative h-5 w-5 bg-blue-600 rounded flex items-center justify-center">
+                <Home className="h-3 w-3 text-white" />
+                <span className="absolute text-white text-[6px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">😊</span>
+              </div>
+              <span className="text-xs text-blue-600">Home</span>
             </button>
             <button className="flex flex-col items-center gap-1 p-2 text-blue-600">
               <MessageSquare className="h-5 w-5" />

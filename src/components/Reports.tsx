@@ -19,7 +19,7 @@ export default function Reports() {
   const Title = getTitle(activeGroup, activeItem)
 
   return (
-    <div className="pl-[72px]">
+    <div>
       <div className="px-6 py-6 grid grid-cols-[260px_1fr] gap-6">
         {/* Left sidebar tree */}
         <aside className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm h-fit">
