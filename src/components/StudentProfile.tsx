@@ -253,43 +253,82 @@ export default function StudentProfile() {
     </div>
   )
 
+  const [feesTab, setFeesTab] = useState<'grouped'|'individual'>('grouped')
+
   const renderFeesContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Fees</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm">Grouped</button>
-          <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Individual fees</button>
+        {/* Line-style tabs: Grouped / Individual */}
+        <div className="flex items-center gap-6 border-b border-gray-200 pb-3 w-full ml-6">
+          {[
+            {id:'grouped',label:'Grouped'},
+            {id:'individual',label:'Individual fees'}
+          ].map((t:any)=> (
+            <button
+              key={t.id}
+              onClick={()=>setFeesTab(t.id)}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm ${feesTab===t.id? 'text-blue-700 font-medium':'text-gray-700 hover:text-gray-900'}`}
+            >
+              <span>{t.label}</span>
+              {feesTab===t.id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>}
+            </button>
+          ))}
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Class fees */}
-        <div className="text-center py-12">
-          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-            <DollarSign size={32} className="text-blue-600" />
+
+      {feesTab==='grouped' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Class fees */}
+          <div className="text-center py-12">
+            <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+              <DollarSign size={32} className="text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Class fees</h3>
+            <p className="text-gray-600 mb-4">Class fees will appear here when you enroll {student.name} in a class.</p>
+            <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+              <Plus size={16} /> Enroll student
+            </button>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Class fees</h3>
-          <p className="text-gray-600 mb-4">Class fees will appear here when you enroll {student.name} in a class.</p>
-          <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
-            <Plus size={16} /> Enroll student
-          </button>
-        </div>
-        
-        {/* Additional fees */}
-        <div className="text-center py-12">
-          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-            <FileText size={32} className="text-blue-600" />
+
+          {/* Additional fees */}
+          <div className="text-center py-12">
+            <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+              <FileText size={32} className="text-blue-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Additional fees</h3>
+            <p className="text-gray-600 mb-4">Add any other fees here, such as registration fees, exam fees, books, bus service etc.</p>
+            <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+              <Plus size={16} /> Add fee
+            </button>
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Additional fees</h3>
-          <p className="text-gray-600 mb-4">Add any other fees here, such as registration fees, exam fees, books, bus service etc.</p>
-          <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
-            <Plus size={16} /> Add fee
-          </button>
         </div>
-      </div>
+      )}
+
+      {feesTab==='individual' && (
+        <div>
+          {/* Simple table placeholder based on provided screenshots */}
+          <div className="text-sm text-gray-600 mb-3">Breakdown of all of this student's fees</div>
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  {['', 'Due date', 'Description', 'Subtotal', 'Discount', 'Total', 'Status', 'Actions'].map(h=> (
+                    <th key={h} className="text-left px-4 py-3 border-b border-gray-200 font-medium">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td colSpan={8} className="px-4 py-10 text-center text-gray-500">No records found</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -766,13 +805,13 @@ export default function StudentProfile() {
                 </button>
                 {openDropdown === 'payment' && (
                   <div className="absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={()=>{setOpenDropdown(null); navigate('/payments/add-payment')}}>
                       <CreditCard size={16} /> New payment
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={()=>{setOpenDropdown(null); navigate('/payments/add-invoice')}}>
                       <FileText size={16} /> New invoice
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={()=>{setOpenDropdown(null); navigate('/payments/add-refund')}}>
                       <Archive size={16} /> New refund
                     </div>
                   </div>

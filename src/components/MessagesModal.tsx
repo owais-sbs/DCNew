@@ -3,9 +3,12 @@ import { X, Home, MessageSquare, HelpCircle, ChevronRight, Plus } from 'lucide-r
 
 interface MessagesModalProps {
   onClose: () => void;
+  onNavigate: (modal: 'messages' | 'help' | 'fin') => void;
+  activeModal: 'messages' | 'help' | 'fin' | null;
+  onHome: () => void;
 }
 
-export default function MessagesModal({ onClose }: MessagesModalProps) {
+export default function MessagesModal({ onClose, onNavigate, activeModal, onHome }: MessagesModalProps) {
   const conversations = [
     {
       id: 1,
@@ -135,7 +138,10 @@ export default function MessagesModal({ onClose }: MessagesModalProps) {
         {/* Bottom Navigation */}
         <div className="border-t border-gray-200 p-4">
           <div className="flex items-center justify-around">
-            <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors">
+            <button 
+              onClick={onHome}
+              className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+            >
               <Home className="h-5 w-5" />
               <span className="text-xs">Home</span>
             </button>
@@ -143,7 +149,10 @@ export default function MessagesModal({ onClose }: MessagesModalProps) {
               <MessageSquare className="h-5 w-5" />
               <span className="text-xs">Messages</span>
             </button>
-            <button className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors">
+            <button 
+              onClick={() => onNavigate('help')}
+              className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+            >
               <HelpCircle className="h-5 w-5" />
               <span className="text-xs">Help</span>
             </button>

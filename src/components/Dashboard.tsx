@@ -1,5 +1,6 @@
 // src/components/Dashboard.tsx
 import React, { useMemo, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
   BookOpen,
   MapPin,
@@ -181,6 +182,7 @@ function Donut({ present = 45, absent = 22 }: { present?: number; absent?: numbe
    Main component
    ------------------------- */
 export default function Dashboard() {
+  const navigate = useNavigate()
   // selected lesson card (opens details modal)
   const [selected, setSelected] = useState<string | null>(null)
   // which card is hovered
@@ -220,168 +222,88 @@ export default function Dashboard() {
 
   return (
     <div className="pl-[80px] pt-6 bg-slate-50 min-h-screen">
-      <div className="px-6 pb-8">
+      <div className="px-6 pb-6">
         {/* Top row: Greeting */}
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-800">Good day, Asif</h1>
-          <div className="mt-2 text-sm text-gray-600">Here's what's happening today — {formatDateFriendly(currentDate)}</div>
+          <h1 className="text-2xl font-semibold text-gray-800">Welcome, Asif</h1>
+          <div className="mt-2 text-sm text-gray-600"></div>
         </div>
 
-        {/* Today calendar button - moved to right side above lessons */}
-        <div className="mb-6 flex justify-end">
-          <div className="flex items-center gap-3">
-            {/* Left/Right arrows */}
-            <div className="flex items-center gap-2">
-              <button
-                title="Previous"
-                className="h-10 w-10 grid place-items-center rounded-full border border-blue-100 bg-white hover:bg-blue-50 text-blue-600 transition"
-                onClick={() => {
-                  // simple prev day
-                  const d = new Date(currentDate)
-                  d.setDate(d.getDate() - 1)
-                  setCurrentDate(d.toISOString().slice(0, 10))
-                }}
-              >
-                <ArrowLeft size={18} />
-              </button>
-
-              <button
-                title="Next"
-                className="h-10 w-10 grid place-items-center rounded-full border border-blue-100 bg-white hover:bg-blue-50 text-blue-600 transition"
-                onClick={() => {
-                  const d = new Date(currentDate)
-                  d.setDate(d.getDate() + 1)
-                  setCurrentDate(d.toISOString().slice(0, 10))
-                }}
-              >
-                <ArrowRight size={18} />
-              </button>
-            </div>
-
-            {/* Today + date picker dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setDateOpen((v) => !v)}
-                className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-white text-blue-700 text-sm hover:bg-blue-50 shadow-sm"
-                aria-expanded={dateOpen}
-              >
-                <CalendarIcon size={18} className="text-indigo-600" />
-                {/* show friendly label */}
-                <span>Today</span>
-                <span className="text-xs text-gray-500 ml-1">· {formatDateFriendly(currentDate)}</span>
-                <svg className="ml-1 w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                  <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd" />
-                </svg>
-              </button>
-
-              {/* Calendar popup */}
-              {dateOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-gray-200 shadow-lg z-30 p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <button
-                      onClick={() => {
-                        const d = new Date(currentDate)
-                        d.setMonth(d.getMonth() - 1)
-                        setCurrentDate(d.toISOString().slice(0, 10))
-                      }}
-                      className="p-1 hover:bg-gray-100 rounded"
-                    >
-                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                    <div className="text-lg font-semibold text-gray-800">
-                      {new Date(currentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </div>
-                    <button
-                      onClick={() => {
-                        const d = new Date(currentDate)
-                        d.setMonth(d.getMonth() + 1)
-                        setCurrentDate(d.toISOString().slice(0, 10))
-                      }}
-                      className="p-1 hover:bg-gray-100 rounded"
-                    >
-                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                  
-                  {/* Calendar grid */}
-                  <div className="grid grid-cols-7 gap-1 mb-4">
-                    {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (
-                      <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">{day}</div>
-                    ))}
-                    {(() => {
-                      const date = new Date(currentDate)
-                      const year = date.getFullYear()
-                      const month = date.getMonth()
-                      const firstDay = new Date(year, month, 1)
-                      const lastDay = new Date(year, month + 1, 0)
-                      const startDate = new Date(firstDay)
-                      startDate.setDate(startDate.getDate() - firstDay.getDay() + 1)
-                      
-                      const days = []
-                      for (let i = 0; i < 42; i++) {
-                        const currentDay = new Date(startDate)
-                        currentDay.setDate(startDate.getDate() + i)
-                        const isCurrentMonth = currentDay.getMonth() === month
-                        const isSelected = currentDay.toISOString().slice(0, 10) === currentDate
-                        const isToday = currentDay.toDateString() === new Date().toDateString()
-                        
-                        days.push(
-                          <button
-                            key={i}
-                            onClick={() => {
-                              setCurrentDate(currentDay.toISOString().slice(0, 10))
-                              setDateOpen(false)
-                            }}
-                            className={`h-8 w-8 rounded-full text-sm ${
-                              isSelected 
-                                ? 'bg-blue-600 text-white' 
-                                : isToday 
-                                ? 'bg-blue-100 text-blue-600 font-semibold' 
-                                : isCurrentMonth 
-                                ? 'text-gray-900 hover:bg-gray-100' 
-                                : 'text-gray-400'
-                            }`}
-                          >
-                            {currentDay.getDate()}
-                          </button>
-                        )
-                      }
-                      return days
-                    })()}
-                  </div>
-                  
-                  <div className="flex justify-center">
-                    <button
-                      onClick={() => {
-                        const today = new Date()
-                        setCurrentDate(today.toISOString().slice(0, 10))
-                        setDateOpen(false)
-                      }}
-                      className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
-                    >
-                      Today
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
-          </div>
-        </div>
+        {/* (Announcement card moved into right sidebar) */}
 
         {/* MAIN GRID: Left lessons list + Right widgets */}
         <div className="grid grid-cols-1 xl:grid-cols-[3fr_1fr] gap-6 mt-2">
           {/* Left column (lessons list) */}
           <main>
             {/* Section header */}
-            <div className="mb-4 flex items-center gap-3">
+            <div className="mb-3 flex items-center gap-3">
               <BookOpen className="text-indigo-600" size={20} />
               <h2 className="text-lg font-semibold text-gray-800">Lessons</h2>
               <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-white border border-gray-200 rounded-full text-gray-600">59</span>
+              {/* Controls inline on the right */}
+              <div className="ml-auto flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    title="Previous"
+                    className="h-10 w-10 grid place-items-center rounded-full border border-blue-100 bg-white hover:bg-blue-50 text-blue-600 transition"
+                    onClick={() => {
+                      const d = new Date(currentDate)
+                      d.setDate(d.getDate() - 1)
+                      setCurrentDate(d.toISOString().slice(0, 10))
+                    }}
+                  >
+                    <ArrowLeft size={18} />
+                  </button>
+                  <button
+                    title="Next"
+                    className="h-10 w-10 grid place-items-center rounded-full border border-blue-100 bg-white hover:bg-blue-50 text-blue-600 transition"
+                    onClick={() => {
+                      const d = new Date(currentDate)
+                      d.setDate(d.getDate() + 1)
+                      setCurrentDate(d.toISOString().slice(0, 10))
+                    }}
+                  >
+                    <ArrowRight size={18} />
+                  </button>
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setDateOpen((v) => !v)}
+                    className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-blue-100 bg-white text-blue-700 text-sm hover:bg-blue-50 shadow-sm"
+                    aria-expanded={dateOpen}
+                  >
+                    <CalendarIcon size={18} className="text-indigo-600" />
+                    <span>Today</span>
+                    <span className="text-xs text-gray-500 ml-1">· {formatDateFriendly(currentDate)}</span>
+                    <svg className="ml-1 w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd" /></svg>
+                  </button>
+                  {dateOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-gray-200 shadow-lg z-30 p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth()-1); setCurrentDate(d.toISOString().slice(0,10)) }} className="p-1 hover:bg-gray-100 rounded">
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                        </button>
+                        <div className="text-lg font-semibold text-gray-800">{new Date(currentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
+                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth()+1); setCurrentDate(d.toISOString().slice(0,10)) }} className="p-1 hover:bg-gray-100 rounded">
+                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-7 gap-1 mb-4">
+                        {['Mo','Tu','We','Th','Fr','Sa','Su'].map(day => (<div key={day} className="text-center text-sm font-medium text-gray-500 py-2">{day}</div>))}
+                        {(() => {
+                          const date = new Date(currentDate); const year = date.getFullYear(); const month = date.getMonth(); const firstDay = new Date(year, month, 1); const startDate = new Date(firstDay); startDate.setDate(startDate.getDate() - firstDay.getDay() + 1);
+                          const days:any[] = [];
+                          for (let i=0;i<42;i++){ const currentDay = new Date(startDate); currentDay.setDate(startDate.getDate()+i); const isCurrentMonth = currentDay.getMonth()===month; const isSelected = currentDay.toISOString().slice(0,10)===currentDate; const isToday = currentDay.toDateString()===new Date().toDateString();
+                            days.push(<button key={i} onClick={()=>{setCurrentDate(currentDay.toISOString().slice(0,10)); setDateOpen(false)}} className={`h-8 w-8 rounded-full text-sm ${isSelected ? 'bg-blue-600 text-white' : isToday ? 'bg-blue-100 text-blue-600 font-semibold' : isCurrentMonth ? 'text-gray-900 hover:bg-gray-100' : 'text-gray-400'}`}>{currentDay.getDate()}</button>) }
+                          return days; })()}
+                      </div>
+                      <div className="flex justify-center">
+                        <button onClick={()=>{ const today=new Date(); setCurrentDate(today.toISOString().slice(0,10)); setDateOpen(false) }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Today</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Cards list */}
@@ -481,9 +403,9 @@ export default function Dashboard() {
             </div>
           </main>
 
-          {/* Right column: widgets - reordered as requested */}
+          {/* Right column: widgets */}
           <aside className="flex flex-col gap-4">
-            {/* 1. Announcements Card */}
+            {/* Announcements Card (now above Unread notes) */}
             <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -494,13 +416,18 @@ export default function Dashboard() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Info size={16} className="text-gray-400" />
-                  <button className="h-6 w-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm">+</button>
+                  <button
+                    onClick={() => navigate('/compose?type=announcement')}
+                    className="h-6 w-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm"
+                  >
+                    +
+                  </button>
                 </div>
               </div>
               <div className="mt-3 text-sm text-gray-500">No unread announcements</div>
             </section>
 
-            {/* 2. Unread notes Card */}
+            {/* 1. Unread notes Card */}
             <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">

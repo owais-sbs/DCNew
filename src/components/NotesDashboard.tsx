@@ -35,21 +35,42 @@ export default function NotesDashboard() {
           <div className="flex items-center gap-6 border-b border-gray-200 pb-3 mb-6">
             <button 
               onClick={() => go(tabs[0])} 
-              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[0].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+                active===tabs[0].id
+                  ? "text-blue-700 font-medium"
+                  : "text-gray-700 hover:text-gray-900"
+              }`}
             >
-              {tabs[0].label}
+              <span>{tabs[0].label}</span>
+              {active === tabs[0].id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
             </button>
             <button 
               onClick={() => go(tabs[1])} 
-              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[1].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+                active===tabs[1].id
+                  ? "text-blue-700 font-medium"
+                  : "text-gray-700 hover:text-gray-900"
+              }`}
             >
-              {tabs[1].label}
+              <span>{tabs[1].label}</span>
+              {active === tabs[1].id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
             </button>
             <button 
               onClick={() => go(tabs[2])} 
-              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[2].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+                active===tabs[2].id
+                  ? "text-blue-700 font-medium"
+                  : "text-gray-700 hover:text-gray-900"
+              }`}
             >
-              {tabs[2].label}
+              <span>{tabs[2].label}</span>
+              {active === tabs[2].id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
             </button>
           </div>
         </div>
@@ -68,21 +89,42 @@ export default function NotesDashboard() {
           <div className="flex items-center gap-6 border-b border-gray-200 pb-3 mb-6">
             <button 
               onClick={() => go(tabs[0])} 
-              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[0].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+                active===tabs[0].id
+                  ? "text-blue-700 font-medium"
+                  : "text-gray-700 hover:text-gray-900"
+              }`}
             >
-              {tabs[0].label}
+              <span>{tabs[0].label}</span>
+              {active === tabs[0].id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
             </button>
             <button 
               onClick={() => go(tabs[1])} 
-              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[1].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+                active===tabs[1].id
+                  ? "text-blue-700 font-medium"
+                  : "text-gray-700 hover:text-gray-900"
+              }`}
             >
-              {tabs[1].label}
+              <span>{tabs[1].label}</span>
+              {active === tabs[1].id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
             </button>
             <button 
               onClick={() => go(tabs[2])} 
-              className={`px-4 h-10 rounded-xl text-sm ${active===tabs[2].id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+                active===tabs[2].id
+                  ? "text-blue-700 font-medium"
+                  : "text-gray-700 hover:text-gray-900"
+              }`}
             >
-              {tabs[2].label}
+              <span>{tabs[2].label}</span>
+              {active === tabs[2].id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
             </button>
           </div>
         </div>
@@ -101,7 +143,20 @@ export default function NotesDashboard() {
         <h1 className="text-2xl font-bold text-gray-800 mb-6">Classes & Events</h1>
         <div className="flex items-center gap-6 border-b border-gray-200 pb-3">
           {tabs.map(t => (
-            <button key={t.id} onClick={() => go(t)} className={`px-4 h-10 rounded-xl text-sm ${active===t.id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}>{t.label}</button>
+            <button 
+              key={t.id} 
+              onClick={() => go(t)} 
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+                active===t.id
+                  ? "text-blue-700 font-medium"
+                  : "text-gray-700 hover:text-gray-900"
+              }`}
+            >
+              <span>{t.label}</span>
+              {active === t.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
+            </button>
           ))}
         </div>
 

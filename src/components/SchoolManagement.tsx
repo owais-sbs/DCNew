@@ -45,9 +45,28 @@ export default function SchoolManagement() {
         {/* Tabs */}
         <div className="flex items-center gap-6 border-b border-gray-200 pb-3">
           {tabs.map(t => (
-            <button key={t.id} onClick={()=>go(t)} className={`inline-flex items-center gap-2 px-3 h-10 rounded-xl text-sm ${active===t.id?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}>
+            <button 
+              key={t.id} 
+              onClick={()=>go(t)} 
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+                active===t.id
+                  ? "text-blue-700 font-medium"
+                  : "text-gray-700 hover:text-gray-900"
+              }`}
+            >
               <span>{t.label}</span>
-              {t.count!=null && <span className="text-xs text-gray-500">{t.count}</span>}
+              {t.count!=null && (
+                <span
+                  className={`text-xs ${
+                    active === t.id ? "text-blue-700" : "text-gray-500"
+                  }`}
+                >
+                  {t.count}
+                </span>
+              )}
+              {active === t.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
             </button>
           ))}
         </div>

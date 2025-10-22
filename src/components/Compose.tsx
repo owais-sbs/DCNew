@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { 
   Mail,
   MessageCircle,
@@ -35,6 +35,17 @@ export default function Compose() {
   const [showSmsCreditsModal, setShowSmsCreditsModal] = useState(false)
   const [selectedPackage, setSelectedPackage] = useState(1000)
 
+  // Initialize from query string e.g. /compose?type=announcement
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const type = params.get('type') as ComposeTab | null
+      if (type === 'email' || type === 'sms' || type === 'announcement') {
+        setActiveTab(type)
+      }
+    } catch {}
+  }, [])
+
   return (
     <div className="pl-[72px]">
       <div className="px-6 py-6">
@@ -43,36 +54,27 @@ export default function Compose() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setActiveTab("email")}
-              className={`px-4 h-10 rounded-xl text-sm inline-flex items-center gap-2 transition ${
-                activeTab === "email"
-                  ? "bg-white shadow-sm border border-blue-200 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${activeTab === 'email' ? 'text-blue-700 font-medium' : 'text-gray-700 hover:text-gray-900'}`}
             >
               <Mail size={14} className="text-gray-500" />
               <span>New email</span>
+              {activeTab === 'email' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>}
             </button>
             <button
               onClick={() => setActiveTab("sms")}
-              className={`px-4 h-10 rounded-xl text-sm inline-flex items-center gap-2 transition ${
-                activeTab === "sms"
-                  ? "bg-white shadow-sm border border-blue-200 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${activeTab === 'sms' ? 'text-blue-700 font-medium' : 'text-gray-700 hover:text-gray-900'}`}
             >
               <MessageCircle size={14} className="text-gray-500" />
               <span>New SMS</span>
+              {activeTab === 'sms' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>}
             </button>
             <button
               onClick={() => setActiveTab("announcement")}
-              className={`px-4 h-10 rounded-xl text-sm inline-flex items-center gap-2 transition ${
-                activeTab === "announcement"
-                  ? "bg-white shadow-sm border border-blue-200 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-50"
-              }`}
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${activeTab === 'announcement' ? 'text-blue-700 font-medium' : 'text-gray-700 hover:text-gray-900'}`}
             >
               <Megaphone size={14} className="text-gray-500" />
               <span>New announcement</span>
+              {activeTab === 'announcement' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>}
             </button>
           </div>
         </div>

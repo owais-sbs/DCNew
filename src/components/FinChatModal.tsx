@@ -1,11 +1,14 @@
 import { useState } from 'react';
-import { X, ArrowLeft, MoreHorizontal, Paperclip, Smile, Mic, Send, ChevronDown } from 'lucide-react';
+import { X, ArrowLeft, MoreHorizontal, Paperclip, Smile, Mic, Send, ChevronDown, Home, MessageSquare, HelpCircle } from 'lucide-react';
 
 interface FinChatModalProps {
   onClose: () => void;
+  onNavigate: (modal: 'messages' | 'help' | 'fin') => void;
+  activeModal: 'messages' | 'help' | 'fin' | null;
+  onHome: () => void;
 }
 
-export default function FinChatModal({ onClose }: FinChatModalProps) {
+export default function FinChatModal({ onClose, onNavigate, activeModal, onHome }: FinChatModalProps) {
   const [message, setMessage] = useState('');
 
   const handleSendMessage = () => {
@@ -125,6 +128,33 @@ export default function FinChatModal({ onClose }: FinChatModalProps) {
                 <span className="text-white font-bold text-xs">F</span>
               </div>
               <span>Fin</span>
+            </div>
+          </div>
+          
+          {/* Bottom Navigation */}
+          <div className="border-t border-gray-200 p-4 mt-4">
+            <div className="flex items-center justify-around">
+              <button 
+                onClick={onHome}
+                className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+              >
+                <Home className="h-5 w-5" />
+                <span className="text-xs">Home</span>
+              </button>
+              <button 
+                onClick={() => onNavigate('messages')}
+                className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+              >
+                <MessageSquare className="h-5 w-5" />
+                <span className="text-xs">Messages</span>
+              </button>
+              <button 
+                onClick={() => onNavigate('help')}
+                className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
+              >
+                <HelpCircle className="h-5 w-5" />
+                <span className="text-xs">Help</span>
+              </button>
             </div>
           </div>
         </div>

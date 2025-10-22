@@ -103,10 +103,8 @@ export default function CommunicationDashboard() {
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`px-4 h-10 rounded-xl text-sm inline-flex items-center gap-2 transition ${
-                  activeTab === t.id
-                    ? "bg-white shadow-sm border border-blue-200 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-50"
+                className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+                  activeTab === t.id ? "text-blue-700 font-medium" : "text-gray-700 hover:text-gray-900"
                 }`}
               >
                 {/* small icons for each */}
@@ -114,6 +112,9 @@ export default function CommunicationDashboard() {
                 {t.id === "sms" && <MessageCircle size={14} className="text-gray-500" />}
                 {t.id === "ann" && <Megaphone size={14} className="text-gray-500" />}
                 <span>{t.label}</span>
+                {activeTab === t.id && (
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+                )}
               </button>
             ))}
           </div>

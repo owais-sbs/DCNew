@@ -3,25 +3,36 @@ import { MessageCircle } from 'lucide-react';
 import HelpModal from './HelpModal';
 import MessagesModal from './MessagesModal';
 import FinChatModal from './FinChatModal';
+import { useNavigate } from 'react-router-dom';
 
 export default function ChatIcon() {
-  const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [isMessagesOpen, setIsMessagesOpen] = useState(false);
-  const [isFinChatOpen, setIsFinChatOpen] = useState(false);
+  const navigate = useNavigate();
+  const [activeModal, setActiveModal] = useState<'messages' | 'help' | 'fin' | null>(null);
 
   const handleChatClick = () => {
     // Cycle through: Messages -> Help -> Fin Chat -> Close
-    if (!isHelpOpen && !isMessagesOpen && !isFinChatOpen) {
-      setIsMessagesOpen(true);
-    } else if (isMessagesOpen) {
-      setIsMessagesOpen(false);
-      setIsHelpOpen(true);
-    } else if (isHelpOpen) {
-      setIsHelpOpen(false);
-      setIsFinChatOpen(true);
-    } else if (isFinChatOpen) {
-      setIsFinChatOpen(false);
+    if (activeModal === null) {
+      setActiveModal('messages');
+    } else if (activeModal === 'messages') {
+      setActiveModal('help');
+    } else if (activeModal === 'help') {
+      setActiveModal('fin');
+    } else if (activeModal === 'fin') {
+      setActiveModal(null);
     }
+  };
+
+  const handleNavigation = (modal: 'messages' | 'help' | 'fin') => {
+    setActiveModal(modal);
+  };
+
+  const handleClose = () => {
+    setActiveModal(null);
+  };
+
+  const handleHome = () => {
+    navigate('/dashboard');
+    setActiveModal(null);
   };
 
   return (
@@ -37,16 +48,31 @@ export default function ChatIcon() {
       </div>
 
       {/* Modals */}
-      {isHelpOpen && (
-        <HelpModal onClose={() => setIsHelpOpen(false)} />
+      {activeModal === 'messages' && (
+        <MessagesModal 
+          onClose={handleClose} 
+          onNavigate={handleNavigation}
+          activeModal={activeModal}
+          onHome={handleHome}
+        />
       )}
       
-      {isMessagesOpen && (
-        <MessagesModal onClose={() => setIsMessagesOpen(false)} />
+      {activeModal === 'help' && (
+        <HelpModal 
+          onClose={handleClose} 
+          onNavigate={handleNavigation}
+          activeModal={activeModal}
+          onHome={handleHome}
+        />
       )}
       
-      {isFinChatOpen && (
-        <FinChatModal onClose={() => setIsFinChatOpen(false)} />
+      {activeModal === 'fin' && (
+        <FinChatModal 
+          onClose={handleClose} 
+          onNavigate={handleNavigation}
+          activeModal={activeModal}
+          onHome={handleHome}
+        />
       )}
     </>
   );

@@ -176,20 +176,21 @@ export default function PaymentsDashboard() {
         {/* Header */}
         <div className="text-2xl font-semibold text-gray-800 mb-4">Payments</div>
         
-        {/* Tabs */}
-        <div className="flex items-center gap-3 border-b border-gray-200 pb-3 overflow-x-auto">
+        {/* Tabs - line style */}
+        <div className="flex items-center gap-4 border-b border-gray-200 pb-3 overflow-x-auto">
           {tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => go(t)}
-              className={`px-4 h-10 rounded-xl text-sm whitespace-nowrap inline-flex items-center gap-2 ${
-                active === t.id
-                  ? "bg-white shadow-sm border border-blue-200 text-blue-700"
-                  : "text-gray-700 hover:bg-gray-50"
+              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm whitespace-nowrap transition-colors ${
+                active === t.id ? "text-blue-700 font-medium" : "text-gray-700 hover:text-gray-900"
               }`}
             >
               {renderTabIcon(t.icon)}
-              {t.label}
+              <span>{t.label}</span>
+              {active === t.id && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
+              )}
             </button>
           ))}
         </div>
