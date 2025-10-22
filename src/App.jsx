@@ -3,6 +3,7 @@ import { SidebarProvider } from "./contexts/SidebarContext"
 import Sidebar from "./components/Sidebar"
 import Header from "./components/Header"
 import ContentWrapper from "./components/ContentWrapper"
+import ChatIcon from "./components/ChatIcon"
 import Dashboard from "./components/Dashboard"
 import Login from "./components/Login"
 import Calendar from "./components/Calendar"
@@ -43,6 +44,9 @@ export default function App() {
           className="min-h-screen bg-gray-100 text-neutral-700"
           style={{ fontFamily: "Inter, ui-sans-serif, system-ui" }}
         >
+          {/* Floating Chat Icon - appears on all pages */}
+          <ChatIcon />
+          
           {/* Routed Pages */}
           <Routes>
             {/* Login is the default route */}

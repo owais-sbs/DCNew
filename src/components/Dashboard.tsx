@@ -11,7 +11,8 @@ import {
   Calendar as CalendarIcon,
   Info,
   Star,
-  Flag
+  Flag,
+  MessageSquare
 } from "lucide-react"
 
 /**
@@ -52,7 +53,7 @@ const makeSampleLessons = (): Lesson[] => {
       teacher: { name: "Sara Lagarto Teacher", initials: "SL", color: "bg-rose-500" },
       students: 9,
       stats: { green: 4, red: 2, gray: 2 },
-      accent: "border-l-4 border-rose-500"
+      accent: "border-l-2 border-red-500"
     },
     {
       id: "l2",
@@ -64,7 +65,7 @@ const makeSampleLessons = (): Lesson[] => {
       teacher: { name: "Saba Teacher", initials: "ST", color: "bg-blue-500" },
       students: 11,
       stats: { green: 4, red: 2, gray: 1 },
-      accent: "border-l-4 border-amber-500"
+      accent: "border-l-2 border-red-500"
     },
     {
       id: "l3",
@@ -76,7 +77,7 @@ const makeSampleLessons = (): Lesson[] => {
       teacher: { name: "Edmund Patrick Teacher", initials: "EP", color: "bg-purple-500" },
       students: 14,
       stats: { green: 12, red: 1, gray: 1 },
-      accent: "border-l-4 border-yellow-500"
+      accent: "border-l-2 border-red-500"
     },
     {
       id: "l4",
@@ -88,7 +89,7 @@ const makeSampleLessons = (): Lesson[] => {
       teacher: { name: "Isabela Teacher", initials: "IT", color: "bg-teal-500" },
       students: 12,
       stats: { green: 5, red: 2, gray: 1 },
-      accent: "border-l-4 border-orange-500"
+      accent: "border-l-2 border-red-500"
     },
     {
       id: "l5",
@@ -100,7 +101,7 @@ const makeSampleLessons = (): Lesson[] => {
       teacher: { name: "Oriana Teacher", initials: "OT", color: "bg-pink-500" },
       students: 15,
       stats: { green: 8, red: 3, gray: 4 },
-      accent: "border-l-4 border-amber-400"
+      accent: "border-l-2 border-red-500"
     }
   ]
 
@@ -220,14 +221,14 @@ export default function Dashboard() {
   return (
     <div className="pl-[80px] pt-6 bg-slate-50 min-h-screen">
       <div className="px-6 pb-8">
-        {/* Top row: Greeting + controls (these sit above the lessons cards) */}
-        <div className="mb-6 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4 items-start">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-800">Good day, Asif</h1>
-            <div className="mt-2 text-sm text-gray-600">Here's what's happening today — {formatDateFriendly(currentDate)}</div>
-          </div>
+        {/* Top row: Greeting */}
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold text-gray-800">Good day, Asif</h1>
+          <div className="mt-2 text-sm text-gray-600">Here's what's happening today — {formatDateFriendly(currentDate)}</div>
+        </div>
 
-          {/* Controls block (arrows, Today + datepicker, Add & ended lessons) */}
+        {/* Today calendar button - moved to right side above lessons */}
+        <div className="mb-6 flex justify-end">
           <div className="flex items-center gap-3">
             {/* Left/Right arrows */}
             <div className="flex items-center gap-2">
@@ -273,62 +274,107 @@ export default function Dashboard() {
                 </svg>
               </button>
 
-              {/* Date dropdown (simple) */}
+              {/* Calendar popup */}
               {dateOpen && (
-                <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-gray-200 shadow-lg z-30 p-3">
-                  <div className="text-sm text-gray-700 mb-2">Select date</div>
-                  <input
-                    type="date"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2"
-                    value={currentDate}
-                    onChange={(e) => setCurrentDate(e.target.value)}
-                  />
-                  <div className="mt-3 flex justify-end gap-2">
-                    <button
-                      onClick={() => setDateOpen(false)}
-                      className="px-3 h-9 rounded-lg border border-gray-200"
-                    >
-                      Close
-                    </button>
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-gray-200 shadow-lg z-30 p-4">
+                  <div className="flex items-center justify-between mb-4">
                     <button
                       onClick={() => {
+                        const d = new Date(currentDate)
+                        d.setMonth(d.getMonth() - 1)
+                        setCurrentDate(d.toISOString().slice(0, 10))
+                      }}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                    <div className="text-lg font-semibold text-gray-800">
+                      {new Date(currentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </div>
+                    <button
+                      onClick={() => {
+                        const d = new Date(currentDate)
+                        d.setMonth(d.getMonth() + 1)
+                        setCurrentDate(d.toISOString().slice(0, 10))
+                      }}
+                      className="p-1 hover:bg-gray-100 rounded"
+                    >
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {/* Calendar grid */}
+                  <div className="grid grid-cols-7 gap-1 mb-4">
+                    {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (
+                      <div key={day} className="text-center text-sm font-medium text-gray-500 py-2">{day}</div>
+                    ))}
+                    {(() => {
+                      const date = new Date(currentDate)
+                      const year = date.getFullYear()
+                      const month = date.getMonth()
+                      const firstDay = new Date(year, month, 1)
+                      const lastDay = new Date(year, month + 1, 0)
+                      const startDate = new Date(firstDay)
+                      startDate.setDate(startDate.getDate() - firstDay.getDay() + 1)
+                      
+                      const days = []
+                      for (let i = 0; i < 42; i++) {
+                        const currentDay = new Date(startDate)
+                        currentDay.setDate(startDate.getDate() + i)
+                        const isCurrentMonth = currentDay.getMonth() === month
+                        const isSelected = currentDay.toISOString().slice(0, 10) === currentDate
+                        const isToday = currentDay.toDateString() === new Date().toDateString()
+                        
+                        days.push(
+                          <button
+                            key={i}
+                            onClick={() => {
+                              setCurrentDate(currentDay.toISOString().slice(0, 10))
+                              setDateOpen(false)
+                            }}
+                            className={`h-8 w-8 rounded-full text-sm ${
+                              isSelected 
+                                ? 'bg-blue-600 text-white' 
+                                : isToday 
+                                ? 'bg-blue-100 text-blue-600 font-semibold' 
+                                : isCurrentMonth 
+                                ? 'text-gray-900 hover:bg-gray-100' 
+                                : 'text-gray-400'
+                            }`}
+                          >
+                            {currentDay.getDate()}
+                          </button>
+                        )
+                      }
+                      return days
+                    })()}
+                  </div>
+                  
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => {
+                        const today = new Date()
+                        setCurrentDate(today.toISOString().slice(0, 10))
                         setDateOpen(false)
                       }}
-                      className="px-3 h-9 rounded-lg bg-indigo-600 text-white"
+                      className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg"
                     >
-                      Apply
+                      Today
                     </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Show ended lessons small pill */}
-            <button
-              className="h-10 px-3 rounded-full bg-indigo-50 text-indigo-700 text-sm"
-              onClick={() => {
-                // toggle behavior placeholder
-                alert("Showing 9 ended lessons (placeholder)")
-              }}
-            >
-              Show 9 ended lessons
-            </button>
-
-            {/* Add new (open modal) */}
-            <button
-              className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm"
-              onClick={() => setAddOpen(true)}
-            >
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              Add lesson
-            </button>
           </div>
         </div>
 
         {/* MAIN GRID: Left lessons list + Right widgets */}
-        <div className="grid grid-cols-1 xl:grid-cols-[3fr_1fr] gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-[3fr_1fr] gap-6 mt-2">
           {/* Left column (lessons list) */}
           <main>
             {/* Section header */}
@@ -338,8 +384,8 @@ export default function Dashboard() {
               <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-white border border-gray-200 rounded-full text-gray-600">59</span>
             </div>
 
-            {/* Cards list (scrollable) */}
-            <div className="space-y-4 max-h-[72vh] overflow-auto pr-2">
+            {/* Cards list */}
+            <div className="space-y-4">
               {lessons.map((l) => {
                 const isSelected = selected === l.id
                 const isHovered = hovered === l.id
@@ -351,7 +397,7 @@ export default function Dashboard() {
                     onClick={() => setSelected(l.id)}
                     role="button"
                     tabIndex={0}
-                    className={`group cursor-pointer bg-white border border-gray-200 rounded-xl transition-transform duration-150 flex items-center ${l.accent} ${
+                    className={`group cursor-pointer bg-white border-t border-r border-b border-white border-l-4 border-l-red-500 rounded-xl transition-transform duration-150 flex items-center ${
                       isSelected
                         ? "ring-2 ring-indigo-200 shadow-md transform -translate-y-1 scale-[1.01]"
                         : isHovered
@@ -435,30 +481,138 @@ export default function Dashboard() {
             </div>
           </main>
 
-          {/* Right column: widgets */}
+          {/* Right column: widgets - reordered as requested */}
           <aside className="flex flex-col gap-4">
+            {/* 1. Announcements Card */}
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">📢</span>
+                  </div>
+                  <div className="font-semibold text-gray-800">Announcements</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Info size={16} className="text-gray-400" />
+                  <button className="h-6 w-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm">+</button>
+                </div>
+              </div>
+              <div className="mt-3 text-sm text-gray-500">No unread announcements</div>
+            </section>
+
+            {/* 2. Unread notes Card */}
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">📝</span>
+                  </div>
+                  <div className="font-semibold text-gray-800">Unread notes</div>
+                </div>
+                <Info size={16} className="text-gray-400" />
+              </div>
+              <div className="mt-3 text-sm text-gray-500">No unread notes</div>
+            </section>
+
+            {/* 3. Notifications Card */}
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">🔔</span>
+                  </div>
+                  <div className="font-semibold text-gray-800">Notifications</div>
+                </div>
+                <Info size={16} className="text-gray-400" />
+              </div>
+              <div className="mt-3 text-sm text-gray-500">No new notifications</div>
+            </section>
+
+            {/* 4. Birthdays Card */}
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">🎂</span>
+                  </div>
+                  <div className="font-semibold text-gray-800">Birthdays</div>
+                </div>
+                <div className="text-sm text-gray-400">Students</div>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 border-l-2 border-blue-200 pl-3">
+                  <img
+                    src="https://i.pravatar.cc/40?img=1"
+                    alt="Maximiliano"
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-800">Maximiliano Luis Muller</div>
+                    <div className="text-xs text-gray-500">Turns 31 today</div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-500 text-sm">🎂</span>
+                    <MessageSquare size={14} className="text-blue-500" />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 border-l-2 border-blue-200 pl-3">
+                  <img
+                    src="https://i.pravatar.cc/40?img=2"
+                    alt="Maria"
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-800">Maria Fernanda Avila Roca</div>
+                    <div className="text-xs text-gray-500">Turns 30 today</div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-yellow-500 text-sm">🎂</span>
+                    <MessageSquare size={14} className="text-blue-500" />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 5. Checklist Card */}
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">✓</span>
+                  </div>
+                  <div className="font-semibold text-gray-800">Checklist</div>
+                </div>
+                <button className="h-6 w-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm">+</button>
+              </div>
+            </section>
+
+            {/* 6. Lessons Card */}
             <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <BookOpen size={16} className="text-indigo-600" />
+                  <BarChart3 size={16} className="text-indigo-600" />
                   <div className="font-semibold text-gray-800">Lessons</div>
                 </div>
-                <div className="text-sm text-gray-500">59</div>
+                <div className="text-sm text-gray-500">89</div>
               </div>
 
               <div className="mt-3 flex items-center gap-4">
                 <div>
-                  <Donut present={attendance.present} absent={attendance.absent} />
+                  <div className="h-24 w-24 rounded-full border-4 border-gray-200 flex items-center justify-center">
+                    <span className="text-sm text-gray-500">0%</span>
+                  </div>
                 </div>
 
                 <div className="flex-1">
                   <div className="text-sm text-gray-600 mb-2">Attendance</div>
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-emerald-500" /> <span>Present: {attendance.present}</span>
+                      <span className="h-3 w-3 rounded-full bg-emerald-500" /> <span>Present: 0</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-rose-500" /> <span>Absent: {attendance.absent}</span>
+                      <span className="h-3 w-3 rounded-full bg-rose-500" /> <span>Absent: 0</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="h-3 w-3 rounded-full bg-amber-400" /> <span>Late: 0</span>
@@ -468,87 +622,55 @@ export default function Dashboard() {
               </div>
             </section>
 
+            {/* 7. Behaviours Card */}
             <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="font-semibold text-gray-800 mb-3">Behaviours</div>
               <div className="mt-4 grid grid-cols-2 gap-4">
                 <div className="flex flex-col items-center gap-2">
-                  <div className="h-12 w-12 rounded-lg border border-yellow-400 grid place-items-center text-yellow-500">
+                  <div className="h-12 w-12 rounded-lg border border-yellow-400 grid place-items-center text-yellow-500 relative">
                     <Star />
+                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">0</div>
                   </div>
                   <div className="text-sm font-medium text-gray-700">Gold stars</div>
-                  <div className="text-xs text-gray-500">0</div>
                 </div>
 
                 <div className="flex flex-col items-center gap-2">
-                  <div className="h-12 w-12 rounded-lg border border-rose-300 grid place-items-center text-rose-500">
+                  <div className="h-12 w-12 rounded-lg border border-rose-300 grid place-items-center text-rose-500 relative">
                     <Flag />
+                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">0</div>
                   </div>
                   <div className="text-sm font-medium text-gray-700">Red Flags</div>
-                  <div className="text-xs text-gray-500">0</div>
                 </div>
               </div>
             </section>
 
+            {/* 8. Payments Card */}
             <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold text-gray-800">Announcements</div>
-                <Info size={16} className="text-gray-400" />
-              </div>
-              <div className="mt-3 text-sm text-gray-500">No unread announcements</div>
-            </section>
-
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold text-gray-800">Unread notes</div>
-                <Info size={16} className="text-gray-400" />
-              </div>
-              <div className="mt-3 text-sm text-gray-500">No unread notes</div>
-            </section>
-
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center justify-between">
-                <div className="font-semibold text-gray-800">Notifications</div>
-                <Info size={16} className="text-gray-400" />
-              </div>
-              <div className="mt-3 text-sm text-gray-500">No new notifications</div>
-            </section>
-
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center justify-between mb-2">
-                <div className="font-semibold text-gray-800">Birthdays</div>
-                <div className="text-sm text-gray-400">Students</div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center text-sm font-semibold">MH</div>
-                  <div>
-                    <div className="text-sm text-indigo-700">Margarita Huanca Esposa</div>
-                    <div className="text-xs text-gray-500">Turns 43 today</div>
-                  </div>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
+                  <span className="text-blue-600 font-bold text-sm">$</span>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center text-sm font-semibold">DG</div>
-                  <div>
-                    <div className="text-sm text-indigo-700">Dennys Rolando Molina Gonzalez</div>
-                    <div className="text-xs text-gray-500">Turns 33 today</div>
-                  </div>
-                </div>
+                <div className="font-semibold text-gray-800">Payments</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm text-green-600">Payments received: 0</div>
+                <div className="text-sm text-red-600">Payments due: 0</div>
               </div>
             </section>
 
-            <div className="space-y-4">
-              <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-                <div className="font-semibold text-gray-800">Extra Widget</div>
-                <div className="mt-2 text-sm text-gray-500">Add more info here</div>
-              </section>
-
-              <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-                <div className="font-semibold text-gray-800">Quick Actions</div>
-                <div className="mt-2 text-sm text-gray-500">Create lesson, message, etc.</div>
-              </section>
-            </div>
+            {/* 9. Communication Card */}
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
+                  <MessageSquare size={14} className="text-blue-600" />
+                </div>
+                <div className="font-semibold text-gray-800">Communication</div>
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm text-blue-600">SMS sent: 0</div>
+                <div className="text-sm text-blue-600">Emails sent: 0</div>
+              </div>
+            </section>
           </aside>
         </div>
       </div>

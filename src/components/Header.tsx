@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   ChevronDown,
@@ -22,6 +23,21 @@ export default function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAddNewOpen, setIsAddNewOpen] = useState(false);
   const { isExpanded } = useSidebar();
+  const navigate = useNavigate();
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.dropdown-container')) {
+        setIsAddNewOpen(false);
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <header className="sticky top-0 z-20 bg-gradient-to-r from-indigo-50 via-blue-50 to-white border-b border-blue-100 shadow-sm">
@@ -68,7 +84,7 @@ export default function Header() {
           <div className="flex items-center gap-5 relative">
             
             {/* Add New Dropdown */}
-            <div className="relative">
+            <div className="relative dropdown-container">
               <button
                 onClick={() => setIsAddNewOpen(!isAddNewOpen)}
                 className="h-11 px-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-base transition"
@@ -80,21 +96,25 @@ export default function Header() {
               {isAddNewOpen && (
                 <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-lg border border-blue-100 p-3 z-30">
                   {[
-                    { icon: CreditCard, label: "Payment" },
-                    { icon: BookOpen, label: "Class" },
-                    { icon: Calendar, label: "Event" },
-                    { icon: MessageSquare, label: "Message" },
-                    { icon: Users, label: "Student" },
-                    { icon: Users, label: "Teacher" },
-                    { icon: Users, label: "Staff" },
-                    { icon: Users, label: "Related contact" },
-                    { icon: Users, label: "Prospect" },
-                    { icon: Import, label: "Import people" },
-                    { icon: Import, label: "Import class" },
-                    { icon: Import, label: "Import lessons" },
+                    { icon: CreditCard, label: "Payment", path: "/payments/add-payment" },
+                    { icon: BookOpen, label: "Class", path: "/notes/add-class" },
+                    { icon: Calendar, label: "Event", path: "/notes/events" },
+                    { icon: MessageSquare, label: "Message", path: "/compose" },
+                    { icon: Users, label: "Student", path: "/people/students/new" },
+                    { icon: Users, label: "Teacher", path: "/people/teachers/new" },
+                    { icon: Users, label: "Staff", path: "/people/staffs/new" },
+                    { icon: Users, label: "Related contact", path: "/people/related/new" },
+                    { icon: Users, label: "Prospect", path: "/people/prospects/new" },
+                    { icon: Import, label: "Import people", path: "/people" },
+                    { icon: Import, label: "Import class", path: "/notes" },
+                    { icon: Import, label: "Import lessons", path: "/notes" },
                   ].map((item, i) => (
                     <button
                       key={i}
+                      onClick={() => {
+                        navigate(item.path);
+                        setIsAddNewOpen(false);
+                      }}
                       className="flex w-full items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 transition"
                     >
                       <item.icon size={18} />
@@ -106,7 +126,7 @@ export default function Header() {
             </div>
 
             {/* Profile Dropdown */}
-            <div className="relative">
+            <div className="relative dropdown-container">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="h-12 w-12 flex items-center justify-center rounded-full border border-blue-200 bg-white hover:bg-blue-50 transition relative"

@@ -183,11 +183,10 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
           </div>
         </div>
 
-        {/* Date Header */}
-        <div className="text-center mb-1 text-xl font-semibold text-gray-800">
+        {/* Date Header - moved up */}
+        <div className="text-center mb-1 text-xl font-semibold text-gray-800 -mt-2">
           {dayString}
         </div>
-        <div className="text-center text-gray-600 mb-4">Monday</div>
 
         {/* DEFAULT CALENDAR GRID */}
         {tab === "Default" && !showTeacher && (
