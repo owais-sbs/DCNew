@@ -17,7 +17,7 @@ import {
   import { useNavigate, useLocation } from "react-router-dom";
 import { useSidebar } from "../contexts/SidebarContext";
   
-  const logo = "/src/assets/logo.webp";
+  const logo = "/public/assets/logo.webp";
   
   const items = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },

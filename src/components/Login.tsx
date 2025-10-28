@@ -20,7 +20,7 @@ export default function Login() {
         {/* Logo */}
         <div className="mb-5 grid place-items-center">
           <div className="h-14 rounded-2xl border border-gray-200 bg-white px-5 grid place-items-center shadow-sm">
-            <img src="/src/assets/logo.webp" alt="Teach 'n Go" className="h-9" />
+            <img src="/public/assets/logo.webp" alt="Teach 'n Go" className="h-9" />
           </div>
         </div>
 

@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
 
-const logo = "/src/assets/logo.webp";
+const logo = "/public/assets/logo.webp";
 
 export default function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
