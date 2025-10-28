@@ -100,7 +100,7 @@ export default {
         'primary-gradient': 'linear-gradient(to right, #E82B5E, #942878)',
         'primary-gradient-hover': 'linear-gradient(to right, #942878, #E82B5E)',
         'bg-gradient': 'linear-gradient(to bottom right, #9A2977, #1B0E1B)',
-        'hero-pattern': "url('/public/assets/doctor-bg.jpg')",
+        'hero-pattern': "url('/assets/doctor-bg.jpg')",
       },
       borderRadius: {
         '3xl': '1.5rem',
