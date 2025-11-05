@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { X, Search, Home, MessageSquare, HelpCircle, ChevronRight } from 'lucide-react';
 
-interface HelpModalProps {
+interface HelpTopicsModalProps {
   onClose: () => void;
-  onNavigate: (modal: 'messages' | 'help' | 'fin') => void;
-  activeModal: 'messages' | 'help' | 'fin' | null;
+  onNavigate: (modal: 'messages' | 'help' | 'fin' | 'home') => void;
+  activeModal: 'messages' | 'help' | 'fin' | 'home' | null;
   onHome: () => void;
 }
 
-export default function HelpModal({ onClose, onNavigate, activeModal, onHome }: HelpModalProps) {
+export default function HelpTopicsModal({ onClose, onNavigate, activeModal, onHome }: HelpTopicsModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const helpCategories = [
@@ -81,7 +81,7 @@ export default function HelpModal({ onClose, onNavigate, activeModal, onHome }: 
       />
       
       {/* Modal */}
-      <div className="relative w-96 h-[80vh] bg-white rounded-2xl shadow-2xl m-4 flex flex-col">
+      <div className="relative w-96 h-[80vh] bg-white rounded-2xl shadow-2xl m-4 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-800">Help</h2>
@@ -139,27 +139,29 @@ export default function HelpModal({ onClose, onNavigate, activeModal, onHome }: 
         </div>
 
         {/* Bottom Navigation */}
-        <div className="border-t border-gray-200 p-4">
+        <div className="border-t border-gray-200 p-4 bg-white">
           <div className="flex items-center justify-around">
             <button 
-              onClick={onHome}
-              className="flex flex-col items-center gap-1 p-2 text-blue-600"
+              onClick={() => onNavigate('home')}
+              className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
             >
-              <div className="relative h-5 w-5 bg-blue-600 rounded flex items-center justify-center">
-                <Home className="h-3 w-3 text-white" />
-                <span className="absolute text-white text-[6px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">😊</span>
+              <div className="relative">
+                <div className="h-6 w-6 bg-gray-400 rounded flex items-center justify-center">
+                  <Home className="h-4 w-4 text-white" />
+                </div>
+                <span className="absolute text-white text-[8px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">😊</span>
               </div>
-              <span className="text-xs text-blue-600">Home</span>
+              <span className="text-xs">Home</span>
             </button>
             <button 
               onClick={() => onNavigate('messages')}
               className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
             >
-              <MessageSquare className="h-5 w-5" />
+              <MessageSquare className="h-6 w-6" />
               <span className="text-xs">Messages</span>
             </button>
             <button className="flex flex-col items-center gap-1 p-2 text-blue-600">
-              <HelpCircle className="h-5 w-5" />
+              <HelpCircle className="h-6 w-6" />
               <span className="text-xs">Help</span>
             </button>
           </div>
@@ -168,3 +170,4 @@ export default function HelpModal({ onClose, onNavigate, activeModal, onHome }: 
     </div>
   );
 }
+

@@ -221,8 +221,8 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen">
-      <div className="px-6 py-6">
+    <div className="bg-slate-50 min-h-screen -mt-4">
+      <div className="px-6 pt-4 pb-6">
         {/* Top row: Greeting */}
         <div>
           <h1 className="text-2xl font-semibold text-gray-800">Welcome, Asif</h1>
@@ -372,30 +372,7 @@ export default function Dashboard() {
               })}
             </div>
 
-            {/* bottom area: extra boxes like screenshot 2 */}
-            <div className="mt-6 space-y-4">
-              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-gray-800">
-                    <Star className="text-yellow-400" />
-                    <div className="font-semibold">Gold stars</div>
-                  </div>
-                  <div className="text-sm text-gray-500">0</div>
-                </div>
-                <div className="mt-4 text-sm text-gray-600">Recognition & rewards for students</div>
-              </div>
-
-              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-gray-800">
-                    <Flag className="text-rose-500" />
-                    <div className="font-semibold">Red Flags</div>
-                  </div>
-                  <div className="text-sm text-gray-500">0</div>
-                </div>
-                <div className="mt-4 text-sm text-gray-600">Behavioural alerts</div>
-              </div>
-            </div>
+           
           </main>
 
           {/* Right column: widgets */}
@@ -675,7 +652,10 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-800">Students {students.length}</h3>
                         <div className="flex items-center gap-2">
-                          <button className="px-3 h-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50">
+                          <button
+                            onClick={() => navigate('/people/students')}
+                            className="px-3 h-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50"
+                          >
                             Select/deselect all
                           </button>
                           {["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
@@ -734,7 +714,10 @@ export default function Dashboard() {
                     <div className="mb-6">
                       <div className="flex items-center justify-between mb-4">
                         <h3 className="text-lg font-semibold text-gray-800">Prospects 0</h3>
-                        <button className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700">
+                        <button
+                          onClick={() => navigate('/people/prospects/new')}
+                          className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+                        >
                           + Add prospects
                         </button>
                       </div>
@@ -745,12 +728,18 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-800">Teacher notes</h3>
                         <div className="flex items-center gap-2">
-                          <button className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                          <button
+                            onClick={() => navigate('/notes')}
+                            className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+                          >
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           </button>
-                          <button className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700">
+                          <button
+                            onClick={() => navigate('/notes')}
+                            className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+                          >
                             + Add teacher notes
                           </button>
                         </div>
@@ -759,12 +748,18 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-800">Student notes</h3>
                         <div className="flex items-center gap-2">
-                          <button className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
+                          <button
+                            onClick={() => navigate('/notes')}
+                            className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+                          >
                             <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
                           </button>
-                          <button className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700">
+                          <button
+                            onClick={() => navigate('/notes')}
+                            className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+                          >
                             + Add student notes
                           </button>
                         </div>
@@ -772,7 +767,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* Right sidebar */}
+                      {/* Right sidebar */}
                   <aside className="border-l border-gray-200 p-6 bg-gray-50">
                     <div className="space-y-6">
                       {/* Edit section */}
@@ -785,13 +780,17 @@ export default function Dashboard() {
                         </div>
                         <div className="space-y-2">
                           {[
-                            { label: "Teacher", icon: "🎓" },
-                            { label: "Date & time", icon: "📅" },
-                            { label: "Cancel lesson", icon: "❌" },
-                            { label: "Location", icon: "📍" },
-                            { label: "Class details", icon: "📄" }
+                            { label: "Teacher", icon: "🎓", path: "/people/teachers" },
+                            { label: "Date & time", icon: "📅", path: "/calendar" },
+                            { label: "Cancel lesson", icon: "❌", path: "/notes/classes" },
+                            { label: "Location", icon: "📍", path: "/calendar/classroom" },
+                            { label: "Class details", icon: "📄", path: "/notes/class-details" }
                           ].map((item) => (
-                            <button key={item.label} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                            <button
+                              key={item.label}
+                              onClick={() => navigate(item.path)}
+                              className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                            >
                               <span>{item.icon}</span>
                               {item.label}
                             </button>
@@ -810,14 +809,18 @@ export default function Dashboard() {
                         </div>
                         <div className="space-y-2">
                           {[
-                            { label: "Add students", icon: "👥" },
-                            { label: "Add prospects", icon: "👥" },
-                            { label: "Add attachment", icon: "📎" },
-                            { label: "Add assignment", icon: "📋" },
-                            { label: "Invite to portal", icon: "➡️" },
-                            { label: "Print register", icon: "🖨️" }
+                            { label: "Add students", icon: "👥", path: "/people/students/new" },
+                            { label: "Add prospects", icon: "👥", path: "/people/prospects/new" },
+                            { label: "Add attachment", icon: "📎", path: "/notes/class-details" },
+                            { label: "Add assignment", icon: "📋", path: "/notes/class-details" },
+                            { label: "Invite to portal", icon: "➡️", path: "/compose" },
+                            { label: "Print register", icon: "🖨️", path: "/reports/attendance" }
                           ].map((item) => (
-                            <button key={item.label} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">
+                            <button
+                              key={item.label}
+                              onClick={() => navigate(item.path)}
+                              className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                            >
                               <span>{item.icon}</span>
                               {item.label}
                             </button>

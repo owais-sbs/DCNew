@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Edit, 
   MessageSquare, 
@@ -169,22 +170,28 @@ export default function ClassDetailsScreen() {
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex items-center gap-6 border-b border-gray-200 pb-3 mb-6">
+        {/* Tabs - underline style */}
+        <div className="flex items-center gap-6 border-b border-gray-200 mb-6">
           {tabs.map((tab) => {
             const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? "bg-blue-50 text-blue-700 border border-blue-200"
-                    : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
+                className={`relative -mb-px px-1 py-3 text-sm font-medium transition-colors ${
+                  isActive ? "text-blue-600" : "text-gray-600 hover:text-gray-800"
                 }`}
               >
-                <Icon className="h-4 w-4" />
-                {tab.label}
+                <span className="inline-flex items-center gap-2">
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                </span>
+                <span
+                  className={`absolute left-0 right-0 bottom-0 h-[2px] ${
+                    isActive ? "bg-blue-600" : "bg-transparent"
+                  }`}
+                />
               </button>
             );
           })}
@@ -200,6 +207,14 @@ export default function ClassDetailsScreen() {
 // Individual tab content components
 function LessonsContent() {
   const [showAddLessonModal, setShowAddLessonModal] = useState(false);
+  const [selectedLessonIdx, setSelectedLessonIdx] = useState<number | null>(null);
+  const [openStudentMenu, setOpenStudentMenu] = useState<number | null>(null);
+  const navigate = useNavigate();
+  const lessons = [
+    { date: "17-10-2025", weekday: "Fri", time: "9:00 - 10:30", room: "Room 11 D7", teacher: { name: "Colm Delmar1", initials: "CD" }, students: 0 },
+    { date: "24-10-2025", weekday: "Fri", time: "9:00 - 10:30", room: "Room 11 D7", teacher: { name: "Colm Delmar1", initials: "CD" }, students: 0 },
+    { date: "31-10-2025", weekday: "Fri", time: "9:00 - 10:30", room: "Room 11 D7", teacher: { name: "Colm Delmar1", initials: "CD" }, students: 0 },
+  ];
 
   return (
     <>
@@ -229,33 +244,169 @@ function LessonsContent() {
         </button>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="font-medium text-gray-800">17-10-2025</div>
-            <div className="text-sm text-gray-600">Fri, 9:00 - 10:30</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <Users className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">0</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Plus className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">0</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">Colm Delmar1</span>
-              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-xs font-medium text-blue-700">CD</span>
+      <div className="space-y-3">
+        {lessons.map((l, i) => (
+          <article
+            key={i}
+            onClick={() => setSelectedLessonIdx(i)}
+            className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition cursor-pointer"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div>
+                  <div className="font-medium text-gray-900">{l.date}</div>
+                  <div className="text-sm text-gray-600">{l.weekday}, {l.time}</div>
+                </div>
+                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  <span>{l.room}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <Users className="h-4 w-4 text-gray-400" /> {l.students}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium">{l.teacher.name}</span>
+                  <div className="w-7 h-7 bg-blue-100 rounded-full grid place-items-center">
+                    <span className="text-xs font-semibold text-blue-700">{l.teacher.initials}</span>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </article>
+        ))}
       </div>
 
       {showAddLessonModal && (
         <AddLessonModal onClose={() => setShowAddLessonModal(false)} />
+      )}
+
+      {selectedLessonIdx !== null && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setSelectedLessonIdx(null)}>
+          <div className="w-full max-w-7xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div>
+                <div className="text-lg font-semibold text-gray-900">{lessons[selectedLessonIdx].date} • {lessons[selectedLessonIdx].room}</div>
+                <div className="text-sm text-gray-600">{lessons[selectedLessonIdx].weekday}, {lessons[selectedLessonIdx].time}</div>
+              </div>
+              <button className="text-gray-500 hover:text-gray-700" onClick={() => setSelectedLessonIdx(null)}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
+              {/* Main content: Students grid */}
+              <div className="p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-800">Students 9</h3>
+                  <div className="flex items-center gap-2">
+                    {["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
+                      <button key={label} className="px-3 h-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1">
+                        {label}
+                        <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd" /></svg>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow relative">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
+                          alt={`Student ${i+1}`}
+                          className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">Student {i+1}</div>
+                          <div className="relative group mt-2">
+                            <button className="w-full h-8 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 group-hover:bg-gray-50">
+                              Take attendance
+                            </button>
+                            <div className="absolute left-0 top-full mt-1 hidden group-hover:flex items-center gap-2 bg-white border border-gray-200 rounded-lg shadow-lg p-1 z-20">
+                              <button className="px-2 py-1 rounded-md text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Present</button>
+                              <button className="px-2 py-1 rounded-md text-xs bg-rose-100 text-rose-700 hover:bg-rose-200">Absent</button>
+                              <button className="px-2 py-1 rounded-md text-xs bg-amber-100 text-amber-700 hover:bg-amber-200">Late</button>
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+                          onClick={() => setOpenStudentMenu(openStudentMenu === i ? null : i)}
+                        >
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01"/></svg>
+                        </button>
+                      </div>
+
+                      {openStudentMenu === i && (
+                        <div className="absolute right-3 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                          <button className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2" onClick={() => setOpenStudentMenu(null)}>
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                            Add/Edit note
+                          </button>
+                          <button className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2" onClick={() => setOpenStudentMenu(null)}>
+                            <span className="inline-block h-4 w-4 rounded border"></span>
+                            Mark as excused
+                          </button>
+                          <button className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2" onClick={() => { setOpenStudentMenu(null); navigate('/people/students/DCE0001'); }}>
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                            View profile
+                          </button>
+                          <button className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600" onClick={() => setOpenStudentMenu(null)}>
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            Remove from class
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right sidebar */}
+              <aside className="border-l border-gray-200 p-6 bg-gray-50">
+                <div className="space-y-6">
+                  <div>
+                    <div className="font-semibold text-gray-800 mb-3">Edit</div>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Teacher", path: "/people/teachers" },
+                        { label: "Date & time", path: "/calendar" },
+                        { label: "Cancel lesson", path: "/notes/classes" },
+                        { label: "Location", path: "/calendar/classroom" },
+                        { label: "Class details", path: "/notes/class-details" },
+                      ].map((item) => (
+                        <button key={item.label} onClick={() => navigate(item.path)} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">{item.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-gray-800 mb-3">Actions</div>
+                    <div className="space-y-2">
+                      {[
+                        { label: "Add students", path: "/people/students/new" },
+                        { label: "Add prospects", path: "/people/prospects/new" },
+                        { label: "Add attachment", path: "/notes/class-details" },
+                        { label: "Add assignment", path: "/notes/class-details" },
+                        { label: "Invite to portal", path: "/compose" },
+                        { label: "Print register", path: "/reports/attendance" },
+                      ].map((item) => (
+                        <button key={item.label} onClick={() => navigate(item.path)} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">{item.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
