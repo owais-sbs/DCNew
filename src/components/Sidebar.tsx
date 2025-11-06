@@ -38,20 +38,18 @@ export default function Sidebar() {
                  (location.pathname === "/compose" ? "communication" : "dashboard");
   
   return (
-    <aside className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-indigo-50 to-blue-50 flex flex-col items-center transition-all duration-300 ${
-      isExpanded ? 'w-[250px]' : 'w-[90px]'
+    <aside className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-indigo-50 to-blue-50 flex flex-col items-center transition-all duration-300 overflow-visible z-40 ${
+      isExpanded ? 'w-[325px]' : 'w-[117px]'
     }`}>
-        {/* Logo */}
-        <div className="h-[90px] w-full grid place-items-center mt-1">
-          <img
-            src={logo}
-            alt="DCEDU Logo"
-            className="h-12 w-auto object-contain transition-transform duration-300 hover:scale-105"
-          />
+        {/* Top spacer */}
+        <div className="h-[16px] w-full" />
+        {/* Horizontal divider placed directly above the Dashboard icon */}
+        <div className="w-full px-4">
+          <div className="h-px bg-gray-200" />
         </div>
   
         {/* Navigation */}
-        <nav className="flex flex-col gap-4 py-6 flex-1 mt-2">
+        <nav className="flex flex-col gap-4 py-8 flex-1 mt-4 overflow-visible">
           {items.map(({ id, icon: Icon, label, path }) => {
             const isActive = active === id;
             return (
@@ -65,7 +63,7 @@ export default function Sidebar() {
                       ? "text-indigo-600 bg-white"
                       : "text-gray-500 hover:text-indigo-600 hover:bg-white"
                   }
-                  ${isExpanded ? 'w-full justify-start' : 'w-14 justify-center'}
+                  ${isExpanded ? 'w-full justify-start' : 'w-20 justify-center'}
                 `}
               >
                 <Icon
@@ -82,7 +80,7 @@ export default function Sidebar() {
                 )}
                 {/* Tooltip for collapsed state */}
                 {!isExpanded && (
-                  <span className="absolute left-[80px] px-3 py-1 rounded-lg text-sm bg-indigo-600 text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md">
+                  <span className="absolute left-full ml-3 px-3 py-1 rounded-lg text-sm bg-indigo-600 text-white opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-md z-50 whitespace-nowrap">
                     {label}
                   </span>
                 )}

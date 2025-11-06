@@ -40,8 +40,8 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-20 bg-gradient-to-r from-indigo-50 via-blue-50 to-white border-b border-blue-100 shadow-sm">
-      <div className={`transition-all duration-300 ${isExpanded ? 'pl-[250px]' : 'pl-[90px]'}`}>
+    <header className="sticky top-0 z-20 bg-white border-b border-gray-200">
+      <div className={`transition-all duration-300 ${isExpanded ? 'pl-[325px]' : 'pl-[117px]'}`}>
         {/* Increased height & spacing */}
         <div className="h-20 flex items-center justify-between px-8 relative">
           

@@ -13,8 +13,12 @@ import {
   Info,
   Star,
   Flag,
-  MessageSquare
+  MessageSquare,
+  Copy,
+  Plus,
+  X
 } from "lucide-react"
+import AddStudentForm from "./AddStudentForm"
 
 /**
  * Dashboard.tsx
@@ -24,7 +28,7 @@ import {
  * - This file expects your app's sidebar width to be 80px (pl-[80px]).
  * - Tailwind classes are used throughout. Adjust spacing tokens to match your project if needed.
  * - Add/Ended lessons and modal are UI-only placeholders — wire up with your API/state as needed.
- */
+  */
 
 /* -------------------------
    Types and sample data
@@ -189,6 +193,9 @@ export default function Dashboard() {
   const [hovered, setHovered] = useState<string | null>(null)
   // lessons data; in real app replace with props or fetch
   const [lessons] = useState<Lesson[]>(lessonsSample)
+  // enroll students modal
+  const [showEnrollModal, setShowEnrollModal] = useState(false)
+  const [showAddStudent, setShowAddStudent] = useState(false)
   // date state for "Today" + date picker
   const [currentDate, setCurrentDate] = useState<string>(() => {
     const d = new Date()
@@ -251,6 +258,17 @@ export default function Dashboard() {
                 >
                   <ArrowLeft size={18} />
                 </button>
+                <button
+                  title="Next"
+                  className="h-10 w-10 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition"
+                  onClick={() => {
+                    const d = new Date(currentDate)
+                    d.setDate(d.getDate() + 1)
+                    setCurrentDate(d.toISOString().slice(0, 10))
+                  }}
+                >
+                  <ArrowRight size={18} />
+                </button>
                 <div className="relative">
                   <button
                     onClick={() => setDateOpen((v) => !v)}
@@ -287,17 +305,6 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
-                <button
-                  title="Next"
-                  className="h-10 w-10 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition"
-                  onClick={() => {
-                    const d = new Date(currentDate)
-                    d.setDate(d.getDate() + 1)
-                    setCurrentDate(d.toISOString().slice(0, 10))
-                  }}
-                >
-                  <ArrowRight size={18} />
-                </button>
               </div>
             </div>
 
@@ -626,16 +633,14 @@ export default function Dashboard() {
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
                   <div className="flex items-center gap-4">
+                    <div className="h-9 w-9 rounded-full bg-indigo-500 text-white grid place-items-center text-sm font-semibold">{lesson.teacher.initials}</div>
+                    <div className="text-sm text-gray-700 mr-2">{lesson.teacher.name}</div>
                     <div>
                       <div className="text-lg font-semibold text-gray-900">{lesson.time} - {lesson.room} ({lesson.subtitle || lesson.location})</div>
                       <div className="text-sm text-gray-600">20-10-2025 #{lesson.id} {lesson.room}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-indigo-500 text-white grid place-items-center text-sm font-semibold">{lesson.teacher.initials}</div>
-                      <div className="text-sm text-gray-700">{lesson.teacher.name}</div>
-                    </div>
                     <button className="text-gray-500 hover:text-gray-700" onClick={() => setSelected(null)}>
                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -654,12 +659,12 @@ export default function Dashboard() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => navigate('/people/students')}
-                            className="px-3 h-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50"
+                            className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50"
                           >
                             Select/deselect all
                           </button>
                           {["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
-                            <button key={label} className="px-3 h-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1">
+                            <button key={label} className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1">
                               {label}
                               <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd" />
@@ -672,37 +677,43 @@ export default function Dashboard() {
                       {/* Students grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {students.map((student, i) => (
-                          <div key={student.name} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow">
+                          <div key={student.name} className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-sm transition-shadow">
                             <div className="flex items-center gap-3">
                               <img
                                 src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
                                 alt={student.name}
-                                className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                                className="h-12 w-12 rounded-full object-cover border border-gray-200"
                                 onError={(e) => {
                                   const target = e.currentTarget as HTMLImageElement
                                   target.style.display = 'none'
                                 }}
                               />
-                              <div className="h-10 w-10 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center text-sm font-semibold">
-                                {student.initials}
-                              </div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-gray-900 truncate">{student.name}</div>
-                                <button className="mt-2 w-full h-8 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50">
-                                  {student.status}
-                                </button>
+                                <div className="text-[15px] font-semibold text-gray-900 truncate">{student.name}</div>
+                                <div className="relative mt-2 group">
+                                  {/* Default pill (img2) */}
+                                  <button className="w-full h-9 rounded-full border border-gray-200 bg-white text-[13px] text-gray-700">
+                                    Take attendance
+                                  </button>
+                                  {/* Hover segmented (img1) */}
+                                  <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-none">
+                                    <div className="w-full h-9 rounded-full border border-gray-200 bg-white overflow-hidden flex pointer-events-auto">
+                                      <button className="flex-1 flex items-center justify-center text-[13px] text-gray-800 hover:bg-gray-50 whitespace-nowrap">Present</button>
+                                      <div className="w-px bg-gray-200" />
+                                      <button className="flex-1 flex items-center justify-center text-[13px] text-gray-800 hover:bg-gray-50 whitespace-nowrap">Absent</button>
+                                      <div className="w-px bg-gray-200" />
+                                      <button className="flex-1 flex items-center justify-center text-[13px] text-gray-800 hover:bg-gray-50 whitespace-nowrap">Late</button>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <button className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
-                                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <div className="flex items-center gap-2">
+                                <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
+                                  <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                   </svg>
                                 </button>
-                                <button className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50">
-                                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                  </svg>
-                                </button>
+                                <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">⋯</button>
                               </div>
                             </div>
                           </div>
@@ -809,16 +820,16 @@ export default function Dashboard() {
                         </div>
                         <div className="space-y-2">
                           {[
-                            { label: "Add students", icon: "👥", path: "/people/students/new" },
-                            { label: "Add prospects", icon: "👥", path: "/people/prospects/new" },
-                            { label: "Add attachment", icon: "📎", path: "/notes/class-details" },
-                            { label: "Add assignment", icon: "📋", path: "/notes/class-details" },
-                            { label: "Invite to portal", icon: "➡️", path: "/compose" },
-                            { label: "Print register", icon: "🖨️", path: "/reports/attendance" }
+                            { label: "Add students", icon: "👥", onClick: () => setShowEnrollModal(true) },
+                            { label: "Add prospects", icon: "👥", onClick: () => navigate('/people/prospects/new') },
+                            { label: "Add attachment", icon: "📎", onClick: () => navigate('/notes/class-details') },
+                            { label: "Add assignment", icon: "📋", onClick: () => navigate('/notes/class-details') },
+                            { label: "Invite to portal", icon: "➡️", onClick: () => navigate('/compose') },
+                            { label: "Print register", icon: "🖨️", onClick: () => navigate('/reports/attendance') }
                           ].map((item) => (
                             <button
                               key={item.label}
-                              onClick={() => navigate(item.path)}
+                              onClick={item.onClick}
                               className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                             >
                               <span>{item.icon}</span>
@@ -834,6 +845,68 @@ export default function Dashboard() {
             )
           })()}
         </div>
+      )}
+
+      {showEnrollModal && (
+        <>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" onClick={() => setShowEnrollModal(false)}>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Enroll students</h2>
+              <button onClick={() => setShowEnrollModal(false)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 mb-4">Select the date and students to enroll in this class.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment date *</label>
+                  <input type="text" defaultValue={new Date().toLocaleDateString('en-GB')} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Unenrollment date (optional)</label>
+                  <input type="text" placeholder="Select date..." className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                </div>
+              </div>
+              <div className="flex items-center gap-3 mb-4">
+                <button className="px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 inline-flex items-center gap-2">
+                  <Copy size={16} />
+                  Copy from another class
+                </button>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center gap-2" onClick={() => setShowAddStudent(true)}>
+                  <Plus size={16} />
+                  Add new student
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium text-gray-800 mb-2">All students</h4>
+                  <div className="border border-gray-200 rounded-lg h-64 overflow-y-auto">
+                    {['Evo Calahuma Juchasara', 'Jimena Rojas Balderrama', 'a b', 'Abdul Hameed', 'Abdullah Jan', 'Abdullah Test', 'Abdurakhim Umirbyek', 'Abraham Emmanuel Acosta Garcia'].map((name) => (
+                      <div key={name} className="p-2 hover:bg-gray-50 cursor-pointer">{name}</div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Use shift and control keys to select multiple students</p>
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-800 mb-2">Enrolled students</h4>
+                  <div className="border border-gray-200 rounded-lg h-64 bg-gray-50 flex items-center justify-center">
+                    <span className="text-gray-500">No students selected</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+              <button onClick={() => setShowEnrollModal(false)} className="px-6 h-10 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setShowEnrollModal(false)} className="px-6 h-10 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Save changes</button>
+            </div>
+          </div>
+        </div>
+        {showAddStudent && (
+          <AddStudentForm isOpen={showAddStudent} onClose={() => setShowAddStudent(false)} />
+        )}
+        </>
       )}
     </div>
   )

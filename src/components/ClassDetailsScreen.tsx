@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import AddStudentForm from "./AddStudentForm";
 import { 
   Edit, 
   MessageSquare, 
@@ -244,35 +245,34 @@ function LessonsContent() {
         </button>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-4 max-w-[70%] mx-auto">
         {lessons.map((l, i) => (
           <article
             key={i}
             onClick={() => setSelectedLessonIdx(i)}
-            className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition cursor-pointer"
+            className="group cursor-pointer bg-white border-t border-r border-b border-white border-l-4 border-l-red-500 rounded-xl transition-transform duration-150 flex items-center hover:shadow-sm"
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div>
-                  <div className="font-medium text-gray-900">{l.date}</div>
-                  <div className="text-sm text-gray-600">{l.weekday}, {l.time}</div>
-                </div>
-                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-500">
-                  <span className="h-2 w-2 rounded-full bg-red-500" />
-                  <span>{l.room}</span>
-                </div>
+            <div className="p-4 grid grid-cols-[200px_1fr_auto] gap-4 items-center w-full">
+              {/* left: date/time */}
+              <div>
+                <div className="text-gray-900 font-semibold text-sm">{l.date}</div>
+                <div className="text-xs text-gray-500 mt-1">{l.weekday}, {l.time}</div>
               </div>
-
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-1 text-sm text-gray-600">
-                  <Users className="h-4 w-4 text-gray-400" /> {l.students}
+              {/* middle: location & mini stats */}
+              <div>
+                <div className="flex items-center gap-2 text-gray-900">
+                  <span className="font-medium">{l.room}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{l.teacher.name}</span>
-                  <div className="w-7 h-7 bg-blue-100 rounded-full grid place-items-center">
-                    <span className="text-xs font-semibold text-blue-700">{l.teacher.initials}</span>
+                <div className="mt-2 flex items-center gap-4 text-gray-600 text-sm">
+                  <div className="flex items-center gap-1 text-sm">
+                    <Users className="h-4 w-4 text-gray-400" /> 0
                   </div>
                 </div>
+              </div>
+              {/* right: teacher */}
+              <div className="justify-self-end flex items-center gap-3">
+                <div className="hidden sm:block text-sm text-gray-700 max-w-[160px] truncate">{l.teacher.name}</div>
+                <div className="h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold bg-indigo-500">{l.teacher.initials}</div>
               </div>
             </div>
           </article>
@@ -327,13 +327,15 @@ function LessonsContent() {
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-gray-900 truncate">Student {i+1}</div>
                           <div className="relative group mt-2">
-                            <button className="w-full h-8 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 group-hover:bg-gray-50">
-                              Take attendance
-                            </button>
-                            <div className="absolute left-0 top-full mt-1 hidden group-hover:flex items-center gap-2 bg-white border border-gray-200 rounded-lg shadow-lg p-1 z-20">
-                              <button className="px-2 py-1 rounded-md text-xs bg-emerald-100 text-emerald-700 hover:bg-emerald-200">Present</button>
-                              <button className="px-2 py-1 rounded-md text-xs bg-rose-100 text-rose-700 hover:bg-rose-200">Absent</button>
-                              <button className="px-2 py-1 rounded-md text-xs bg-amber-100 text-amber-700 hover:bg-amber-200">Late</button>
+                            <button className="w-full h-9 rounded-full border border-gray-200 bg-white text-[13px] text-gray-700">Take attendance</button>
+                            <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-none">
+                              <div className="w-full h-9 rounded-full border border-gray-200 bg-white overflow-hidden flex pointer-events-auto">
+                                <button className="flex-1 flex items-center justify-center text-[13px] text-gray-800 hover:bg-gray-50 whitespace-nowrap">Present</button>
+                                <div className="w-px bg-gray-200" />
+                                <button className="flex-1 flex items-center justify-center text-[13px] text-gray-800 hover:bg-gray-50 whitespace-nowrap">Absent</button>
+                                <div className="w-px bg-gray-200" />
+                                <button className="flex-1 flex items-center justify-center text-[13px] text-gray-800 hover:bg-gray-50 whitespace-nowrap">Late</button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -391,14 +393,14 @@ function LessonsContent() {
                     <div className="font-semibold text-gray-800 mb-3">Actions</div>
                     <div className="space-y-2">
                       {[
-                        { label: "Add students", path: "/people/students/new" },
+                        { label: "Add students", path: null },
                         { label: "Add prospects", path: "/people/prospects/new" },
                         { label: "Add attachment", path: "/notes/class-details" },
                         { label: "Add assignment", path: "/notes/class-details" },
                         { label: "Invite to portal", path: "/compose" },
                         { label: "Print register", path: "/reports/attendance" },
                       ].map((item) => (
-                        <button key={item.label} onClick={() => navigate(item.path)} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">{item.label}</button>
+                        <button key={item.label} onClick={() => { item.path ? navigate(item.path) : setShowEnrollModal(true) }} className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3">{item.label}</button>
                       ))}
                     </div>
                   </div>
@@ -918,6 +920,8 @@ function AddLessonModal({ onClose }: { onClose: () => void }) {
 }
 
 function EnrollStudentsModal({ onClose }: { onClose: () => void }) {
+  const navigate = useNavigate();
+  const [showAddStudent, setShowAddStudent] = useState(false);
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4">
@@ -947,7 +951,7 @@ function EnrollStudentsModal({ onClose }: { onClose: () => void }) {
               <Copy className="h-4 w-4" />
               Copy from another class
             </button>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
+            <button onClick={() => setShowAddStudent(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add new student
             </button>
@@ -980,6 +984,9 @@ function EnrollStudentsModal({ onClose }: { onClose: () => void }) {
             Save changes
           </button>
         </div>
+        {showAddStudent && (
+          <AddStudentForm isOpen={showAddStudent} onClose={() => setShowAddStudent(false)} />
+        )}
       </div>
     </div>
   );

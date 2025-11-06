@@ -20,19 +20,19 @@ export default function Reports() {
 
   return (
     <div>
-      <div className="px-6 py-6 grid grid-cols-[260px_1fr] gap-6">
+      <div className="px-6 py-6 grid grid-cols-[280px_1fr] gap-6">
         {/* Left sidebar tree */}
-        <aside className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm h-fit">
-          <div className="font-semibold text-gray-800 mb-3">Reports</div>
-          <nav className="space-y-3 text-gray-700">
+        <aside className="bg-white border border-gray-200 rounded-xl py-4 shadow-sm h-max">
+          <div className="px-4 pb-2 text-[15px] font-semibold text-gray-800">Reports</div>
+          <nav className="px-2 space-y-2 text-gray-700">
             {/* Attendance reports */}
             <div>
-              <button onClick={()=>toggleGroup("attendance")} className="flex items-center gap-2 w-full text-left font-medium text-gray-900">
-                <span className={`${openGroup==="attendance"?"rotate-90":""}`}>›</span>
+              <button onClick={()=>toggleGroup("attendance")} className="flex items-center gap-2 w-full text-left text-[14px] font-semibold text-gray-900 px-2 py-2 hover:bg-gray-50 rounded-lg">
+                <span className={`transition-transform ${openGroup==="attendance"?"rotate-90":""}`}>›</span>
                 Attendance reports
               </button>
               {openGroup==="attendance" && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-1 space-y-1 pl-6">
                   <SidebarItem label="Student attendance" active={activeGroup==="attendance" && activeItem==="student_attendance"} onClick={()=>select("attendance","student_attendance")} />
                   <SidebarItem label="Student absence" active={activeGroup==="attendance" && activeItem==="student_absence"} onClick={()=>select("attendance","student_absence")} />
                   <SidebarItem label="Pending attendance" active={activeGroup==="attendance" && activeItem==="pending_attendance"} onClick={()=>select("attendance","pending_attendance")} />
@@ -43,12 +43,12 @@ export default function Reports() {
 
             {/* Lesson reports */}
             <div>
-              <button onClick={()=>toggleGroup("lesson")} className="flex items-center gap-2 w-full text-left font-medium text-gray-900">
-                <span className={`${openGroup==="lesson"?"rotate-90":""}`}>›</span>
+              <button onClick={()=>toggleGroup("lesson")} className="flex items-center gap-2 w-full text-left text-[14px] font-semibold text-gray-900 px-2 py-2 hover:bg-gray-50 rounded-lg">
+                <span className={`transition-transform ${openGroup==="lesson"?"rotate-90":""}`}>›</span>
                 Lesson reports
               </button>
               {openGroup==="lesson" && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-1 space-y-1 pl-6">
                   <SidebarItem label="Lesson details" active={activeGroup==="lesson" && activeItem==="lesson_details"} onClick={()=>select("lesson","lesson_details")} />
                   <SidebarItem label="Lesson grades" active={activeGroup==="lesson" && activeItem==="lesson_grades"} onClick={()=>select("lesson","lesson_grades")} />
                 </div>
@@ -57,12 +57,12 @@ export default function Reports() {
 
             {/* Class reports */}
             <div>
-              <button onClick={()=>toggleGroup("class")} className="flex items-center gap-2 w-full text-left font-medium text-gray-900">
-                <span className={`${openGroup==="class"?"rotate-90":""}`}>›</span>
+              <button onClick={()=>toggleGroup("class")} className="flex items-center gap-2 w-full text-left text-[14px] font-semibold text-gray-900 px-2 py-2 hover:bg-gray-50 rounded-lg">
+                <span className={`transition-transform ${openGroup==="class"?"rotate-90":""}`}>›</span>
                 Class reports
               </button>
               {openGroup==="class" && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-1 space-y-1 pl-6">
                   <SidebarItem label="Class enrolment" active={activeGroup==="class" && activeItem==="class_enrolment"} onClick={()=>select("class","class_enrolment")} />
                   <SidebarItem label="Class unenrollment" active={activeGroup==="class" && activeItem==="class_unenrollment"} onClick={()=>select("class","class_unenrollment")} />
                   <SidebarItem label="Gradebook grades" active={activeGroup==="class" && activeItem==="gradebook_grades"} onClick={()=>select("class","gradebook_grades")} />
@@ -72,12 +72,12 @@ export default function Reports() {
 
             {/* Student reports */}
             <div>
-              <button onClick={()=>toggleGroup("student")} className="flex items-center gap-2 w-full text-left font-medium text-gray-900">
-                <span className={`${openGroup==="student"?"rotate-90":""}`}>›</span>
+              <button onClick={()=>toggleGroup("student")} className="flex items-center gap-2 w-full text-left text-[14px] font-semibold text-gray-900 px-2 py-2 hover:bg-gray-50 rounded-lg">
+                <span className={`transition-transform ${openGroup==="student"?"rotate-90":""}`}>›</span>
                 Student reports
               </button>
               {openGroup==="student" && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-1 space-y-1 pl-6">
                   <SidebarItem label="Student notes" active={activeGroup==="student" && activeItem==="student_notes"} onClick={()=>select("student","student_notes")} />
                   <SidebarItem label="Student behaviour" active={activeGroup==="student" && activeItem==="student_behaviour"} onClick={()=>select("student","student_behaviour")} />
                 </div>
@@ -86,12 +86,12 @@ export default function Reports() {
 
             {/* Payment reports */}
             <div>
-              <button onClick={()=>toggleGroup("payment")} className="flex items-center gap-2 w-full text-left font-medium text-gray-900">
-                <span className={`${openGroup==="payment"?"rotate-90":""}`}>›</span>
+              <button onClick={()=>toggleGroup("payment")} className="flex items-center gap-2 w-full text-left text-[14px] font-semibold text-gray-900 px-2 py-2 hover:bg-gray-50 rounded-lg">
+                <span className={`transition-transform ${openGroup==="payment"?"rotate-90":""}`}>›</span>
                 Payment reports
               </button>
               {openGroup==="payment" && (
-                <div className="mt-2 space-y-1">
+                <div className="mt-1 space-y-1 pl-6">
                   <SidebarItem label="Fees" active={activeGroup==="payment" && activeItem==="fees"} onClick={()=>select("payment","fees")} />
                   <SidebarItem label="Outstanding payment" active={activeGroup==="payment" && activeItem==="outstanding_payment"} onClick={()=>select("payment","outstanding_payment")} />
                 </div>
