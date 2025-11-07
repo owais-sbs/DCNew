@@ -93,8 +93,10 @@ export default function App() {
                  <Route path="/notes/classes" element={<><Sidebar /><Header /><ContentWrapper><NotesDashboard /></ContentWrapper></>} />
                  <Route path="/notes/events" element={<><Sidebar /><Header /><ContentWrapper><NotesDashboard /></ContentWrapper></>} />
                  <Route path="/notes/add-class" element={<><Sidebar /><Header /><ContentWrapper><AddClassForm /></ContentWrapper></>} />
-                 <Route path="/notes/class-details" element={<><Sidebar /><Header /><ContentWrapper><ClassDetailsScreen /></ContentWrapper></>} />
-
+                 <Route 
+                    path="/notes/class-details/:id" 
+                    element={<><Sidebar /><Header /><ContentWrapper><ClassDetailsScreen /></ContentWrapper></>} 
+                  />
                  {/* Payments */}
                  <Route path="/payments" element={<><Sidebar /><Header /><ContentWrapper><PaymentsDashboard /></ContentWrapper></>} />
                  <Route path="/payments/received" element={<><Sidebar /><Header /><ContentWrapper><PaymentsDashboard /></ContentWrapper></>} />
