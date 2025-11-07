@@ -502,11 +502,11 @@ export default function PeopleDashboard() {
                     return (
                       <tr key={student.Id} className="border-b last:border-0 border-gray-100 hover:bg-gray-50">
                         <td className="px-4 py-3"><input type="checkbox" /></td>
-                        <td className="px-4 py-3 text-indigo-700 flex items-center gap-2">
+                        <td className="px-4 py-3 text-indigo-700 flex items-center gap-2" onClick={() => navigate(`/people/students/${student.Id}`)}>
                           <img 
                             src={`https://i.pravatar.cc/48?img=${avatarSeed}`} 
                             className="h-8 w-8 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-200 transition-all" 
-                            onClick={() => navigate(`/people/students/${student.Id}`)}
+                            
                             alt={`${fullName} profile`}
                           />
                           <div>

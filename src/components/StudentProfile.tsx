@@ -1,17 +1,36 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck } from "lucide-react"
 import { useState, useEffect } from "react"
+import axiosInstance from './axiosInstance';
+
 
 export default function StudentProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
+
   const [activeTab, setActiveTab] = useState("profile")
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [openModal, setOpenModal] = useState<string | null>(null)
-  
-  console.log('StudentProfile rendered with id:', id)
+  const [studentdetails, setStudent] = useState<any>(null)
 
-  // Close dropdowns when clicking outside
+  
+
+  // ✅ MOVE THESE UP
+  const [classesSubTab, setClassesSubTab] = useState<'classes'|'lessons'|'events'>('classes')
+  const [feesTab, setFeesTab] = useState<'grouped'|'individual'>('grouped')
+
+  useEffect(() => {
+    const fetchStudent = async () => {
+      try {
+        const response = await axiosInstance.get(`/Student/GetById/${id}`);
+        if (response.data?.IsSuccess) setStudent(response.data.Data);
+      } catch (error) {
+        console.error("Failed to fetch student:", error);
+      }
+    };
+    fetchStudent();
+  }, [id]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (openDropdown && !(event.target as Element).closest('.dropdown-container')) {
@@ -22,19 +41,25 @@ export default function StudentProfile() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openDropdown])
 
-  const student = {
-    id,
-    name: "Abdurrakhim Umirbyek",
-    gender: "Male",
-    age: 18,
-    email: "omirbekrakhim@gmail.com",
-    idNumber: "DCE2848",
-    courseTitle: "General English With Exam Preparation",
-    level: "B1",
-    weeks: 25,
-    department: "English DCE-Dublin 7",
-    externalExam: "TIE"
+  // ✅ SAFE TO RETURN NOW
+  if (!studentdetails) {
+    return (
+      <div className="p-6 text-center text-gray-600">
+        Loading student profile...
+      </div>
+    );
   }
+
+  const studentName = `${studentdetails.FirstName ?? ""} ${studentdetails.LastName ?? ""}`.trim();
+
+  const age = studentdetails.DateOfBirth
+  ? Math.floor(
+      (new Date().getTime() - new Date(studentdetails.DateOfBirth).getTime()) /
+      (365.25 * 24 * 60 * 60 * 1000)
+    )
+  : null;
+
+  
 
   const tabs = [
     "Profile", "Activity", "Classes", "Attendance", "Fees", "Receipts", 
@@ -88,14 +113,14 @@ export default function StudentProfile() {
     </div>
   )
 
-  const [classesSubTab, setClassesSubTab] = useState<'classes'|'lessons'|'events'>('classes')
+
 
   const renderClassesContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Classes</h2>
-          <p className="text-gray-600 mt-1">The classes that {student.name} is enrolled in</p>
+          <p className="text-gray-600 mt-1">The classes that {studentName} is enrolled in</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -263,8 +288,7 @@ export default function StudentProfile() {
           <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
             <BookOpen size={32} className="text-blue-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Enroll {student.name} in an Event</h3>
-          <p className="text-gray-600 mb-4">Events will appear here when you invite {student.name} to an event.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Enroll {studentName} in an Event</h3>
           <button 
             onClick={() => setOpenModal('enroll-event')}
             className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2"
@@ -370,7 +394,6 @@ export default function StudentProfile() {
     </div>
   )
 
-  const [feesTab, setFeesTab] = useState<'grouped'|'individual'>('grouped')
 
   const renderFeesContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
@@ -404,7 +427,7 @@ export default function StudentProfile() {
               <DollarSign size={32} className="text-blue-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Class fees</h3>
-            <p className="text-gray-600 mb-4">Class fees will appear here when you enroll {student.name} in a class.</p>
+            <p className="text-gray-600 mb-4">Class fees will appear here when you enroll {studentName} in a class.</p>
             <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
               <Plus size={16} /> Enroll student
             </button>
@@ -466,8 +489,8 @@ export default function StudentProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Receipt size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {student.name}'s first payment.</h3>
-        <p className="text-gray-600 mb-4">{student.name}'s receipts will appear here once a payment is made.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {studentName}'s first payment.</h3>
+        <p className="text-gray-600 mb-4">{studentName}'s receipts will appear here once a payment is made.</p>
         <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> New payment
         </button>
@@ -481,8 +504,8 @@ export default function StudentProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Users size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {student.name}'s relationships</h3>
-        <p className="text-gray-600 mb-4">Add {student.name}'s mother, father and any other related contacts here.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {studentName}'s relationships</h3>
+        <p className="text-gray-600 mb-4">Add {studentName}'s mother, father and any other related contacts here.</p>
         <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> Add relationship
         </button>
@@ -585,8 +608,8 @@ export default function StudentProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Award size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{student.name}'s Grade Results</h3>
-        <p className="text-gray-600">{student.name}'s grades will appear here when their result have been added to a gradebook.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{studentName}'s Grade Results</h3>
+        <p className="text-gray-600">{studentName}'s grades will appear here when their result have been added to a gradebook.</p>
       </div>
     </div>
   )
@@ -634,8 +657,8 @@ export default function StudentProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Sun size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add a holiday for {student.name}</h3>
-        <p className="text-gray-600 mb-4">Holidays for {student.name} will appear here.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add a holiday for {studentName}</h3>
+        <p className="text-gray-600 mb-4">Holidays for {studentName} will appear here.</p>
         <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> Add holiday
         </button>
@@ -652,29 +675,29 @@ export default function StudentProfile() {
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Email</div>
-              <div className="text-sm text-gray-900 mt-1">{student.email}</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Email}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Phone</div>
-              <div className="text-sm text-gray-900 mt-1">+353 89 944 4444</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.MobilePhone}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Address</div>
-              <div className="text-sm text-gray-900 mt-1">123 Main St</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.StreetAddress}</div>
             </div>
           </div>
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">City</div>
-              <div className="text-sm text-gray-900 mt-1">Dublin</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.City}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Country</div>
-              <div className="text-sm text-gray-900 mt-1">Ireland</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Country}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Postcode</div>
-              <div className="text-sm text-gray-900 mt-1">D01 A1B2</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.ZipCode}</div>
             </div>
           </div>
         </div>
@@ -687,21 +710,21 @@ export default function StudentProfile() {
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Nationality</div>
-              <div className="text-sm text-gray-900 mt-1">Mongolian</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Nationality}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Passport Number</div>
-              <div className="text-sm text-gray-900 mt-1">E3464538</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.PassportNumber?.split('T')[0]}</div>
             </div>
           </div>
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Passport Expiry Date</div>
-              <div className="text-sm text-gray-900 mt-1">06-06-2033</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.PassportExpiryDate?.split('T')[0]}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">GNIB Expiry Date</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.GnibExpiryDate?.split('T')[0] || '-'}</div>
             </div>
           </div>
         </div>
@@ -714,49 +737,49 @@ export default function StudentProfile() {
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Course Title</div>
-              <div className="text-sm text-gray-900 mt-1">General English With Exam Preparation</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseTitle}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Course Start Date</div>
-              <div className="text-sm text-gray-900 mt-1">21-07-2025</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseStartDate?.split('T')[0]}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Course End Date</div>
-              <div className="text-sm text-gray-900 mt-1">20-03-2026</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseEndDate?.split('T')[0]}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Attendance</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Attendance}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Course Level</div>
-              <div className="text-sm text-gray-900 mt-1">B1</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseLevel}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Mode of Study</div>
-              <div className="text-sm text-gray-900 mt-1">Full Time</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseLevel}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Number of Weeks</div>
-              <div className="text-sm text-gray-900 mt-1">25 Weeks</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.NumberOfWeeks}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Hours Per Week</div>
-              <div className="text-sm text-gray-900 mt-1">15</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.HoursPerWeek}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Tuition Fees</div>
-              <div className="text-sm text-gray-900 mt-1">Fully Paid</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.TuitionFees}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Course Code</div>
-              <div className="text-sm text-gray-900 mt-1">0355/0003</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseCode}</div>
             </div>
           </div>
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Date of External Exam</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.ExternalExam}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Duration</div>
@@ -768,27 +791,27 @@ export default function StudentProfile() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Department</div>
-              <div className="text-sm text-gray-900 mt-1">English DCE-Dublin 7</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">External Exam</div>
-              <div className="text-sm text-gray-900 mt-1">TIE</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Score External Exam</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.ScoreExternalExam}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Date of Payment</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.DateOfPayment?.split('T')[0]}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Schedule</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Schedule}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">ILEP reference number</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.IlepReference}</div>
             </div>
           </div>
         </div>
@@ -812,7 +835,7 @@ export default function StudentProfile() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Username</div>
-              <div className="text-sm text-gray-900 mt-1">{student.email}</div>
+              <div className="text-sm text-gray-900 mt-1">{studentName}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500 mb-2">Automatic reminders</div>
@@ -892,14 +915,25 @@ export default function StudentProfile() {
             <img src={`https://i.pravatar.cc/96?img=${(Number(id||1)%70)+1}`} className="h-16 w-16 rounded-full object-cover" />
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-semibold text-gray-900 truncate">{student.name}</h1>
+                <h1 className="text-xl font-semibold text-gray-900 truncate">{studentName}</h1>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Student</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <div>Male</div>
-                <div>18 years old</div>
-                <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add phone')}>+ add phone</button>
-                <a className="text-blue-700" href={`mailto:${student.email}`}>{student.email}</a>
+                <div>{studentdetails.Gender || "-"}</div>
+                  <div>{age ? `${age} years old` : "-"}</div>
+
+                  {studentdetails.MobilePhone ? (
+                    <div>{studentdetails.MobilePhone}</div>
+                  ) : (
+                    <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add phone')}>
+                      + add phone
+                    </button>
+                  )}
+
+                  <a className="text-blue-700" href={`mailto:${studentdetails.Email}`}>
+                    {studentdetails.Email}
+                  </a>
+
                 <div className="inline-flex items-center gap-1 text-emerald-700">
                   <span className="h-2 w-2 rounded-full bg-emerald-600" />
                   1
