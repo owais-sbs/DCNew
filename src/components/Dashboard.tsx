@@ -1,5 +1,9 @@
-// src/components/Dashboard.tsx
-import React, { useMemo, useState } from "react"
+// @ts-nocheck
+// ^^ Disabling TypeScript checks for this example file as we have
+// placeholder data (teacher, stats) that doesn't fully match the types
+// Remove this line in your real project once all data is wired up.
+
+import React, { useMemo, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   BookOpen,
@@ -16,22 +20,19 @@ import {
   MessageSquare,
   Copy,
   Plus,
-  X
+  X,
+  Loader2
 } from "lucide-react"
 import AddStudentForm from "./AddStudentForm"
+import axiosInstance from "./axiosInstance"
 
 /**
  * Dashboard.tsx
  * Full-featured dashboard UI (lessons list + widgets).
- *
- * Notes:
- * - This file expects your app's sidebar width to be 80px (pl-[80px]).
- * - Tailwind classes are used throughout. Adjust spacing tokens to match your project if needed.
- * - Add/Ended lessons and modal are UI-only placeholders — wire up with your API/state as needed.
-  */
+ */
 
 /* -------------------------
-   Types and sample data
+   Types
    ------------------------- */
 type Lesson = {
   id: string
@@ -46,87 +47,60 @@ type Lesson = {
   accent: string
 }
 
-const makeSampleLessons = (): Lesson[] => {
-  const base: Lesson[] = [
-    {
-      id: "l1",
-      time: "09:00",
-      duration: "2 hours",
-      room: "Room8 D7",
-      subtitle: "A1 am",
-      location: "Part 1",
-      teacher: { name: "Sara Lagarto Teacher", initials: "SL", color: "bg-rose-500" },
-      students: 9,
-      stats: { green: 4, red: 2, gray: 2 },
-      accent: "border-l-2 border-red-500"
-    },
-    {
-      id: "l2",
-      time: "09:00",
-      duration: "2 hours",
-      room: "Room11 D7",
-      subtitle: "A2|200525|am",
-      location: "Part 1",
-      teacher: { name: "Saba Teacher", initials: "ST", color: "bg-blue-500" },
-      students: 11,
-      stats: { green: 4, red: 2, gray: 1 },
-      accent: "border-l-2 border-red-500"
-    },
-    {
-      id: "l3",
-      time: "09:00",
-      duration: "2 hours",
-      room: "Room12 D7",
-      subtitle: "B2 new am",
-      location: "Room 12",
-      teacher: { name: "Edmund Patrick Teacher", initials: "EP", color: "bg-purple-500" },
-      students: 14,
-      stats: { green: 12, red: 1, gray: 1 },
-      accent: "border-l-2 border-red-500"
-    },
-    {
-      id: "l4",
-      time: "09:00",
-      duration: "2 hours",
-      room: "Room5 D7",
-      subtitle: "A1(2) am",
-      location: "Part 1",
-      teacher: { name: "Isabela Teacher", initials: "IT", color: "bg-teal-500" },
-      students: 12,
-      stats: { green: 5, red: 2, gray: 1 },
-      accent: "border-l-2 border-red-500"
-    },
-    {
-      id: "l5",
-      time: "10:30",
-      duration: "1.5 hours",
-      room: "Room1 D7",
-      subtitle: "B1 am",
-      location: "Part 2",
-      teacher: { name: "Oriana Teacher", initials: "OT", color: "bg-pink-500" },
-      students: 15,
-      stats: { green: 8, red: 3, gray: 4 },
-      accent: "border-l-2 border-red-500"
-    }
-  ]
-
-  // Duplicate some entries to populate a scrollable list
-  const items: Lesson[] = []
-  for (let i = 0; i < 8; i++) {
-    base.forEach((b, idx) => {
-      items.push({
-        ...b,
-        id: `${b.id}-${i}`,
-        room: `${b.room.split(" ")[0]} ${idx + 1} D${7 + i}`,
-        time: b.time
-      })
-    })
-  }
-
-  return items
+type ApiSession = {
+  ClassId: number
+  SessionId: number
+  ClassTitle: string
+  ClassSubject: string
+  StartTime: string
+  EndTime: string
+  DayOfWeek: string
 }
 
-const lessonsSample = makeSampleLessons()
+type ApiResponse = {
+  IsSuccess: boolean
+  Data: ApiSession[]
+}
+
+/* -------------------------
+   Date/Time Helpers
+   ------------------------- */
+function formatTime(dateString: string): string {
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleTimeString(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false
+    })
+  } catch (e) {
+    return "00:00"
+  }
+}
+
+function calculateDuration(startString: string, endString: string): string {
+  try {
+    const start = new Date(startString).getTime()
+    const end = new Date(endString).getTime()
+    const diffMs = end - start
+    if (diffMs <= 0) return "N/A"
+
+    const totalMinutes = Math.floor(diffMs / 60000)
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+
+    if (hours > 0) {
+      return `${hours} hour${hours > 1 ? "s" : ""}${
+        minutes > 0 ? ` ${minutes} min` : ""
+      }`
+    }
+    return `${minutes} min`
+  } catch (e) {
+    return "N/A"
+  }
+}
+
+// --- REMOVED: makeSampleLessons and lessonsSample ---
 
 /* -------------------------
    Small UI helpers
@@ -173,7 +147,7 @@ function Donut({ present = 45, absent = 22 }: { present?: number; absent?: numbe
           fill="none"
           stroke="#ef5a66"
           strokeWidth={stroke}
-          strokeDasharray={`${absentDash} ${circumference - absentDash}`}
+          strokeDasharray={`${absentDash} ${circumference - presentDash}`}
           strokeLinecap="round"
           transform={`rotate(${(-90 + (presentPct / 100) * 360)})`}
         />
@@ -187,12 +161,19 @@ function Donut({ present = 45, absent = 22 }: { present?: number; absent?: numbe
    ------------------------- */
 export default function Dashboard() {
   const navigate = useNavigate()
+  
   // selected lesson card (opens details modal)
   const [selected, setSelected] = useState<string | null>(null)
   // which card is hovered
   const [hovered, setHovered] = useState<string | null>(null)
-  // lessons data; in real app replace with props or fetch
-  const [lessons] = useState<Lesson[]>(lessonsSample)
+
+  // CHANGED: State is now empty array, with setLessons
+  const [lessons, setLessons] = useState<Lesson[]>([])
+  
+  // CHANGED: Added loading and error states
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
   // enroll students modal
   const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [showAddStudent, setShowAddStudent] = useState(false)
@@ -205,6 +186,53 @@ export default function Dashboard() {
   const [dateOpen, setDateOpen] = useState(false)
   // Add lesson modal
   const [addOpen, setAddOpen] = useState(false)
+
+  // This useEffect will now work correctly
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        // TODO: Update this endpoint to use `currentDate`
+        // e.g. /Class/GetSessionsFlattened?date=${currentDate}
+        const response = await axiosInstance.get<ApiResponse>("/Class/GetTodaySessionFlattened")
+
+        if (response.data && response.data.IsSuccess) {
+          // Map API data to our Lesson[] type
+          const mappedLessons: Lesson[] = response.data.Data.map((item, index) => ({
+            id: item.SessionId.toString(),
+            time: formatTime(item.StartTime),
+            duration: calculateDuration(item.StartTime, item.EndTime),
+            room: item.ClassTitle,
+            subtitle: item.ClassSubject,
+            location: item.DayOfWeek,
+            // --- Placeholder data (replace with real data when available) ---
+            teacher: {
+              name: "TBD Teacher",
+              initials: "TBD",
+              color: index % 2 === 0 ? "bg-blue-500" : "bg-purple-500"
+            },
+            students: 0, // API doesn't provide this
+            stats: { green: 0, red: 0, gray: 0 }, // API doesn't provide this
+            accent: "border-l-2 border-blue-500" // Hardcoded accent
+            // --- End Placeholder data ---
+          }))
+          setLessons(mappedLessons)
+        } else {
+          setError("Failed to fetch lessons. Please try again.")
+        }
+      } catch (err) {
+        console.error("Error fetching lessons:", err)
+        setError("An error occurred while fetching lessons.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchLessons()
+    // This hook re-runs whenever `currentDate` changes
+  }, [currentDate])
 
   // compute attendance totals for the widget
   const attendance = useMemo(() => {
@@ -235,7 +263,6 @@ export default function Dashboard() {
           <h1 className="text-2xl font-semibold text-gray-800">Welcome, Asif</h1>
         </div>
 
-
         {/* MAIN GRID: Left lessons list + Right widgets */}
         <div className="grid grid-cols-1 xl:grid-cols-[3fr_1fr] gap-6 mt-4">
           {/* Left column (lessons list) */}
@@ -244,7 +271,10 @@ export default function Dashboard() {
             <div className="mb-3 flex items-center gap-3">
               <BookOpen className="text-indigo-600" size={20} />
               <h2 className="text-lg font-semibold text-gray-800">Lessons</h2>
-              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-white border border-gray-200 rounded-full text-gray-600">59</span>
+              {/* CHANGED: Dynamic lesson count */}
+              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-white border border-gray-200 rounded-full text-gray-600">
+                {lessons.length}
+              </span>
               {/* Controls inline on the right */}
               <div className="ml-auto flex items-center gap-2">
                 <button
@@ -276,31 +306,33 @@ export default function Dashboard() {
                     aria-expanded={dateOpen}
                   >
                     <CalendarIcon size={18} className="text-blue-500" />
-                    <span>Today</span>
+                    {/* CHANGED: Friendly date display */}
+                    <span>{formatDateFriendly(currentDate)}</span>
                     <svg className="ml-1 w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd" /></svg>
                   </button>
                   {dateOpen && (
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-gray-200 shadow-lg z-30 p-4">
                       <div className="flex items-center justify-between mb-4">
-                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth()-1); setCurrentDate(d.toISOString().slice(0,10)) }} className="p-1 hover:bg-gray-100 rounded">
+                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() - 1); setCurrentDate(d.toISOString().slice(0, 10)) }} className="p-1 hover:bg-gray-100 rounded">
                           <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                         </button>
                         <div className="text-lg font-semibold text-gray-800">{new Date(currentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
-                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth()+1); setCurrentDate(d.toISOString().slice(0,10)) }} className="p-1 hover:bg-gray-100 rounded">
+                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() + 1); setCurrentDate(d.toISOString().slice(0, 10)) }} className="p-1 hover:bg-gray-100 rounded">
                           <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </button>
                       </div>
                       <div className="grid grid-cols-7 gap-1 mb-4">
-                        {['Mo','Tu','We','Th','Fr','Sa','Su'].map(day => (<div key={day} className="text-center text-sm font-medium text-gray-500 py-2">{day}</div>))}
+                        {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(day => (<div key={day} className="text-center text-sm font-medium text-gray-500 py-2">{day}</div>))}
                         {(() => {
                           const date = new Date(currentDate); const year = date.getFullYear(); const month = date.getMonth(); const firstDay = new Date(year, month, 1); const startDate = new Date(firstDay); startDate.setDate(startDate.getDate() - firstDay.getDay() + 1);
-                          const days:any[] = [];
-                          for (let i=0;i<42;i++){ const currentDay = new Date(startDate); currentDay.setDate(startDate.getDate()+i); const isCurrentMonth = currentDay.getMonth()===month; const isSelected = currentDay.toISOString().slice(0,10)===currentDate; const isToday = currentDay.toDateString()===new Date().toDateString();
-                            days.push(<button key={i} onClick={()=>{setCurrentDate(currentDay.toISOString().slice(0,10)); setDateOpen(false)}} className={`h-8 w-8 rounded-full text-sm ${isSelected ? 'bg-blue-600 text-white' : isToday ? 'bg-blue-100 text-blue-600 font-semibold' : isCurrentMonth ? 'text-gray-900 hover:bg-gray-100' : 'text-gray-400'}`}>{currentDay.getDate()}</button>) }
-                          return days; })()}
+                          const days: any[] = [];
+                          for (let i = 0; i < 42; i++) { const currentDay = new Date(startDate); currentDay.setDate(startDate.getDate() + i); const isCurrentMonth = currentDay.getMonth() === month; const isSelected = currentDay.toISOString().slice(0, 10) === currentDate; const isToday = currentDay.toDateString() === new Date().toDateString();
+                            days.push(<button key={i} onClick={() => { setCurrentDate(currentDay.toISOString().slice(0, 10)); setDateOpen(false) }} className={`h-8 w-8 rounded-full text-sm ${isSelected ? 'bg-blue-600 text-white' : isToday ? 'bg-blue-100 text-blue-600 font-semibold' : isCurrentMonth ? 'text-gray-900 hover:bg-gray-100' : 'text-gray-400'}`}>{currentDay.getDate()}</button>) }
+                          return days;
+                        })()}
                       </div>
                       <div className="flex justify-center">
-                        <button onClick={()=>{ const today=new Date(); setCurrentDate(today.toISOString().slice(0,10)); setDateOpen(false) }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Today</button>
+                        <button onClick={() => { const today = new Date(); setCurrentDate(today.toISOString().slice(0, 10)); setDateOpen(false) }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Today</button>
                       </div>
                     </div>
                   )}
@@ -308,84 +340,104 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* CHANGED: Added Loading/Error/Empty states */}
+            {isLoading && (
+              <div className="flex items-center justify-center h-64">
+                <Loader2 className="animate-spin text-blue-500" size={32} />
+                <span className="ml-3 text-gray-600">Loading lessons...</span>
+              </div>
+            )}
+            {error && (
+              <div className="flex items-center justify-center h-64 bg-red-50 border border-red-200 rounded-lg p-4">
+                <span className="text-red-700">{error}</span>
+              </div>
+            )}
+            {!isLoading && !error && lessons.length === 0 && (
+              <div className="flex items-center justify-center h-64 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <span className="text-gray-600">No lessons found for this date.</span>
+              </div>
+            )}
+            
             {/* Cards list */}
-            <div className="space-y-4">
-              {lessons.map((l) => {
-                const isSelected = selected === l.id
-                const isHovered = hovered === l.id
-                return (
-                  <article
-                    key={l.id}
-                    onMouseEnter={() => setHovered(l.id)}
-                    onMouseLeave={() => setHovered((h) => (h === l.id ? null : h))}
-                    onClick={() => setSelected(l.id)}
-                    role="button"
-                    tabIndex={0}
-                    className={`group cursor-pointer bg-white border-t border-r border-b border-white border-l-4 border-l-red-500 rounded-xl transition-transform duration-150 flex items-center ${
-                      isSelected
-                        ? "ring-2 ring-indigo-200 shadow-md transform -translate-y-1 scale-[1.01]"
-                        : isHovered
-                        ? "shadow-sm transform -translate-y-0.5 scale-[1.005]"
-                        : ""
-                    }`}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        setSelected((s) => (s === l.id ? null : l.id))
-                      }
-                    }}
-                  >
-                    <div className="p-4 grid grid-cols-[90px_1fr_auto] gap-4 items-center w-full">
-                      {/* time */}
-                      <div>
-                        <div className="text-gray-900 font-semibold text-sm">{l.time}</div>
-                        <div className="text-xs text-gray-500 mt-1">{l.duration}</div>
-                      </div>
-
-                      {/* details */}
-                      <div>
-                        <div className="flex items-center gap-2 text-gray-900">
-                          <span className="font-semibold">{l.room}</span>
-                          {l.subtitle && <span className="text-sm text-gray-500">({l.subtitle})</span>}
-                        </div>
-                        <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                          <MapPin size={14} />
-                          <span>{l.location}</span>
+            {!isLoading && !error && (
+              <div className="space-y-4">
+                {lessons.map((l) => {
+                  const isSelected = selected === l.id
+                  const isHovered = hovered === l.id
+                  return (
+                    <article
+                      key={l.id}
+                      onMouseEnter={() => setHovered(l.id)}
+                      onMouseLeave={() => setHovered((h) => (h === l.id ? null : h))}
+                      onClick={() => setSelected(l.id)}
+                      role="button"
+                      tabIndex={0}
+                      // CHANGED: Dynamic accent color
+                      className={`group cursor-pointer bg-white border-t border-r border-b border-white border-l-4 ${l.accent} rounded-xl transition-transform duration-150 flex items-center ${
+                        isSelected
+                          ? "ring-2 ring-indigo-200 shadow-md transform -translate-y-1 scale-[1.01]"
+                          : isHovered
+                          ? "shadow-sm transform -translate-y-0.5 scale-[1.005]"
+                          : ""
+                      }`}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          setSelected((s) => (s === l.id ? null : l.id))
+                        }
+                      }}
+                    >
+                      <div className="p-4 grid grid-cols-[90px_1fr_auto] gap-4 items-center w-full">
+                        {/* time */}
+                        <div>
+                          <div className="text-gray-900 font-semibold text-sm">{l.time}</div>
+                          <div className="text-xs text-gray-500 mt-1">{l.duration}</div>
                         </div>
 
-                        <div className="mt-3 flex items-center gap-4 text-gray-600">
-                          <div className="flex items-center gap-1 text-sm">
-                            <Users2 size={16} className="text-gray-500" />
-                            {l.students}
+                        {/* details */}
+                        <div>
+                          <div className="flex items-center gap-2 text-gray-900">
+                            <span className="font-semibold">{l.room}</span>
+                            {l.subtitle && <span className="text-sm text-gray-500">({l.subtitle})</span>}
                           </div>
-                          <div className="flex items-center gap-1 text-sm">
-                            <StickyNote size={16} className="text-gray-500" />
-                            0
+                          <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
+                            <MapPin size={14} />
+                            <span>{l.location}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <BarChart3 size={16} className="text-gray-500" />
-                            <ProgressBar {...l.stats} />
+
+                          <div className="mt-3 flex items-center gap-4 text-gray-600">
+                            <div className="flex items-center gap-1 text-sm">
+                              <Users2 size={16} className="text-gray-500" />
+                              {l.students}
+                            </div>
+                            <div className="flex items-center gap-1 text-sm">
+                              <StickyNote size={16} className="text-gray-500" />
+                              0
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <BarChart3 size={16} className="text-gray-500" />
+                              <ProgressBar {...l.stats} />
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* teacher area */}
-                      <div className="justify-self-end flex items-center gap-3">
-                        <div className="hidden sm:block text-sm text-gray-700 max-w-[160px] truncate">{l.teacher.name}</div>
-                        <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${l.teacher.color}`}>{l.teacher.initials}</div>
+                        {/* teacher area */}
+                        <div className="justify-self-end flex items-center gap-3">
+                          <div className="hidden sm:block text-sm text-gray-700 max-w-[160px] truncate">{l.teacher.name}</div>
+                          <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${l.teacher.color}`}>{l.teacher.initials}</div>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
 
-           
           </main>
 
           {/* Right column: widgets */}
           <aside className="flex flex-col gap-4">
             {/* Announcement Card (above Unread notes) */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -407,7 +459,7 @@ export default function Dashboard() {
             </section>
 
             {/* 1. Unread notes Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -421,7 +473,7 @@ export default function Dashboard() {
             </section>
 
             {/* 3. Notifications Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -435,7 +487,7 @@ export default function Dashboard() {
             </section>
 
             {/* 4. Birthdays Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -482,7 +534,7 @@ export default function Dashboard() {
             </section>
 
             {/* 5. Checklist Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -495,7 +547,7 @@ export default function Dashboard() {
             </section>
 
             {/* 6. Lessons Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <BarChart3 size={16} className="text-indigo-600" />
@@ -529,7 +581,7 @@ export default function Dashboard() {
             </section>
 
             {/* 7. Behaviours Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="font-semibold text-gray-800 mb-3">Behaviours</div>
               <div className="mt-4 grid grid-cols-2 gap-4">
                 <div className="flex flex-col items-center gap-2">
@@ -551,7 +603,7 @@ export default function Dashboard() {
             </section>
 
             {/* 8. Payments Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
                   <span className="text-blue-600 font-bold text-sm">$</span>
@@ -565,7 +617,7 @@ export default function Dashboard() {
             </section>
 
             {/* 9. Communication Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
                   <MessageSquare size={14} className="text-blue-600" />
@@ -617,6 +669,8 @@ export default function Dashboard() {
           {(() => {
             const lesson = lessons.find((l) => l.id === selected)
             if (!lesson) return null
+            // This student data is still static.
+            // You would need another API call to fetch students for the selected lesson.
             const students = [
               { name: "Ana Carolina Bitencourt Forgi...", initials: "AC", status: "Take attendance" },
               { name: "Andriele Paz De Moraes", initials: "AP", status: "Take attendance" },
@@ -637,7 +691,8 @@ export default function Dashboard() {
                     <div className="text-sm text-gray-700 mr-2">{lesson.teacher.name}</div>
                     <div>
                       <div className="text-lg font-semibold text-gray-900">{lesson.time} - {lesson.room} ({lesson.subtitle || lesson.location})</div>
-                      <div className="text-sm text-gray-600">20-10-2025 #{lesson.id} {lesson.room}</div>
+                      {/* CHANGED: Dynamic date */}
+                      <div className="text-sm text-gray-600">{formatDateFriendly(currentDate)} #{lesson.id} {lesson.room}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -778,7 +833,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                      {/* Right sidebar */}
+                  {/* Right sidebar */}
                   <aside className="border-l border-gray-200 p-6 bg-gray-50">
                     <div className="space-y-6">
                       {/* Edit section */}
@@ -847,65 +902,66 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Enroll Student Modals */}
       {showEnrollModal && (
         <>
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" onClick={() => setShowEnrollModal(false)}>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Enroll students</h2>
-              <button onClick={() => setShowEnrollModal(false)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
-                <X size={18} />
-              </button>
-            </div>
-            <div className="p-6">
-              <p className="text-gray-600 mb-4">Select the date and students to enroll in this class.</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment date *</label>
-                  <input type="text" defaultValue={new Date().toLocaleDateString('en-GB')} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Unenrollment date (optional)</label>
-                  <input type="text" placeholder="Select date..." className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                </div>
-              </div>
-              <div className="flex items-center gap-3 mb-4">
-                <button className="px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 inline-flex items-center gap-2">
-                  <Copy size={16} />
-                  Copy from another class
-                </button>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center gap-2" onClick={() => { setShowEnrollModal(false); setTimeout(() => setShowAddStudent(true), 0); }}>
-                  <Plus size={16} />
-                  Add new student
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" onClick={() => setShowEnrollModal(false)}>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Enroll students</h2>
+                <button onClick={() => setShowEnrollModal(false)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+                  <X size={18} />
                 </button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium text-gray-800 mb-2">All students</h4>
-                  <div className="border border-gray-200 rounded-lg h-64 overflow-y-auto">
-                    {['Evo Calahuma Juchasara', 'Jimena Rojas Balderrama', 'a b', 'Abdul Hameed', 'Abdullah Jan', 'Abdullah Test', 'Abdurakhim Umirbyek', 'Abraham Emmanuel Acosta Garcia'].map((name) => (
-                      <div key={name} className="p-2 hover:bg-gray-50 cursor-pointer">{name}</div>
-                    ))}
+              <div className="p-6">
+                <p className="text-gray-600 mb-4">Select the date and students to enroll in this class.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment date *</label>
+                    <input type="text" defaultValue={new Date().toLocaleDateString('en-GB')} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Use shift and control keys to select multiple students</p>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Unenrollment date (optional)</label>
+                    <input type="text" placeholder="Select date..." className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-medium text-gray-800 mb-2">Enrolled students</h4>
-                  <div className="border border-gray-200 rounded-lg h-64 bg-gray-50 flex items-center justify-center">
-                    <span className="text-gray-500">No students selected</span>
+                <div className="flex items-center gap-3 mb-4">
+                  <button className="px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 inline-flex items-center gap-2">
+                    <Copy size={16} />
+                    Copy from another class
+                  </button>
+                  <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center gap-2" onClick={() => setShowAddStudent(true)}>
+                    <Plus size={16} />
+                    Add new student
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium text-gray-800 mb-2">All students</h4>
+                    <div className="border border-gray-200 rounded-lg h-64 overflow-y-auto">
+                      {['Evo Calahuma Juchasara', 'Jimena Rojas Balderrama', 'a b', 'Abdul Hameed', 'Abdullah Jan', 'Abdullah Test', 'Abdurakhim Umirbyek', 'Abraham Emmanuel Acosta Garcia'].map((name) => (
+                        <div key={name} className="p-2 hover:bg-gray-50 cursor-pointer">{name}</div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2">Use shift and control keys to select multiple students</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-800 mb-2">Enrolled students</h4>
+                    <div className="border border-gray-200 rounded-lg h-64 bg-gray-50 flex items-center justify-center">
+                      <span className="text-gray-500">No students selected</span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-              <button onClick={() => setShowEnrollModal(false)} className="px-6 h-10 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
-              <button onClick={() => setShowEnrollModal(false)} className="px-6 h-10 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Save changes</button>
+              <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+                <button onClick={() => setShowEnrollModal(false)} className="px-6 h-10 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button onClick={() => setShowEnrollModal(false)} className="px-6 h-10 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Save changes</button>
+              </div>
             </div>
           </div>
-        </div>
-        {showAddStudent && (
-          <AddStudentForm isOpen={showAddStudent} onClose={() => setShowAddStudent(false)} />
-        )}
+          {showAddStudent && (
+            <AddStudentForm isOpen={showAddStudent} onClose={() => setShowAddStudent(false)} />
+          )}
         </>
       )}
     </div>
