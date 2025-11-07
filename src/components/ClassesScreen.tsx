@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Search, 
@@ -107,6 +107,27 @@ const sampleClasses = [
 export default function ClassesScreen() {
   const navigate = useNavigate();
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
+  // Dropdown states
+  const [teacherOpen, setTeacherOpen] = useState(false);
+  const [classroomOpen, setClassroomOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [teacherQuery, setTeacherQuery] = useState("");
+  const [teacher, setTeacher] = useState<string>("All");
+  const [classroom, setClassroom] = useState<string>("All");
+  const [classType, setClassType] = useState<string>("V");
+  const [status, setStatus] = useState<string>("All");
+
+  const teacherOptions = useMemo(() => [
+    "All","Abbey teacher","Adao Lopes Teacher","Ane 1","Anne Smiddy Elisabeth",
+    "Aoife Sinead Buckley","Ava Collopy","Beni Teacher","Carla Kerr","Cathrine Teacher",
+    "Colm Delmar1","Conor O’Riordan","Daiana Teacher"
+  ].filter(n => n.toLowerCase().includes(teacherQuery.toLowerCase())), [teacherQuery]);
+
+  const classroomOptions = [
+    "All","Class 1","Cork","France","Galway","Kildere (02)","Kildere (2)",
+    "Leitrim","Leitrim (05)","Limerick","Limerick (06)","Meath","Monaghan (06)","Online Lesson"
+  ];
 
   const handleSelectAll = () => {
     if (selectedRows.length === sampleClasses.length) {
@@ -134,7 +155,7 @@ export default function ClassesScreen() {
         </div>
 
         {/* Search and filters */}
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-6 relative">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -144,21 +165,68 @@ export default function ClassesScreen() {
             />
           </div>
           
-          <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-            <option>Teacher: All</option>
-          </select>
+          {/* Teacher dropdown */}
+          <div className="relative">
+            <button onClick={()=>{setTeacherOpen(!teacherOpen); setClassroomOpen(false); setTypeOpen(false); setStatusOpen(false);}} className="px-3 py-2 border border-gray-300 rounded-lg text-sm inline-flex items-center gap-2">
+              <span>Teacher: {teacher}</span>
+              <span className="text-gray-500">▾</span>
+            </button>
+            {teacherOpen && (
+              <div className="absolute mt-2 w-72 bg-white border border-gray-200 rounded-xl shadow-lg z-30 p-2">
+                <input autoFocus value={teacherQuery} onChange={e=>setTeacherQuery(e.target.value)} className="w-full h-9 px-3 rounded-lg border border-gray-200 mb-2" />
+                <div className="max-h-72 overflow-auto">
+                  {teacherOptions.map(name => (
+                    <button key={name} onClick={()=>{setTeacher(name); setTeacherOpen(false);}} className={`w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center justify-between ${name===teacher? 'bg-gray-50':''}`}>{name}{name===teacher && <span>✔</span>}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           
-          <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-            <option>Classroom: All</option>
-          </select>
+          {/* Classroom dropdown */}
+          <div className="relative">
+            <button onClick={()=>{setClassroomOpen(!classroomOpen); setTeacherOpen(false); setTypeOpen(false); setStatusOpen(false);}} className="px-3 py-2 border border-gray-300 rounded-lg text-sm inline-flex items-center gap-2">
+              <span>Classroom: {classroom}</span>
+              <span className="text-gray-500">▾</span>
+            </button>
+            {classroomOpen && (
+              <div className="absolute mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-lg z-30 p-2 max-h-80 overflow-auto">
+                {classroomOptions.map(name => (
+                  <button key={name} onClick={()=>{setClassroom(name); setClassroomOpen(false);}} className={`w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center justify-between ${name===classroom? 'bg-gray-50':''}`}>{name}{name===classroom && <span>✔</span>}</button>
+                ))}
+              </div>
+            )}
+          </div>
           
-          <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-            <option>Class type: V</option>
-          </select>
+          {/* Class type dropdown */}
+          <div className="relative">
+            <button onClick={()=>{setTypeOpen(!typeOpen); setTeacherOpen(false); setClassroomOpen(false); setStatusOpen(false);}} className="px-3 py-2 border border-gray-300 rounded-lg text-sm inline-flex items-center gap-2">
+              <span>Class type: {classType}</span>
+              <span className="text-gray-500">▾</span>
+            </button>
+            {typeOpen && (
+              <div className="absolute mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg z-30 p-2">
+                {['Academic','Non Academic'].map(name => (
+                  <button key={name} onClick={()=>{setClassType(name); setTypeOpen(false);}} className={`w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center justify-between ${name===classType? 'bg-gray-50':''}`}>{name}{name===classType && <span>✔</span>}</button>
+                ))}
+              </div>
+            )}
+          </div>
           
-          <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-            <option>Status: All</option>
-          </select>
+          {/* Status dropdown */}
+          <div className="relative">
+            <button onClick={()=>{setStatusOpen(!statusOpen); setTeacherOpen(false); setClassroomOpen(false); setTypeOpen(false);}} className="px-3 py-2 border border-gray-300 rounded-lg text-sm inline-flex items-center gap-2">
+              <span>Status: {status}</span>
+              <span className="text-gray-500">▾</span>
+            </button>
+            {statusOpen && (
+              <div className="absolute mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-30 p-2">
+                {['All','Active','Scheduled','Ended','Archived'].map(name => (
+                  <button key={name} onClick={()=>{setStatus(name); setStatusOpen(false);}} className={`w-full text-left px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center justify-between ${name===status? 'bg-gray-50':''}`}>{name}{name===status && <span>✔</span>}</button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <button className="p-2 text-gray-600 hover:text-gray-800">
             <Filter className="h-4 w-4" />

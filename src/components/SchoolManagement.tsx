@@ -83,42 +83,126 @@ export default function SchoolManagement() {
             <EmptyPanel icon={"✍️"} title="Signature requests" cta="Learn more" />
           )}
           {active === "library" && (
-            <div>
-              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold text-gray-800">Files</div>
-                  <div className="flex items-center gap-2">
-                    <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white">≡</button>
-                    <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white">▦</button>
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-3">
-                  <input placeholder="Search by file name" className="w-80 h-10 px-4 rounded-xl border border-gray-200" />
-                  <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">Type: All ▾</button>
-                  <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">Select Month</button>
-                  <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white">⟳</button>
-                </div>
-                {/* grid of file cards */}
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {Array.from({length:8}).map((_,i)=> (
-                    <div key={i} className="border border-gray-200 rounded-lg p-3 bg-white">
-                      <div className="h-28 bg-gray-100 rounded" />
-                      <div className="mt-2 text-indigo-700 text-sm underline truncate">DCE145{i}_Document.pdf</div>
-                      <div className="mt-2 flex items-center justify-between text-gray-500 text-xs">
-                        <span>pdf</span>
-                        <div className="flex items-center gap-2">
-                          <button>⬇</button>
-                          <button>🗑</button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <LibraryTab />
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function LibraryTab() {
+  const [view, setView] = useState<'grid'|'list'>('grid')
+  const [monthOpen, setMonthOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
+  const [selectedMonth, setSelectedMonth] = useState<string>('Select Month')
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+  const files = Array.from({length:24}).map((_,i)=>({
+    name: `DCE14${50+i}_Passport.pdf`,
+    type: i%3===0? 'pdf' : i%3===1? 'jpeg' : 'png',
+    size: i%3===0? `${400+i}KB` : i%3===1? `${1+i%2}MB` : `${900+i}KB`,
+    date: `0${(i%9)+1}-10-2025 13:${(i%59).toString().padStart(2,'0')}`
+  }))
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <div className="font-semibold text-gray-800">Files</div>
+        <div className="flex items-center gap-3">
+          {/* Upload button with dropdown */}
+          <div className="relative">
+            <button onClick={()=>setUploadOpen(v=>!v)} className="h-10 px-4 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-2">↥ Upload file</button>
+            {uploadOpen && (
+              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-xl shadow-lg z-30 py-2">
+                <div className="px-3 py-1 text-xs text-gray-500">Add from...</div>
+                {['Upload','Library','Dropbox','Google Drive'].map(label => (
+                  <button key={label} className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm">{label}</button>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* View toggles */}
+          <div className="flex items-center rounded-xl overflow-hidden border border-gray-200">
+            <button onClick={()=>setView('list')} className={`h-10 w-10 grid place-items-center ${view==='list' ? 'bg-white' : ''}`}>≡</button>
+            <button onClick={()=>setView('grid')} className={`h-10 w-10 grid place-items-center ${view==='grid' ? 'bg-indigo-50 text-indigo-700' : ''}`}>▦</button>
+          </div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="mt-3 flex items-center gap-3">
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+          <input placeholder="Search by file name" className="w-80 h-10 pl-9 pr-3 rounded-xl border border-gray-200" />
+        </div>
+        <div className="relative">
+          <button onClick={()=>setMonthOpen(v=>!v)} className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">{selectedMonth}</button>
+          {monthOpen && (
+            <div className="absolute left-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg z-30 p-3 w-44">
+              <div className="flex items-center justify-between text-gray-700 px-2 pb-2"><button className="px-2">«</button><div className="font-semibold">2025</div><button className="px-2">»</button></div>
+              <div className="grid grid-cols-2 gap-y-2">
+                {months.map(m => (
+                  <button key={m} onClick={()=>{setSelectedMonth(m); setMonthOpen(false);}} className={`px-2 py-1 rounded-lg hover:bg-gray-100 text-left ${selectedMonth===m? 'bg-gray-100' : ''}`}>{m}</button>
+                ))}
+              </div>
+              <div className="absolute -top-2 left-5 w-3 h-3 bg-white rotate-45 border-l border-t border-gray-200" />
+            </div>
+          )}
+        </div>
+        <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white">⟳</button>
+      </div>
+
+      {/* Content */}
+      {view==='grid' ? (
+        <div className="mt-4 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-4">
+          {files.map((f,i)=> (
+            <div key={i} className="rounded-2xl bg-white shadow-[0_1px_0_#e5e7eb] border border-gray-200 overflow-hidden">
+              <div className="p-3">
+                <div className="text-[13px] leading-5 text-indigo-700 underline line-clamp-3 h-[60px]">{f.name}</div>
+                <div className="mt-2 flex items-center justify-end gap-3 text-indigo-600">
+                  <button title="Download" className="h-7 w-7 grid place-items-center rounded-lg hover:bg-indigo-50">⬇</button>
+                  <button title="Delete" className="h-7 w-7 grid place-items-center rounded-lg hover:bg-indigo-50">🗑</button>
+                </div>
+              </div>
+              <div className="h-6 bg-red-600 text-white text-[12px] px-3 flex items-center justify-between">
+                <span>{f.type}</span>
+                <span>{f.size}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="mt-4">
+          <table className="w-full">
+            <thead>
+              <tr className="text-left text-sm text-gray-600">
+                <th className="py-3 px-3 font-medium">File name</th>
+                <th className="py-3 px-3 font-medium">File type</th>
+                <th className="py-3 px-3 font-medium">File size</th>
+                <th className="py-3 px-3 font-medium">Uploaded on</th>
+                <th className="py-3 px-3 font-medium">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm">
+              {files.map((f,i)=> (
+                <tr key={i} className="hover:bg-indigo-50/30">
+                  <td className="px-3 py-3 text-indigo-700 underline">{f.name}</td>
+                  <td className="px-3 py-3 text-gray-700">{f.type}</td>
+                  <td className="px-3 py-3 text-gray-700">{f.size}</td>
+                  <td className="px-3 py-3 text-gray-700">{f.date}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex items-center gap-2">
+                      <button className="h-8 w-8 grid place-items-center rounded-lg border">⬇</button>
+                      <button className="h-8 w-8 grid place-items-center rounded-lg border">🗑</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

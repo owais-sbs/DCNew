@@ -41,13 +41,9 @@ export default function Sidebar() {
     <aside className={`fixed left-0 top-0 h-screen bg-gradient-to-b from-indigo-50 to-blue-50 flex flex-col items-center transition-all duration-300 overflow-visible z-40 ${
       isExpanded ? 'w-[325px]' : 'w-[117px]'
     }`}>
-        {/* Top spacer */}
-        <div className="h-[16px] w-full" />
-        {/* Horizontal divider placed directly above the Dashboard icon */}
-        <div className="w-full px-4">
-          <div className="h-px bg-gray-200" />
-        </div>
-  
+        {/* Logo removed as per design */}
+        <div className="h-[24px] w-full" />
+ 
         {/* Navigation */}
         <nav className="flex flex-col gap-4 py-8 flex-1 mt-4 overflow-visible">
           {items.map(({ id, icon: Icon, label, path }) => {

@@ -210,6 +210,7 @@ function LessonsContent() {
   const [showAddLessonModal, setShowAddLessonModal] = useState(false);
   const [selectedLessonIdx, setSelectedLessonIdx] = useState<number | null>(null);
   const [openStudentMenu, setOpenStudentMenu] = useState<number | null>(null);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
   const navigate = useNavigate();
   const lessons = [
     { date: "17-10-2025", weekday: "Fri", time: "9:00 - 10:30", room: "Room 11 D7", teacher: { name: "Colm Delmar1", initials: "CD" }, students: 0 },
@@ -315,17 +316,30 @@ function LessonsContent() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array.from({ length: 12 }).map((_, i) => (
+                  {[
+                    "Ana Carolina Bitencourt Forgi...",
+                    "Andriele Paz De Moraes",
+                    "Francisco Braian Fernandes De B...",
+                    "Gutierre Silva Dos Santos",
+                    "Isis Aparecida De Lima Silva",
+                    "Jovane De Oliveira Junior",
+                    "Larissa Isabele Tiago",
+                    "Manoel Lucena De Arruda Neto Se...",
+                    "Manuela Andreoletti",
+                    "Abdul Hameed",
+                    "Eduardo Augusto Manuel Antonio",
+                    "Etelvina Pomponet Souza Soares Bisneta"
+                  ].map((studentName, i) => (
                     <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow relative">
                       <div className="flex items-center gap-3">
                         <img
                           src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
-                          alt={`Student ${i+1}`}
+                          alt={studentName}
                           className="h-10 w-10 rounded-full object-cover border border-gray-200"
                           onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 truncate">Student {i+1}</div>
+                          <div className="text-sm font-medium text-gray-900 truncate">{studentName}</div>
                           <div className="relative group mt-2">
                             <button className="w-full h-9 rounded-full border border-gray-200 bg-white text-[13px] text-gray-700">Take attendance</button>
                             <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-none">
@@ -409,6 +423,10 @@ function LessonsContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {showEnrollModal && (
+        <EnrollStudentsModal onClose={() => setShowEnrollModal(false)} />
       )}
     </>
   );

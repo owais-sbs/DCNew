@@ -27,8 +27,8 @@ export default function Reports() {
           <nav className="px-2 space-y-2 text-gray-700">
             {/* Attendance reports */}
             <div>
-              <button onClick={()=>toggleGroup("attendance")} className="flex items-center gap-2 w-full text-left text-[14px] font-semibold text-gray-900 px-2 py-2 hover:bg-gray-50 rounded-lg">
-                <span className={`transition-transform ${openGroup==="attendance"?"rotate-90":""}`}>›</span>
+              <button onClick={()=>toggleGroup("attendance")} className="flex items-center gap-2 w-full text-left text-[14px] font-semibold text-gray-900 px-3 py-2 hover:bg-gray-50 rounded-lg">
+                <span className={`transition-transform ${openGroup==="attendance"?"rotate-90":""}`}>⌄</span>
                 Attendance reports
               </button>
               {openGroup==="attendance" && (

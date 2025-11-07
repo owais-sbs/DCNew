@@ -385,7 +385,7 @@ export default function Dashboard() {
           {/* Right column: widgets */}
           <aside className="flex flex-col gap-4">
             {/* Announcement Card (above Unread notes) */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -407,7 +407,7 @@ export default function Dashboard() {
             </section>
 
             {/* 1. Unread notes Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -421,7 +421,7 @@ export default function Dashboard() {
             </section>
 
             {/* 3. Notifications Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -435,7 +435,7 @@ export default function Dashboard() {
             </section>
 
             {/* 4. Birthdays Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -482,7 +482,7 @@ export default function Dashboard() {
             </section>
 
             {/* 5. Checklist Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
@@ -495,7 +495,7 @@ export default function Dashboard() {
             </section>
 
             {/* 6. Lessons Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
                   <BarChart3 size={16} className="text-indigo-600" />
@@ -529,7 +529,7 @@ export default function Dashboard() {
             </section>
 
             {/* 7. Behaviours Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
               <div className="font-semibold text-gray-800 mb-3">Behaviours</div>
               <div className="mt-4 grid grid-cols-2 gap-4">
                 <div className="flex flex-col items-center gap-2">
@@ -551,7 +551,7 @@ export default function Dashboard() {
             </section>
 
             {/* 8. Payments Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
                   <span className="text-blue-600 font-bold text-sm">$</span>
@@ -565,7 +565,7 @@ export default function Dashboard() {
             </section>
 
             {/* 9. Communication Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
+            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-96">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
                   <MessageSquare size={14} className="text-blue-600" />
@@ -874,7 +874,7 @@ export default function Dashboard() {
                   <Copy size={16} />
                   Copy from another class
                 </button>
-                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center gap-2" onClick={() => setShowAddStudent(true)}>
+                <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center gap-2" onClick={() => { setShowEnrollModal(false); setTimeout(() => setShowAddStudent(true), 0); }}>
                   <Plus size={16} />
                   Add new student
                 </button>
