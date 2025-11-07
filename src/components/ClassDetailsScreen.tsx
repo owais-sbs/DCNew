@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import axiosInstance from './axiosInstance';
 import AddStudentForm from "./AddStudentForm";
 import { 
   Edit, 
@@ -57,12 +58,15 @@ const tabs = [
 ];
 
 export default function ClassDetailsScreen() {
+  const { id } = useParams(); // id from URL (string)
   const [activeTab, setActiveTab] = useState("lessons");
+  const [classInfo, setClassInfo] = useState<any | null>(null);
+  
 
   const renderTabContent = () => {
     switch (activeTab) {
       case "lessons":
-        return <LessonsContent />;
+        return <LessonsContent classId={id!} sessionsFromParent={classInfo?.Sessions} />;
       case "students":
         return <StudentsContent />;
       case "fees":
@@ -80,7 +84,7 @@ export default function ClassDetailsScreen() {
       case "gradebooks":
         return <GradebooksContent />;
       default:
-        return <LessonsContent />;
+        return <LessonsContent classId={id!} />;
     }
   };
 
@@ -206,17 +210,69 @@ export default function ClassDetailsScreen() {
 }
 
 // Individual tab content components
-function LessonsContent() {
+function LessonsContent({
+  classId,
+  sessionsFromParent
+}: {
+  classId: string;
+  sessionsFromParent?: any[];
+}) {
   const [showAddLessonModal, setShowAddLessonModal] = useState(false);
   const [selectedLessonIdx, setSelectedLessonIdx] = useState<number | null>(null);
   const [openStudentMenu, setOpenStudentMenu] = useState<number | null>(null);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [classInfo, setClassInfo] = useState<any>(null);
+
+  const { id } = useParams();
   const navigate = useNavigate();
-  const lessons = [
-    { date: "17-10-2025", weekday: "Fri", time: "9:00 - 10:30", room: "Room 11 D7", teacher: { name: "Colm Delmar1", initials: "CD" }, students: 0 },
-    { date: "24-10-2025", weekday: "Fri", time: "9:00 - 10:30", room: "Room 11 D7", teacher: { name: "Colm Delmar1", initials: "CD" }, students: 0 },
-    { date: "31-10-2025", weekday: "Fri", time: "9:00 - 10:30", room: "Room 11 D7", teacher: { name: "Colm Delmar1", initials: "CD" }, students: 0 },
-  ];
+  
+  
+  useEffect(() => {
+    if (!id) return;
+    const fetchClass = async () => {
+      try {
+        const response = await axiosInstance.get(`/Class/GetClassById`, {
+          params: { classId: Number(id) }
+        });
+        if (response?.data?.IsSuccess) {
+          setClassInfo(response.data.Data);
+        } else {
+          console.error("API returned error", response.data);
+        }
+      } catch (err) {
+        console.error("Error loading class:", err);
+      }
+    };
+    fetchClass();
+  }, [id]);
+
+  const fetchLessons = async () => {
+    try {
+      const response = await axiosInstance.get(`/Class/GetClassById`, {
+        params: { classId }  // <-- correct API parameter
+      });
+
+      // ✅ map backend model to your UI format
+      const formatted = (response.data.lessons || []).map((item: any) => ({
+        date: item.date,                       // e.g., "17-10-2025"
+        weekday: item.weekday,                 // e.g., "Fri"
+        time: `${item.startTime} - ${item.endTime}`,
+        room: item.classroom,
+        teacher: {
+          name: item.teacherName,
+          initials: typeof item.teacherName === "string"
+            ? item.teacherName.split(" ").map(n => n?.[0] ?? "").join("")
+            : ""
+        },
+        students: item.studentsCount ?? 0
+      }));
+
+      setLessons(formatted);
+    } catch (error) {
+      console.error("Error fetching lessons:", error);
+    }
+  };
 
   return (
     <>
