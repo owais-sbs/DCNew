@@ -191,6 +191,64 @@ export default function Dashboard() {
   const [sessionStudents, setSessionStudents] = useState<any[]>([])
   const [isLoadingStudents, setIsLoadingStudents] = useState(false)
 
+  const [allStudents, setAllStudents] = useState<any[]>([])
+  const [selectedToEnroll, setSelectedToEnroll] = useState<number[]>([])
+  const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false)
+  const [alreadyEnrolled, setAlreadyEnrolled] = useState<number[]>([])
+  const [updatingStudent, setUpdatingStudent] = useState<number | null>(null)
+
+
+  const fetchAllStudents = async () => {
+    try{
+      setIsLoadingAllStudents(true)
+      const res = await axiosInstance.get("/Student/GetAll")
+      const enrollRes = await axiosInstance.get(`/Class/GetStudentsForSession?scheduleId=${selected}`)
+
+      if(res.data?.IsSuccess){
+        setAllStudents(res.data.Data)
+      }
+
+      if(enrollRes.data?.IsSuccess){
+        const ids = enrollRes.data.Data.map((s: any) => s.StudentId)
+        setAlreadyEnrolled(ids)
+      }
+
+
+    }catch(err){
+      console.log("Error fetching student list", err)
+    }finally{
+      setIsLoadingAllStudents(false)
+    }
+  }
+
+
+  useEffect(() => {
+    if(showEnrollModal){
+      fetchAllStudents()
+    }
+  }, [showEnrollModal])
+
+
+  const enrollStudents = async () => {
+    if(!selected || selectedToEnroll.length === 0)
+      return 
+    
+    const classId = sessionStudents[0]?.classId 
+    const sessionId = selected 
+
+    try{
+      const response = await axiosInstance.post(`/Class/EnrollStudentToClassInBulk`, selectedToEnroll, { params: { classId, sessionId }})
+      
+      if(response.data?.IsSuccess){
+        setShowEnrollModal(false)
+        setSelectedToEnroll([])
+        fetchStudents()
+      }
+    }catch(err){
+      console.log("Error enrolling students", err)
+      alert("Failed to enroll students")
+    }
+  }
 
   const fetchStudents = async () => {
       try{
@@ -294,6 +352,8 @@ export default function Dashboard() {
 
   const markAttendance = async (classId: number, studentId: number, status: "Present" | "Absent" | "Late" | "Excused") => {
     try{
+      setUpdatingStudent(studentId)
+
       const payload = {
         classId: classId,
         scheduleId: selected,
@@ -309,6 +369,8 @@ export default function Dashboard() {
     }catch(err){
       console.log("Error marking attendance", err)
       alert("Failed to mark attnedance")
+    }finally{
+      setUpdatingStudent(null)
     }
   }
 
@@ -800,7 +862,7 @@ export default function Dashboard() {
                 </div>
 
                 {/* Students grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                   {isLoadingStudents ? (
                     <div className="flex items-center justify-center h-40 col-span-full">
                       <Loader2 className="animate-spin text-blue-500" size={32} />
@@ -826,54 +888,70 @@ export default function Dashboard() {
                             }}
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="text-[15px] font-semibold text-gray-900 truncate">
-                              {student.name}
-                            </div>
+          <div className="text-[16px] font-semibold text-gray-900 truncate">{student.name}</div>
 
                             {/* Attendance Status Pill */}
-                            <div className="relative mt-2 group">
+                             <div className="relative mt-3 group w-[260px]">
   {/* Default pill */}
-  <button
-    className={`w-full h-9 rounded-full border text-[13px] ${
-      student.status === "Present"
-        ? "bg-green-100 text-green-700 border-green-300"
-        : student.status === "Absent"
-        ? "bg-red-100 text-red-700 border-red-300"
-        : student.status === "Late"
-        ? "bg-yellow-100 text-yellow-700 border-yellow-300"
-        : "bg-white text-gray-700 border-gray-300"
-    }`}
-  >
-    {student.status ?? "Take attendance"}
-  </button>
+ {/* ✅ Attendance Pill */}
+<button
+              className={`w-full h-12 rounded-full border text-[15px] font-semibold transition-all
+                ${student.status === "Present" ? "bg-green-100 text-green-700 border-green-300"
+                : student.status === "Absent" ? "bg-red-100 text-red-700 border-red-300"
+                : student.status === "Late" ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                : student.status === "Excused" ? "bg-gray-200 text-gray-600 border-gray-300 cursor-not-allowed"
+                : "bg-white text-gray-700 border-gray-300" }
+              `}
+              disabled={student.status === "Excused" || updatingStudent === student.id}
+            >
+              {updatingStudent === student.id ? (
+                <Loader2 className="animate-spin w-5 h-5 mx-auto" />
+              ) : (
+                student.status ?? "Take attendance"
+              )}
+            </button>
+{student.status !== "Excused" && (
+              <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto">
+                <div className="w-full h-12 rounded-full border border-gray-300 bg-white overflow-hidden flex text-[15px] font-medium">
 
-  {/* Hover segmented controls only if not marked */}
-  {!student.status && (
-    <div className="absolute inset-0 hidden group-hover:flex z-20">
-      <div className="w-full h-9 rounded-full border border-gray-300 bg-white overflow-hidden flex">
-        <button
-          className="flex-1 text-[13px] text-green-700 hover:bg-green-50"
-          onClick={() => markAttendance(student.classId, student.id, "Present")}
-        >
-          Present
-        </button>
-        <div className="w-px bg-gray-300" />
-        <button
-          className="flex-1 text-[13px] text-red-700 hover:bg-red-50"
-          onClick={() => markAttendance(student.classId, student.id, "Absent")}
-        >
-          Absent
-        </button>
-        <div className="w-px bg-gray-300" />
-        <button
-          className="flex-1 text-[13px] text-yellow-700 hover:bg-yellow-50"
-          onClick={() => markAttendance(student.classId, student.id, "Late")}
-        >
-          Late
-        </button>
-      </div>
-    </div>
-  )}
+                  {/* Present */}
+                  <button
+                    className="flex-1 hover:bg-green-50 text-green-700"
+                    onClick={() => markAttendance(student.classId, student.id, "Present")}
+                  >
+                    Present
+                  </button>
+                  <div className="w-px bg-gray-300" />
+
+                  {/* Absent */}
+                  <button
+                    className="flex-1 hover:bg-red-50 text-red-700"
+                    onClick={() => markAttendance(student.classId, student.id, "Absent")}
+                  >
+                    Absent
+                  </button>
+                  <div className="w-px bg-gray-300" />
+
+                  {/* Late */}
+                  <button
+                    className="flex-1 hover:bg-yellow-50 text-yellow-700"
+                    onClick={() => markAttendance(student.classId, student.id, "Late")}
+                  >
+                    Late
+                  </button>
+                  <div className="w-px bg-gray-300" />
+
+                  {/* Excused */}
+                  {/* <button
+                    className="flex-1 hover:bg-gray-100 text-gray-700"
+                    onClick={() => markAttendance(student.classId, student.id, "Excused")}
+                  >
+                    Excused
+                  </button> */}
+
+                </div>
+              </div>
+            )}
 </div>
 
                           </div>
@@ -1098,24 +1176,72 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <h4 className="font-medium text-gray-800 mb-2">All students</h4>
-                    <div className="border border-gray-200 rounded-lg h-64 overflow-y-auto">
-                      {['Evo Calahuma Juchasara', 'Jimena Rojas Balderrama', 'a b', 'Abdul Hameed', 'Abdullah Jan', 'Abdullah Test', 'Abdurakhim Umirbyek', 'Abraham Emmanuel Acosta Garcia'].map((name) => (
-                        <div key={name} className="p-2 hover:bg-gray-50 cursor-pointer">{name}</div>
-                      ))}
-                    </div>
+                    {isLoadingAllStudents ? (
+  <div className="flex items-center justify-center h-40">
+    <Loader2 className="animate-spin text-blue-500" size={28} />
+  </div>
+) : (
+  allStudents.map((s: any) => {
+    const disabled = alreadyEnrolled.includes(s.Id)
+    const selected = selectedToEnroll.includes(s.Id)
+
+    return (
+      <div
+        key={s.Id}
+        onClick={() => !disabled && setSelectedToEnroll(prev =>
+          prev.includes(s.Id) ? prev.filter(id => id !== s.Id) : [...prev, s.Id]
+        )}
+        className={`p-2 flex justify-between cursor-pointer ${
+          disabled
+            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+            : selected
+            ? "bg-blue-50 text-blue-700 font-medium"
+            : "hover:bg-gray-50"
+        }`}
+      >
+        {s.FirstName} {s.Surname}
+        {disabled && <span className="text-xs">(Enrolled)</span>}
+      </div>
+    )
+  })
+)}
+
                     <p className="text-xs text-gray-500 mt-2">Use shift and control keys to select multiple students</p>
                   </div>
                   <div>
                     <h4 className="font-medium text-gray-800 mb-2">Enrolled students</h4>
-                    <div className="border border-gray-200 rounded-lg h-64 bg-gray-50 flex items-center justify-center">
-                      <span className="text-gray-500">No students selected</span>
-                    </div>
+                    {selectedToEnroll.length === 0 ? (
+  <div className="h-full flex items-center justify-center text-gray-400">
+    No students selected
+  </div>
+) : (
+  selectedToEnroll.map((id) => {
+    const student = allStudents.find((s) => s.Id === id)
+    return (
+      <div key={id} className="p-2 flex justify-between bg-white border-b">
+        {student?.FirstName} {student?.Surname}
+        <button
+          className="text-red-500 text-xs"
+          onClick={() =>
+            setSelectedToEnroll(prev => prev.filter(x => x !== id))
+          }
+        >
+          Remove
+        </button>
+      </div>
+    )
+  })
+)}
+
                   </div>
                 </div>
               </div>
               <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-                <button onClick={() => setShowEnrollModal(false)} className="px-6 h-10 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
-                <button onClick={() => setShowEnrollModal(false)} className="px-6 h-10 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Save changes</button>
+                <button onClick={() => {
+                  setShowEnrollModal(false)
+                  setSelectedToEnroll([])
+                  }} className="px-6 h-10 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
+                <button onClick={enrollStudents} className="px-6 h-10 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Save changes</button>
               </div>
             </div>
           </div>
