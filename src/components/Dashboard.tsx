@@ -47,6 +47,7 @@ type Lesson = {
   accent: string
 }
 
+
 type ApiSession = {
   ClassId: number
   SessionId: number
@@ -186,6 +187,42 @@ export default function Dashboard() {
   const [dateOpen, setDateOpen] = useState(false)
   // Add lesson modal
   const [addOpen, setAddOpen] = useState(false)
+  
+  const [sessionStudents, setSessionStudents] = useState<any[]>([])
+  const [isLoadingStudents, setIsLoadingStudents] = useState(false)
+
+
+  const fetchStudents = async () => {
+      try{
+        setIsLoadingStudents(true)
+
+        const response = await axiosInstance.get(`/Class/GetStudentsForSession?scheduleId=${selected}&date=${currentDate}`)
+        if(response.data?.IsSuccess){
+          const mapped = response.data.Data.map((s: any) => ({
+            id: s.StudentId,
+            name: s.StudentName,
+            status: s.AttendanceStatus,
+            classId: s.ClassId
+          }))
+
+          setSessionStudents(mapped)
+        }
+      }catch(err){
+        console.log("Error fetching students.", err)
+        setSessionStudents([])
+      }finally{
+        setIsLoadingStudents(false)
+      }
+    }
+
+  useEffect(() => {
+    if(!selected)
+      return 
+
+    
+
+    fetchStudents()
+  }, [selected, currentDate])
 
   // This useEffect will now work correctly
   useEffect(() => {
@@ -254,6 +291,30 @@ export default function Dashboard() {
       return iso
     }
   }
+
+  const markAttendance = async (classId: number, studentId: number, status: "Present" | "Absent" | "Late" | "Excused") => {
+    try{
+      const payload = {
+        classId: classId,
+        scheduleId: selected,
+        studentId,
+        date: currentDate,
+        attendanceStatus: status 
+      }
+
+      const response = await axiosInstance.post("/Class/MarkAttendance", null, { params: payload })
+      if(response.data.IsSuccess){
+        fetchStudents()
+      }
+    }catch(err){
+      console.log("Error marking attendance", err)
+      alert("Failed to mark attnedance")
+    }
+  }
+
+  console.log(lessons)
+  console.log(selected)
+    console.log(sessionStudents)
 
   return (
     <div className="bg-slate-50 min-h-screen -mt-4">
@@ -665,242 +726,341 @@ export default function Dashboard() {
 
       {/* Lesson details modal (click on a lesson card) */}
       {selected && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setSelected(null)}>
-          {(() => {
-            const lesson = lessons.find((l) => l.id === selected)
-            if (!lesson) return null
-            // This student data is still static.
-            // You would need another API call to fetch students for the selected lesson.
-            const students = [
-              { name: "Ana Carolina Bitencourt Forgi...", initials: "AC", status: "Take attendance" },
-              { name: "Andriele Paz De Moraes", initials: "AP", status: "Take attendance" },
-              { name: "Francisco Braian Fernandes De B...", initials: "FB", status: "Excused" },
-              { name: "Gutierre Silva Dos Santos", initials: "GS", status: "Take attendance" },
-              { name: "Isis Aparecida De Lima Silva", initials: "IS", status: "Take attendance" },
-              { name: "Jovane De Oliveira Junior", initials: "JO", status: "Excused" },
-              { name: "Larissa Isabele Tiago", initials: "LI", status: "Take attendance" },
-              { name: "Manoel Lucena De Arruda Neto Se...", initials: "ML", status: "Take attendance" },
-              { name: "Manuela Andreoletti", initials: "MA", status: "Take attendance" }
-            ]
-            return (
-              <div className="w-full max-w-7xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                  <div className="flex items-center gap-4">
-                    <div className="h-9 w-9 rounded-full bg-indigo-500 text-white grid place-items-center text-sm font-semibold">{lesson.teacher.initials}</div>
-                    <div className="text-sm text-gray-700 mr-2">{lesson.teacher.name}</div>
-                    <div>
-                      <div className="text-lg font-semibold text-gray-900">{lesson.time} - {lesson.room} ({lesson.subtitle || lesson.location})</div>
-                      {/* CHANGED: Dynamic date */}
-                      <div className="text-sm text-gray-600">{formatDateFriendly(currentDate)} #{lesson.id} {lesson.room}</div>
-                    </div>
+  <div
+    className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4"
+    onClick={() => setSelected(null)}
+  >
+    {(() => {
+      const lesson = lessons.find((l) => l.id === selected)
+      if (!lesson) return null
+
+      return (
+        <div
+          className="w-full max-w-7xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center gap-4">
+              <div className="h-9 w-9 rounded-full bg-indigo-500 text-white grid place-items-center text-sm font-semibold">
+                {lesson.teacher.initials}
+              </div>
+              <div className="text-sm text-gray-700 mr-2">{lesson.teacher.name}</div>
+              <div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {lesson.time} - {lesson.room} ({lesson.subtitle || lesson.location})
+                </div>
+                <div className="text-sm text-gray-600">
+                  {formatDateFriendly(currentDate)} #{lesson.id} {lesson.room}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="text-gray-500 hover:text-gray-700" onClick={() => setSelected(null)}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
+            {/* Main content */}
+            <div className="p-6">
+              {/* Students section */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    Students {sessionStudents.length}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigate('/people/students')}
+                      className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50"
+                    >
+                      Select/deselect all
+                    </button>
+
+                    {["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
+                      <button
+                        key={label}
+                        className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1"
+                      >
+                        {label}
+                        <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                          <path
+                            fillRule="evenodd"
+                            d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    ))}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <button className="text-gray-500 hover:text-gray-700" onClick={() => setSelected(null)}>
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </div>
+
+                {/* Students grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {isLoadingStudents ? (
+                    <div className="flex items-center justify-center h-40 col-span-full">
+                      <Loader2 className="animate-spin text-blue-500" size={32} />
+                    </div>
+                  ) : sessionStudents.length === 0 ? (
+                    <div className="text-center text-gray-500 py-10 col-span-full">
+                      No students enrolled in this session.
+                    </div>
+                  ) : (
+                    sessionStudents.map((student, i) => (
+                      <div
+                        key={student.id}
+                        className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-sm transition-shadow"
+                      >
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
+                            alt={student.name}
+                            className="h-12 w-12 rounded-full object-cover border border-gray-200"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement
+                              target.style.display = 'none'
+                            }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[15px] font-semibold text-gray-900 truncate">
+                              {student.name}
+                            </div>
+
+                            {/* Attendance Status Pill */}
+                            <div className="relative mt-2 group">
+  {/* Default pill */}
+  <button
+    className={`w-full h-9 rounded-full border text-[13px] ${
+      student.status === "Present"
+        ? "bg-green-100 text-green-700 border-green-300"
+        : student.status === "Absent"
+        ? "bg-red-100 text-red-700 border-red-300"
+        : student.status === "Late"
+        ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+        : "bg-white text-gray-700 border-gray-300"
+    }`}
+  >
+    {student.status ?? "Take attendance"}
+  </button>
+
+  {/* Hover segmented controls only if not marked */}
+  {!student.status && (
+    <div className="absolute inset-0 hidden group-hover:flex z-20">
+      <div className="w-full h-9 rounded-full border border-gray-300 bg-white overflow-hidden flex">
+        <button
+          className="flex-1 text-[13px] text-green-700 hover:bg-green-50"
+          onClick={() => markAttendance(student.classId, student.id, "Present")}
+        >
+          Present
+        </button>
+        <div className="w-px bg-gray-300" />
+        <button
+          className="flex-1 text-[13px] text-red-700 hover:bg-red-50"
+          onClick={() => markAttendance(student.classId, student.id, "Absent")}
+        >
+          Absent
+        </button>
+        <div className="w-px bg-gray-300" />
+        <button
+          className="flex-1 text-[13px] text-yellow-700 hover:bg-yellow-50"
+          onClick={() => markAttendance(student.classId, student.id, "Late")}
+        >
+          Late
+        </button>
+      </div>
+    </div>
+  )}
+</div>
+
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
+                              <svg
+                                className="w-4 h-4 text-indigo-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </button>
+                            <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
+                              ⋯
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Prospects section */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800">Prospects 0</h3>
+                  <button
+                    onClick={() => navigate('/people/prospects/new')}
+                    className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+                  >
+                    + Add prospects
+                  </button>
+                </div>
+              </div>
+
+              {/* Notes sections */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-800">Teacher notes</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigate('/notes')}
+                      className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+                    >
+                      <svg
+                        className="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
                       </svg>
+                    </button>
+                    <button
+                      onClick={() => navigate('/notes')}
+                      className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+                    >
+                      + Add teacher notes
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
-                  {/* Main content */}
-                  <div className="p-6">
-                    {/* Students section */}
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Students {students.length}</h3>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => navigate('/people/students')}
-                            className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50"
-                          >
-                            Select/deselect all
-                          </button>
-                          {["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
-                            <button key={label} className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1">
-                              {label}
-                              <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd" />
-                              </svg>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Students grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {students.map((student, i) => (
-                          <div key={student.name} className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-sm transition-shadow">
-                            <div className="flex items-center gap-3">
-                              <img
-                                src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
-                                alt={student.name}
-                                className="h-12 w-12 rounded-full object-cover border border-gray-200"
-                                onError={(e) => {
-                                  const target = e.currentTarget as HTMLImageElement
-                                  target.style.display = 'none'
-                                }}
-                              />
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[15px] font-semibold text-gray-900 truncate">{student.name}</div>
-                                <div className="relative mt-2 group">
-                                  {/* Default pill (img2) */}
-                                  <button className="w-full h-9 rounded-full border border-gray-200 bg-white text-[13px] text-gray-700">
-                                    Take attendance
-                                  </button>
-                                  {/* Hover segmented (img1) */}
-                                  <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-none">
-                                    <div className="w-full h-9 rounded-full border border-gray-200 bg-white overflow-hidden flex pointer-events-auto">
-                                      <button className="flex-1 flex items-center justify-center text-[13px] text-gray-800 hover:bg-gray-50 whitespace-nowrap">Present</button>
-                                      <div className="w-px bg-gray-200" />
-                                      <button className="flex-1 flex items-center justify-center text-[13px] text-gray-800 hover:bg-gray-50 whitespace-nowrap">Absent</button>
-                                      <div className="w-px bg-gray-200" />
-                                      <button className="flex-1 flex items-center justify-center text-[13px] text-gray-800 hover:bg-gray-50 whitespace-nowrap">Late</button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
-                                  <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </button>
-                                <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">⋯</button>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Prospects section */}
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Prospects 0</h3>
-                        <button
-                          onClick={() => navigate('/people/prospects/new')}
-                          className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-                        >
-                          + Add prospects
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Notes sections */}
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-800">Teacher notes</h3>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => navigate('/notes')}
-                            className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
-                          >
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => navigate('/notes')}
-                            className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-                          >
-                            + Add teacher notes
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-gray-800">Student notes</h3>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => navigate('/notes')}
-                            className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
-                          >
-                            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          </button>
-                          <button
-                            onClick={() => navigate('/notes')}
-                            className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-                          >
-                            + Add student notes
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-800">Student notes</h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => navigate('/notes')}
+                      className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
+                    >
+                      <svg
+                        className="w-4 h-4 text-gray-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => navigate('/notes')}
+                      className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
+                    >
+                      + Add student notes
+                    </button>
                   </div>
-
-                  {/* Right sidebar */}
-                  <aside className="border-l border-gray-200 p-6 bg-gray-50">
-                    <div className="space-y-6">
-                      {/* Edit section */}
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          <h3 className="text-lg font-semibold text-gray-800">Edit</h3>
-                        </div>
-                        <div className="space-y-2">
-                          {[
-                            { label: "Teacher", icon: "🎓", path: "/people/teachers" },
-                            { label: "Date & time", icon: "📅", path: "/calendar" },
-                            { label: "Cancel lesson", icon: "❌", path: "/notes/classes" },
-                            { label: "Location", icon: "📍", path: "/calendar/classroom" },
-                            { label: "Class details", icon: "📄", path: "/notes/class-details" }
-                          ].map((item) => (
-                            <button
-                              key={item.label}
-                              onClick={() => navigate(item.path)}
-                              className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                            >
-                              <span>{item.icon}</span>
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Actions section */}
-                      <div>
-                        <div className="flex items-center gap-2 mb-4">
-                          <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <h3 className="text-lg font-semibold text-gray-800">Actions</h3>
-                        </div>
-                        <div className="space-y-2">
-                          {[
-                            { label: "Add students", icon: "👥", onClick: () => setShowEnrollModal(true) },
-                            { label: "Add prospects", icon: "👥", onClick: () => navigate('/people/prospects/new') },
-                            { label: "Add attachment", icon: "📎", onClick: () => navigate('/notes/class-details') },
-                            { label: "Add assignment", icon: "📋", onClick: () => navigate('/notes/class-details') },
-                            { label: "Invite to portal", icon: "➡️", onClick: () => navigate('/compose') },
-                            { label: "Print register", icon: "🖨️", onClick: () => navigate('/reports/attendance') }
-                          ].map((item) => (
-                            <button
-                              key={item.label}
-                              onClick={item.onClick}
-                              className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                            >
-                              <span>{item.icon}</span>
-                              {item.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </aside>
                 </div>
               </div>
-            )
-          })()}
+            </div>
+
+            {/* Right sidebar */}
+            <aside className="border-l border-gray-200 p-6 bg-gray-50">
+              <div className="space-y-6">
+                {/* Edit section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                      />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-800">Edit</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { label: "Teacher", icon: "🎓", path: "/people/teachers" },
+                      { label: "Date & time", icon: "📅", path: "/calendar" },
+                      { label: "Cancel lesson", icon: "❌", path: "/notes/classes" },
+                      { label: "Location", icon: "📍", path: "/calendar/classroom" },
+                      { label: "Class details", icon: "📄", path: "/notes/class-details" }
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={() => navigate(item.path)}
+                        className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                      >
+                        <span>{item.icon}</span>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Actions section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <h3 className="text-lg font-semibold text-gray-800">Actions</h3>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { label: "Add students", icon: "👥", onClick: () => setShowEnrollModal(true) },
+                      { label: "Add prospects", icon: "👥", onClick: () => navigate('/people/prospects/new') },
+                      { label: "Add attachment", icon: "📎", onClick: () => navigate('/notes/class-details') },
+                      { label: "Add assignment", icon: "📋", onClick: () => navigate('/notes/class-details') },
+                      { label: "Invite to portal", icon: "➡️", onClick: () => navigate('/compose') },
+                      { label: "Print register", icon: "🖨️", onClick: () => navigate('/reports/attendance') }
+                    ].map((item) => (
+                      <button
+                        key={item.label}
+                        onClick={item.onClick}
+                        className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                      >
+                        <span>{item.icon}</span>
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </aside>
+          </div>
         </div>
-      )}
+      )
+    })()}
+  </div>
+)}
+
 
       {/* Enroll Student Modals */}
       {showEnrollModal && (
