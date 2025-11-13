@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthContext";
+
 import {
   Plus,
   ChevronDown,
@@ -24,7 +26,7 @@ export default function Header() {
   const [isAddNewOpen, setIsAddNewOpen] = useState(false);
   const { isExpanded } = useSidebar();
   const navigate = useNavigate();
-
+  const { logout } = useAuth();
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -165,15 +167,17 @@ export default function Header() {
                     { icon: HelpCircle, label: "Help center" },
                     { icon: Star, label: "Feature ideas" },
                     { icon: Star, label: "Become an affiliate" },
-                    { icon: LogOut, label: "Log out" },
+                    { icon: LogOut,  label: "Log out" },
                   ].map((item, i) => (
                     <button
-                      key={i}
-                      className="flex w-full items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 transition"
-                    >
-                      <item.icon size={18} />
-                      {item.label}
-                    </button>
+  key={i}
+  onClick={item.label === "Log out" ? logout : undefined}
+  className="flex w-full items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 transition"
+>
+  <item.icon size={18} />
+  {item.label}
+</button>
+
                   ))}
                 </div>
               )}
