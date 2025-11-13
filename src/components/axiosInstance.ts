@@ -3,10 +3,10 @@ import axios from "axios";
 
 // Create an Axios instance
 const axiosInstance = axios.create({
-   baseURL: 'https://dc.nuzum.tech/api', // Your API base URL
-      //  baseURL: 'https://localhost:7027/api', // Your API base URL
-     // baseURL: 'https://nmcapi.nuzum.tech/api', // Your API base URL
-    // baseURL: 'https://alkanderiapi.nuzum.tech/api', // Your API base URL
+  //  baseURL: 'https://dc.nuzum.tech/api', // Your API base URL
+       baseURL: 'https://localhost:7027/api', // Your API base URL
+
+       
     timeout: 1000000, // Optional timeout setting d    m
     headers: {
       'Content-Type': 'application/json',
