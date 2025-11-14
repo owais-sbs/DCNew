@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom"
 import TeacherCalendar from "./TeacherCalendar"
 import ClassesCalendar from "./ClassesCalendar"
 import AddStudentForm from "./AddStudentForm"
-import axiosInstance from './axiosInstance'; 
+import axiosInstance from './axiosInstance';
 
 // --- TYPE DEFINITIONS ---
 type Event = {
@@ -18,6 +18,9 @@ type Event = {
   subtitle: string
   teacher: string
   students: number
+  // new optional: full ISO start/end for day/week/month mapping
+  isoStart?: string
+  isoEnd?: string
 }
 
 type ApiSession = {
@@ -49,6 +52,43 @@ const getEventTime = (isoString: string): string => {
   return date.toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' });
 };
 
+// new helpers for week/month rendering
+const startOfWeek = (date: Date, weekStartsOn = 1) => { // weekStartsOn: 1 => Monday
+  const d = new Date(date);
+  const day = (d.getDay() + 7 - weekStartsOn) % 7;
+  d.setDate(d.getDate() - day);
+  d.setHours(0,0,0,0);
+  return d;
+};
+
+const addDays = (d: Date, days: number) => {
+  const t = new Date(d);
+  t.setDate(t.getDate() + days);
+  return t;
+};
+
+const getMonthMatrix = (date: Date) => {
+  // returns array of Date for a typical month grid (6 rows x 7 cols)
+  const first = new Date(date.getFullYear(), date.getMonth(), 1);
+  const start = startOfWeek(first, 1); // start from Monday
+  const matrix: Date[] = [];
+  for (let i = 0; i < 42; i++) matrix.push(addDays(start, i));
+  return matrix;
+};
+
+const eventsByDate = (events: Event[]) => {
+  // key: yyyy-mm-dd => Event[]
+  const map: Record<string, Event[]> = {};
+  events.forEach(ev => {
+    if (!ev.isoStart) return;
+    const d = new Date(ev.isoStart);
+    const key = d.toISOString().split('T')[0];
+    if (!map[key]) map[key] = [];
+    map[key].push(ev);
+  });
+  return map;
+}
+
 // --- COMPONENT ---
 export default function Calendar({ showTeacher = false }: { showTeacher?: boolean }) {
   const [tab, setTab] = useState(showTeacher ? "Teacher" : "Default")
@@ -59,6 +99,9 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
   const [openFilter, setOpenFilter] = useState<string | null>(null)
   const [query, setQuery] = useState("")
   const [selected, setSelected] = useState<string | null>(null) // selected event/session id -> opens modal
+
+  // --- new state: view mode ---
+  const [viewMode, setViewMode] = useState<"Day" | "Week" | "Month">("Day")
 
   // --- states reused from Dashboard modals ---
   const [sessionStudents, setSessionStudents] = useState<any[]>([])
@@ -105,49 +148,162 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
     }
   };
 
-  // --- DATA FETCHING EFFECT ---
-  useEffect(() => {
-    if (tab !== "Default" || showTeacher) return;
+  // --- REFACTORED DATA FETCHING ---
+  // Each function now just fetches and returns its data
+  
+  const fetchDayEvents = async (): Promise<Event[]> => {
+    try {
+      const dateString = getApiDateString(currentDate);
+      const response = await axiosInstance.get<ApiResponse>(`/Class/GetTodaySessionFlatteneddate?date=${dateString}`);
+      if (response.data && response.data.IsSuccess) {
+        const transformedEvents = await Promise.all(
+          response.data.Data.map(async (session, index) => {
+            const colors = ["blue", "yellow", "red"] as const;
+            const color = colors[index % colors.length];
+            const studentCount = await fetchStudentCount(session.SessionId);
+            return {
+              id: session.SessionId.toString(),
+              start: getEventTime(session.StartTime),
+              end: getEventTime(session.EndTime),
+              room: "N/A",
+              color,
+              title: session.ClassTitle,
+              subtitle: session.ClassSubject || "No subject details",
+              teacher: "N/A",
+              students: studentCount,
+              isoStart: session.StartTime,
+              isoEnd: session.EndTime,
+            };
+          })
+        );
+        return transformedEvents;
+      }
+    } catch (error) {
+      console.error("Error fetching day events:", error);
+    }
+    return [];
+  };
 
-    const fetchEvents = async () => {
-      setIsLoading(true);
-      setEvents([]);
-      try {
-        const dateString = getApiDateString(currentDate);
-        // endpoint from your Calendar file
-        const response = await axiosInstance.get<ApiResponse>(`/Class/GetTodaySessionFlatteneddate?date=${dateString}`);
-        if (response.data && response.data.IsSuccess) {
-          const transformedEvents = await Promise.all(
-            response.data.Data.map(async (session, index) => {
-              const colors = ["blue", "yellow", "red"] as const;
-              const color = colors[index % colors.length];
-              const studentCount = await fetchStudentCount(session.SessionId);
-              return {
-                id: session.SessionId.toString(),
-                start: getEventTime(session.StartTime),
-                end: getEventTime(session.EndTime),
-                room: "N/A",
-                color,
-                title: session.ClassTitle,
-                subtitle: session.ClassSubject || "No subject details",
-                teacher: "N/A",
-                students: studentCount,
-              };
-            })
-          );
-          setEvents(transformedEvents);
-        } else {
-          console.error("API request failed:", response.data);
+  const fetchWeekEvents = async (): Promise<Event[]> => {
+    const start = startOfWeek(currentDate, 1); // Monday
+    const promises = [];
+
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(start, i);
+      const dateString = getApiDateString(d);
+      promises.push(
+        axiosInstance.get(`/Class/GetTodaySessionFlatteneddate?date=${dateString}`)
+      );
+    }
+
+    let results: Event[] = [];
+    try {
+      const all = await Promise.all(promises);
+      
+      const colors = ["blue", "yellow", "red"] as const;
+      let colorIndex = 0;
+
+      for (let res of all) {
+        if (res.data?.IsSuccess) {
+          for (let session of res.data.Data) {
+            const studentCount = await fetchStudentCount(session.SessionId);
+            results.push({
+              id: session.SessionId.toString(),
+              start: getEventTime(session.StartTime),
+              end: getEventTime(session.EndTime),
+              room: "N/A",
+              color: colors[colorIndex % colors.length], // Cycle colors
+              title: session.ClassTitle,
+              subtitle: session.ClassSubject || "No subject details",
+              teacher: "N/A",
+              students: studentCount,
+              isoStart: session.StartTime,
+              isoEnd: session.EndTime,
+            });
+            colorIndex++;
+          }
         }
+      }
+    } catch (error) {
+       console.error("Error fetching week events:", error);
+    }
+    return results;
+  };
+
+  const fetchMonthEvents = async (): Promise<Event[]> => {
+    const matrix = getMonthMatrix(currentDate);
+    const promises = [];
+
+    matrix.forEach(date => {
+      const dateString = getApiDateString(date);
+      promises.push(
+        axiosInstance.get(`/Class/GetTodaySessionFlatteneddate?date=${dateString}`)
+      );
+    });
+
+    let results: Event[] = [];
+    try {
+      const all = await Promise.all(promises);
+      
+      const colors = ["blue", "yellow", "red"] as const;
+      let colorIndex = 0;
+
+      for (let res of all) {
+        if (res.data?.IsSuccess) {
+          for (let session of res.data.Data) {
+            const studentCount = await fetchStudentCount(session.SessionId);
+            results.push({
+              id: session.SessionId.toString(),
+              start: getEventTime(session.StartTime),
+              end: getEventTime(session.EndTime),
+              room: "N/A",
+              color: colors[colorIndex % colors.length],
+              title: session.ClassTitle,
+              subtitle: session.ClassSubject || "No subject details",
+              teacher: "N/A",
+              students: studentCount,
+              isoStart: session.StartTime,
+              isoEnd: session.EndTime,
+            });
+            colorIndex++;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching month events:", error);
+    }
+    return results;
+  };
+
+  // --- NEW DATA FETCHING EFFECT ---
+  // This effect now responds to viewMode changes
+  useEffect(() => {
+    const loadEvents = async () => {
+      if (tab !== "Default" || showTeacher) return;
+      
+      setIsLoading(true);
+      setEvents([]); // Clear old events
+      
+      try {
+        let newEvents: Event[] = [];
+        if (viewMode === "Day") {
+          newEvents = await fetchDayEvents();
+        } else if (viewMode === "Week") {
+          newEvents = await fetchWeekEvents();
+        } else if (viewMode === "Month") {
+          newEvents = await fetchMonthEvents();
+        }
+        setEvents(newEvents);
       } catch (error) {
-        console.error("Error fetching calendar data:", error);
+        console.error(`Error fetching ${viewMode} events:`, error);
+        setEvents([]); // Ensure events are cleared on error
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchEvents();
-  }, [currentDate, tab, showTeacher]);
+    loadEvents();
+  }, [currentDate, tab, showTeacher, viewMode]); // <-- Added viewMode
 
   // --- Students / Enroll modal helpers (copied & adapted from Dashboard) ---
   const fetchStudents = async () => {
@@ -216,6 +372,13 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
         setShowEnrollModal(false)
         setSelectedToEnroll([])
         fetchStudents()
+        // Refetch event count for the main calendar
+        const updatedEvents = events.map(ev => 
+          ev.id === selected 
+            ? { ...ev, students: ev.students + selectedToEnroll.length } 
+            : ev
+        );
+        setEvents(updatedEvents);
       }
     } catch (err) {
       console.log("Error enrolling students", err)
@@ -246,8 +409,26 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
   }
 
   // --- UI helpers ---
-  const handlePrevDay = () => setCurrentDate(prev => { const d = new Date(prev); d.setDate(prev.getDate() - 1); return d; })
-  const handleNextDay = () => setCurrentDate(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 1); return d; })
+  const handlePrevDay = () => {
+    if (viewMode === "Day") {
+      setCurrentDate(prev => { const d = new Date(prev); d.setDate(prev.getDate() - 1); return d; })
+    } else if (viewMode === "Week") {
+      setCurrentDate(prev => { const d = new Date(prev); d.setDate(prev.getDate() - 7); return d; })
+    } else {
+      // month
+      setCurrentDate(prev => { const d = new Date(prev); d.setMonth(prev.getMonth() - 1); return d; })
+    }
+  }
+  const handleNextDay = () => {
+    if (viewMode === "Day") {
+      setCurrentDate(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 1); return d; })
+    } else if (viewMode === "Week") {
+      setCurrentDate(prev => { const d = new Date(prev); d.setDate(prev.getDate() + 7); return d; })
+    } else {
+      // month
+      setCurrentDate(prev => { const d = new Date(prev); d.setMonth(prev.getMonth() + 1); return d; })
+    }
+  }
   const handleToday = () => setCurrentDate(new Date())
   const handleTabChange = (t: string) => {
     setTab(t)
@@ -255,6 +436,16 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
     else if (t === "Classroom") navigate("/calendar/classroom")
     else navigate("/calendar")
   }
+
+  // Derived maps
+  const eventsMap = useMemo(() => eventsByDate(events), [events]);
+
+  // Week helpers
+  const weekStart = useMemo(() => startOfWeek(currentDate, 1), [currentDate]);
+  const weekDates = useMemo(() => Array.from({length:7}, (_,i) => addDays(weekStart, i)), [weekStart]);
+
+  // Month matrix
+  const monthMatrix = useMemo(() => getMonthMatrix(currentDate), [currentDate]);
 
   return (
     <div className="bg-[#f8fafc] min-h-screen">
@@ -327,11 +518,12 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
 
         {/* View Buttons */}
         <div className="flex justify-end mb-3">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden inline-flex">
             {(["Month","Week","Day"] as const).map((v) => (
               <button
                 key={v}
-                className={`px-4 h-10 text-sm font-medium ${ v === "Day" ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-50" }`}
+                onClick={() => setViewMode(v)}
+                className={`px-4 h-10 text-sm font-medium ${ viewMode === v ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-50" }`}
               >
                 {v}
               </button>
@@ -341,11 +533,35 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
 
         {/* Date Header */}
         <div className="text-center mb-1 text-xl font-semibold text-gray-800 -mt-2">
-          {dayString}
+          {viewMode === "Day" && dayString}
+          {viewMode === "Week" && (
+            <div>
+              Week of {weekStart.toLocaleDateString("en-US", { month: 'long', day: 'numeric' })} — {addDays(weekStart,6).toLocaleDateString("en-US", { month: 'long', day: 'numeric', year: 'numeric' })}
+            </div>
+          )}
+          {viewMode === "Month" && (
+            <div>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
+          )}
         </div>
 
-        {/* DEFAULT CALENDAR GRID */}
-        {tab === "Default" && !showTeacher && (
+        {/* ---------------- VIEWS ---------------- */}
+        
+        {/* Loading / No Events Common State */}
+        {isLoading && (
+          <div className="flex items-center justify-center h-96 bg-white border border-gray-200 rounded-xl shadow-sm">
+            <Loader2 className="animate-spin text-blue-500" size={32} />
+            <div className="text-gray-500 text-sm ml-3">Loading events...</div>
+          </div>
+        )}
+
+        {!isLoading && events.length === 0 && tab === "Default" && !showTeacher && (
+          <div className="flex items-center justify-center h-96 bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div className="text-gray-500 text-sm">No events scheduled for this {viewMode.toLowerCase()}.</div>
+          </div>
+        )}
+        
+        {/* DAY (unchanged) */}
+        {viewMode === "Day" && !isLoading && events.length > 0 && tab === "Default" && !showTeacher && (
           <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
             <div className="grid grid-cols-[60px_1fr]">
               <div className="bg-white">
@@ -361,18 +577,6 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                   <div key={h} className="h-16 border-t border-gray-200" />
                 ))}
 
-                {isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white/70 z-20">
-                    <div className="text-gray-500 text-sm">Loading events...</div>
-                  </div>
-                )}
-
-                {!isLoading && events.length === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center z-20">
-                    <div className="text-gray-500 text-sm">No events scheduled for this day.</div>
-                  </div>
-                )}
-
                 {events.map((ev, i) => {
                   const [startHour, startMinute] = ev.start.split(":").map(Number)
                   const [endHour, endMinute] = ev.end.split(":").map(Number)
@@ -382,7 +586,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                   const endTotalMinutes = (endHour * 60) + endMinute
                   const durationInMinutes = endTotalMinutes - startTotalMinutes
                   const height = (durationInMinutes / 60) * 64
-                  const left = i * 130 + 10
+                  const left = i * 130 + 10 // Your original horizontal stacking logic
 
                   const color = ev.color === "red" ? "bg-red-500" : ev.color === "blue" ? "bg-blue-500" : "bg-yellow-400"
 
@@ -429,6 +633,166 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
           </div>
         )}
 
+        {/* WEEK VIEW */}
+        {viewMode === "Week" && !isLoading && events.length > 0 && tab === "Default" && !showTeacher && (
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+            <div className="grid grid-cols-[60px_1fr]">
+              <div className="bg-white">
+                {/* Hour labels */}
+                <div className="h-12 border-b border-gray-200" /> {/* Spacer for header */}
+                {hours.map((h) => (
+                  <div key={h} className="h-16 border-t border-gray-200 text-xs text-gray-500 grid place-items-center">
+                    {h}:00
+                  </div>
+                ))}
+              </div>
+
+              <div className="relative">
+                {/* Header row for week days */}
+                <div className="grid grid-cols-7 sticky top-0 bg-white z-10 border-b border-gray-200">
+                  {weekDates.map((d) => (
+                    <div key={d.toISOString()} className="h-12 text-center text-gray-600 border-l border-gray-100 flex flex-col items-center justify-center">
+                      <div className="text-sm font-medium">{d.toLocaleDateString(undefined, { weekday: 'short' })}</div>
+                      <div className="text-xs text-gray-400">{d.getDate()}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Background grid */}
+                <div className="absolute inset-0 top-12 grid grid-cols-7">
+                  {/* Columns */}
+                  {weekDates.map((d) => (
+                    <div key={d.toISOString()} className="border-l border-gray-100">
+                      {/* Hour rows */}
+                      {hours.map((h) => (
+                        <div key={h} className="h-16 border-t border-gray-100" />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+
+
+                {/* Place events: compute relative left/top per day */}
+                {events.map((ev, idx) => {
+                  if (!ev.isoStart) return null;
+                  const evDate = new Date(ev.isoStart);
+                  const dayKey = evDate.toISOString().split('T')[0];
+                  // find index within weekDates
+                  const dayIndex = weekDates.findIndex(d => d.toISOString().split('T')[0] === dayKey);
+                  if (dayIndex === -1) return null;
+
+                  const [startHour, startMinute] = ev.start.split(":").map(Number)
+                  const [endHour, endMinute] = ev.end.split(":").map(Number)
+                  const top = (startHour * 64) + (startMinute / 60) * 64
+                  const startTotalMinutes = (startHour * 60) + startMinute
+                  const endTotalMinutes = (endHour * 60) + endMinute
+                  const durationInMinutes = endTotalMinutes - startTotalMinutes
+                  const height = (durationInMinutes / 60) * 64
+
+                  // Percentage-based positioning
+                  const colWidthPercent = 100 / 7;
+                  const color = ev.color === "red" ? "bg-red-500" : ev.color === "blue" ? "bg-blue-500" : "bg-yellow-400"
+
+                  return (
+                    <div
+                      key={ev.id + "_" + idx}
+                      onMouseEnter={() => setHoverId(ev.id)}
+                      onMouseLeave={() => setHoverId(null)}
+                      onClick={() => setSelected(ev.id)}
+                      className={`absolute rounded-md text-white text-xs p-2 shadow-md transition-all ${color} cursor-pointer overflow-hidden`}
+                      style={{ 
+                        top: top + 48, // 48px for h-12 header
+                        left: `calc(${dayIndex * colWidthPercent}% + 2px)`, 
+                        width: `calc(${colWidthPercent}% - 4px)`, 
+                        height, 
+                        minHeight: '20px'
+                      }}
+                    >
+                      <div className="font-semibold truncate">{ev.title}</div>
+                      <div className="truncate">{ev.start} - {ev.end}</div>
+                      
+                      {/* *** NEW: Hover Pop-up for Week View *** */}
+                      {hoverId === ev.id && (
+                        <div className="absolute left-full ml-2 top-0 w-60 bg-white text-gray-700 rounded-xl border border-gray-200 shadow-lg p-3 z-30">
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`h-3 w-3 rounded-full ${color}`} />
+                            <div className="font-semibold text-blue-700">{ev.title}</div>
+                          </div>
+                          <div className="text-xs text-gray-500">{ev.subtitle}</div>
+                          <div className="mt-2 space-y-1 text-sm">
+                            <div>{ev.start} - {ev.end}</div>
+                            {/* Show the event's specific day */}
+                            <div>
+                              {new Date(ev.isoStart).toLocaleDateString("en-US", { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              })}
+                            </div>
+                            <div>Room: {ev.room}</div>
+                            <div className="text-blue-600">{ev.teacher}</div>
+                            <div className="text-blue-600">{ev.students} students</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MONTH VIEW */}
+        {viewMode === "Month" && !isLoading && events.length > 0 && tab === "Default" && !showTeacher && (
+          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden p-4">
+            <div className="grid grid-cols-7 gap-1 text-xs text-gray-600 mb-2">
+              {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
+                <div key={d} className="text-center font-medium">{d}</div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-7 gap-2">
+              {monthMatrix.map((cellDate) => {
+                const key = cellDate.toISOString().split('T')[0];
+                const isCurrentMonth = cellDate.getMonth() === currentDate.getMonth();
+                const cellEvents = (eventsMap[key] || []).sort((a,b) => a.start.localeCompare(b.start));
+                
+                return (
+                  <div 
+                    key={key} 
+                    className={`min-h-[100px] border rounded-lg p-2 ${isCurrentMonth ? 'bg-white' : 'bg-gray-50 text-gray-400'}`}
+                    onClick={() => {
+                      setCurrentDate(cellDate);
+                      setViewMode("Day");
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className={`text-sm font-semibold ${isCurrentMonth ? 'text-gray-800' : 'text-gray-400'}`}>{cellDate.getDate()}</div>
+                    </div>
+                    {isCurrentMonth && (
+                      <div className="space-y-1 text-xs">
+                        {cellEvents.slice(0,3).map(ev => (
+                          <div 
+                            key={ev.id} 
+                            className="truncate text-[11px] bg-blue-50 text-blue-700 rounded-md px-2 py-0.5 cursor-pointer hover:bg-blue-100"
+                            onClick={(e) => { e.stopPropagation(); setSelected(ev.id); }}
+                          >
+                            {ev.start} {ev.title}
+                          </div>
+                        ))}
+                        {cellEvents.length > 3 && <div className="text-xs text-gray-500 mt-1 cursor-pointer hover:underline">+{cellEvents.length - 3} more</div>}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* TEACHER + CLASSROOM VIEWS */}
         {tab === "Teacher" && <TeacherCalendar />}
         {tab === "Classroom" && <ClassesCalendar />}
@@ -439,11 +803,18 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
             {(() => {
               const ev = events.find(e => e.id === selected)
               if (!ev) return null
+              
+              const eventDayString = ev.isoStart ? new Date(ev.isoStart).toLocaleDateString("en-US", {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                }) : dayString;
 
               return (
-                <div className="w-full max-w-7xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="w-full max-w-7xl h-[90vh] bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
                   {/* Header */}
-                  <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                  <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <div className="flex items-center gap-4">
                       <div className="h-9 w-9 rounded-full bg-indigo-500 text-white grid place-items-center text-sm font-semibold">
                         {ev.title.slice(0,2).toUpperCase()}
@@ -451,10 +822,10 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                       <div className="text-sm text-gray-700 mr-2">{ev.title}</div>
                       <div>
                         <div className="text-lg font-semibold text-gray-900">
-                          {ev.start} - {ev.title} ({ev.subtitle || ev.room})
+                          {ev.start} - {ev.end} ({ev.subtitle || ev.room})
                         </div>
                         <div className="text-sm text-gray-600">
-                          {dayString} #{ev.id} {ev.room}
+                          {eventDayString} #{ev.id} {ev.room}
                         </div>
                       </div>
                     </div>
@@ -467,9 +838,9 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
-                    {/* Main content */}
-                    <div className="p-6">
+                  <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0 overflow-hidden">
+                    {/* Main content - now scrollable */}
+                    <div className="p-6 overflow-y-auto">
                       {/* Students section */}
                       <div className="mb-6">
                         <div className="flex items-center justify-between mb-4">
@@ -598,8 +969,8 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                       </div>
                     </div>
 
-                    {/* Right sidebar */}
-                    <aside className="border-l border-gray-200 p-6 bg-gray-50">
+                    {/* Right sidebar - now scrollable */}
+                    <aside className="border-l border-gray-200 p-6 bg-gray-50 overflow-y-auto">
                       <div className="space-y-6">
                         <div>
                           <div className="flex items-center gap-2 mb-4">
@@ -666,7 +1037,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                     <X size={18} />
                   </button>
                 </div>
-                <div className="p-6">
+                <div className="p-6 max-h-[70vh] overflow-y-auto">
                   <p className="text-gray-600 mb-4">Select the date and students to enroll in this class.</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>
@@ -690,8 +1061,8 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-medium text-gray-800 mb-2">All students</h4>
+                    <div className="border border-gray-200 rounded-lg p-2 max-h-96 overflow-y-auto">
+                      <h4 className="font-medium text-gray-800 mb-2 px-2">All students</h4>
                       {isLoadingAllStudents ? (
                         <div className="flex items-center justify-center h-40">
                           <Loader2 className="animate-spin text-blue-500" size={28} />
@@ -706,7 +1077,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                               onClick={() => !disabled && setSelectedToEnroll(prev =>
                                 prev.includes(s.Id) ? prev.filter(id => id !== s.Id) : [...prev, s.Id]
                               )}
-                              className={`p-2 flex justify-between cursor-pointer ${ disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : selectedFlag ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50" }`}
+                              className={`p-2 rounded-md flex justify-between cursor-pointer ${ disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : selectedFlag ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50" }`}
                             >
                               {s.FirstName} {s.Surname}
                               {disabled && <span className="text-xs">(Enrolled)</span>}
@@ -714,12 +1085,10 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                           )
                         })
                       )}
-
-                      <p className="text-xs text-gray-500 mt-2">Use shift and control keys to select multiple students</p>
                     </div>
 
-                    <div>
-                      <h4 className="font-medium text-gray-800 mb-2">Enrolled students</h4>
+                    <div className="border border-gray-200 rounded-lg p-2 max-h-96 overflow-y-auto">
+                      <h4 className="font-medium text-gray-800 mb-2 px-2">Selected students</h4>
                       {selectedToEnroll.length === 0 ? (
                         <div className="h-full flex items-center justify-center text-gray-400">No students selected</div>
                       ) : (
@@ -735,15 +1104,16 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                       )}
                     </div>
                   </div>
+                  <p className="text-xs text-gray-500 mt-2">Use shift and control keys to select multiple students</p>
                 </div>
-                <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+                <div className="flex-shrink-0 flex items-center justify-end gap-3 p-6 border-t border-gray-200">
                   <button onClick={() => { setShowEnrollModal(false); setSelectedToEnroll([]) }} className="px-6 h-10 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Cancel</button>
                   <button onClick={enrollStudents} className="px-6 h-10 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Save changes</button>
                 </div>
               </div>
             </div>
 
-            {showAddStudent && <AddStudentForm isOpen={showAddStudent} onClose={() => setShowAddStudent(false)} />}
+            {showAddStudent && <AddStudentForm isOpen={showAddStudent} onClose={() => setShowAddStudent(false)} onStudentAdded={fetchAllStudents} />}
           </>
         )}
       </div>
