@@ -1,7 +1,63 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck } from "lucide-react"
-import { useState, useEffect } from "react"
-import axiosInstance from './axiosInstance';
+import { useState, useEffect, useRef } from "react"
+import axiosInstance from "./axiosInstance"
+import html2canvas from "html2canvas"
+import { jsPDF } from "jspdf"
+
+type StudentFieldKey =
+  | "Name"
+  | "Student ID"
+  | "Address"
+  | "Date of Birth"
+  | "Nationality"
+  | "Passport Number"
+  | "Course Start Date"
+  | "Course End Date"
+  | "Course Title"
+  | "Course Level"
+  | "Mode of Study"
+  | "Number of Weeks"
+  | "Hours Per Week"
+  | "Tuition Fees"
+  | "Course Code"
+
+type DocumentTemplateContent = {
+  id: string
+  label: string
+  heading: string
+  subheading?: string
+  recipientLines?: string[]
+  paragraphs: string[]
+  fieldKeys: StudentFieldKey[]
+  closingLines: string[]
+  signatureName: string
+  signatureRole: string
+}
+
+const formatDateValue = (value?: string | null) => {
+  if (!value) return "—"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value.split("T")[0] ?? value
+  }
+  return date.toLocaleDateString("en-GB")
+}
+
+const formatCurrency = (value?: number | string | null) => {
+  if (value === null || value === undefined || value === "") return "—"
+  const numeric = Number(value)
+  if (Number.isNaN(numeric)) {
+    return typeof value === "string" ? value : "—"
+  }
+  return `€${numeric.toFixed(2)}`
+}
+
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "")
 
 
 export default function StudentProfile() {
@@ -12,6 +68,8 @@ export default function StudentProfile() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [openModal, setOpenModal] = useState<string | null>(null)
   const [studentdetails, setStudent] = useState<any>(null)
+  const [openDocumentId, setOpenDocumentId] = useState<string | null>(null)
+  const documentContentRef = useRef<HTMLDivElement | null>(null)
 
   
 
@@ -50,7 +108,7 @@ export default function StudentProfile() {
     );
   }
 
-  const studentName = `${studentdetails.FirstName ?? ""} ${studentdetails.LastName ?? ""}`.trim();
+  const studentName = `${studentdetails.FirstName ?? ""} ${studentdetails.LastName ?? studentdetails.Surname ?? ""}`.trim();
 
   const age = studentdetails.DateOfBirth
   ? Math.floor(
@@ -60,6 +118,149 @@ export default function StudentProfile() {
   : null;
 
   
+
+  const studentAddress = [
+    studentdetails.StreetAddress,
+    studentdetails.City,
+    studentdetails.State,
+    studentdetails.ZipCode,
+    studentdetails.Country
+  ]
+    .filter(Boolean)
+    .join(", ")
+
+  const defaultFieldKeys: StudentFieldKey[] = [
+    "Name",
+    "Student ID",
+    "Address",
+    "Date of Birth",
+    "Nationality",
+    "Passport Number",
+    "Course Start Date",
+    "Course End Date",
+    "Course Title",
+    "Course Level",
+    "Mode of Study",
+    "Number of Weeks",
+    "Hours Per Week",
+    "Tuition Fees",
+    "Course Code"
+  ]
+
+  const studentFieldResolvers: Record<StudentFieldKey, () => string> = {
+    "Name": () => studentName || "—",
+    "Student ID": () => studentdetails.IdNumber || "—",
+    "Address": () => studentAddress || "—",
+    "Date of Birth": () => formatDateValue(studentdetails.DateOfBirth),
+    "Nationality": () => studentdetails.Nationality || "—",
+    "Passport Number": () => studentdetails.PassportNumber || "—",
+    "Course Start Date": () => formatDateValue(studentdetails.CourseStartDate),
+    "Course End Date": () => formatDateValue(studentdetails.CourseEndDate),
+    "Course Title": () => studentdetails.CourseTitle || "—",
+    "Course Level": () => studentdetails.CourseLevel || "—",
+    "Mode of Study": () => studentdetails.ModeOfStudy || "—",
+    "Number of Weeks": () => studentdetails.NumberOfWeeks ?? "—",
+    "Hours Per Week": () => studentdetails.HoursPerWeek ?? "—",
+    "Tuition Fees": () => formatCurrency(studentdetails.TuitionFees),
+    "Course Code": () => studentdetails.CourseCode || "—"
+  }
+
+  const getStudentFieldValue = (key: StudentFieldKey) => studentFieldResolvers[key]()
+
+  const documentButtonLabels = [
+    "Confirmation of Enrolment (Colm Delmar)",
+    "Letter of Acceptance (Colm)",
+    "Bank Letter (Ahmed)",
+    "Letter of Acceptance (Ahmed)",
+    "Leap Card Letter",
+    "Confirmation of Enrolment (Ahmed)",
+    "Holiday Letter (Carla)",
+    "Student Status Letter (Colm Delmar)",
+    "Student Reference Letter for GNIB",
+    "Christmas Holiday Letter (Carla)",
+    "Summer Holiday - Reference Letter",
+    "Exit Letter - No Show (Colm)",
+    "Exit Letter - Exam Later Date",
+    "Exit Letter - Exam Taken",
+    "Exit Letter - Covid-19",
+    "Exit Letter - Short Term",
+    "gnib 2025",
+    "Certificate of Attendance (2025)",
+    "Letter of Acceptance (2025)",
+    "Confirmation of Enrollment (2025)"
+  ]
+
+  const documentTemplateOverrides: Record<string, Partial<Omit<DocumentTemplateContent, "id" | "label">>> = {
+    [slugify("Confirmation of Enrolment (Colm Delmar)")]: {
+      heading: "Confirmation of Enrolment",
+      recipientLines: [
+        "To,",
+        "Garda National Immigration Bureau:",
+        "13-14 Burgh Quay, Dublin 2."
+      ],
+      paragraphs: [
+        "We are pleased to confirm that the below-named student has been enrolled on a course at Dublin Centre of Education, as follows. This 8-month course is listed on the Interim List of Eligible Programmes (ILEP) under Dublin Centre of Education."
+      ],
+      closingLines: [
+        "The student has agreed to abide by the rules and regulations governing their study set by the Irish National Immigration Bureau. This student is covered by Learner Protection Insurance through Endeavour Insurance Services, Academic+.",
+        "Should you require any further information regarding this student, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
+      ],
+      signatureName: "Colm Delmar",
+      signatureRole: "Director of Studies."
+    },
+    [slugify("Letter of Acceptance (Colm)")]: {
+      heading: "Letter of Acceptance",
+      subheading: "Re: Letter of Acceptance",
+      paragraphs: [
+        "Following your application, it has been agreed to offer you a place on the programme detailed below. This 8-month course is listed on the Interim List of Eligible Programmes (ILEP) under Dublin Centre of Education.",
+        "You have been issued with private medical insurance and Learner Protection insurance cover for the current academic period of 8 months. This policy is administered by Endeavour Insurance Services, Academic+, which will be activated upon your arrival. Your registration will take place immediately after arrival in the college. Your detailed timetable, course materials, module handouts etc. will be provided to you during registration."
+      ],
+      closingLines: [
+        "Should you require any further information, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
+      ],
+      signatureName: "Colm Delmar",
+      signatureRole: "Director of Studies."
+    },
+    [slugify("Bank Letter (Ahmed)")]: {
+      heading: "Bank Letter",
+      paragraphs: [
+        "We are pleased to confirm that the below-named student is currently enrolled on a course at Dublin Centre of Education, as follows, and we request that you open a bank account for our student:"
+      ],
+      closingLines: [
+        "Should you require any further information regarding this student, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
+      ],
+      signatureName: "Asif Omer",
+      signatureRole: "Manager"
+    }
+  }
+
+  const documentTemplates: DocumentTemplateContent[] = documentButtonLabels.map((label) => {
+    const id = slugify(label)
+    const override = documentTemplateOverrides[id] ?? {}
+
+    return {
+      id,
+      label,
+      heading: override.heading ?? label,
+      subheading: override.subheading,
+      recipientLines: override.recipientLines ?? ["To whom it may concern,"],
+      paragraphs:
+        override.paragraphs ??
+        [
+          `${studentName || "The student"} has been issued the document "${label}". The details of their enrolment are outlined below.`,
+          "Please retain this letter for your records and contact us if additional information is needed."
+        ],
+      fieldKeys: override.fieldKeys ?? defaultFieldKeys,
+      closingLines:
+        override.closingLines ?? [
+          "Should you require any further information regarding this student, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
+        ],
+      signatureName: override.signatureName ?? "Asif Omer",
+      signatureRole: override.signatureRole ?? "Director of Studies"
+    }
+  })
+
+  const activeDocumentTemplate = documentTemplates.find((doc) => doc.id === openDocumentId) || null
 
   const tabs = [
     "Profile", "Activity", "Classes", "Attendance", "Fees", "Receipts", 
@@ -621,35 +822,145 @@ export default function StudentProfile() {
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {[
-          "Confirmation of Enrolment (Colm Delmar)",
-          "Letter of Acceptance (Colm)",
-          "Bank Letter (Ahmed)",
-          "Letter of Acceptance (Ahmed)",
-          "Leap Card Letter",
-          "Confirmation of Enrolment (Ahmed)",
-          "Holiday Letter (Carla)",
-          "Student Status Letter (Colm Delmar)",
-          "Student Reference Letter for GNIB",
-          "Christmas Holiday Letter (Carla)",
-          "Summer Holiday - Reference Letter",
-          "Exit Letter - No Show (Colm)",
-          "Exit Letter - Exam Later Date",
-          "Exit Letter - Exam Taken",
-          "Exit Letter - Covid-19",
-          "Exit Letter - Short Term",
-          "gnib 2025",
-          "Certificate of Attendance (2025)",
-          "Letter of Acceptance (2025)",
-          "Confirmation of Enrollment (2025)"
-        ].map((doc, i) => (
-          <button key={i} className="h-12 px-3 rounded-lg bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left">
-            {doc}
+        {documentTemplates.map((doc) => (
+          <button
+            key={doc.id}
+            onClick={() => setOpenDocumentId(doc.id)}
+            className="h-12 px-3 rounded-lg bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left"
+          >
+            {doc.label}
           </button>
         ))}
       </div>
     </div>
   )
+
+  const handlePrintDocument = async () => {
+    if (!documentContentRef.current || !activeDocumentTemplate) return
+
+    try {
+      const canvas = await html2canvas(documentContentRef.current, {
+        scale: 2,
+        useCORS: true
+      })
+      const imgData = canvas.toDataURL("image/png")
+      const pdf = new jsPDF("p", "mm", "a4")
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 12
+      const printableWidth = pageWidth - margin * 2
+      const printableHeight = (canvas.height * printableWidth) / canvas.width
+
+      let position = margin
+      let heightLeft = printableHeight
+
+      pdf.addImage(imgData, "PNG", margin, position, printableWidth, printableHeight)
+      heightLeft -= pageHeight - margin * 2
+
+      while (heightLeft > 0) {
+        pdf.addPage()
+        position = heightLeft - printableHeight + margin
+        pdf.addImage(imgData, "PNG", margin, position, printableWidth, printableHeight)
+        heightLeft -= pageHeight - margin * 2
+      }
+
+      const sanitizedTitle = activeDocumentTemplate.heading.replace(/[^a-z0-9]+/gi, "-").toLowerCase()
+      pdf.save(`${sanitizedTitle || "student-document"}.pdf`)
+    } catch (error) {
+      console.error("Failed to generate PDF", error)
+      alert("Unable to generate PDF. Please try again.")
+    }
+  }
+
+  const renderDocumentModal = () => {
+    if (!activeDocumentTemplate) return null
+    const todayDisplay = formatDateValue(new Date().toISOString())
+
+    return (
+      <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenDocumentId(null)}>
+        <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Create document</h3>
+            <button onClick={() => setOpenDocumentId(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+              <span className="text-gray-500">×</span>
+            </button>
+          </div>
+          <div className="p-6 max-h-[70vh] overflow-y-auto bg-white">
+            <div
+              ref={documentContentRef}
+              className="space-y-5 text-gray-900 bg-white p-6 md:p-8 rounded-xl shadow-sm"
+              style={{ minHeight: "fit-content" }}
+            >
+              <div className="text-sm text-gray-700">Date: {todayDisplay}</div>
+              {activeDocumentTemplate.recipientLines && (
+                <div className="text-sm text-gray-700 space-y-1">
+                  {activeDocumentTemplate.recipientLines.map((line, idx) => (
+                    <div key={idx}>{line}</div>
+                  ))}
+                </div>
+              )}
+              {activeDocumentTemplate.subheading && (
+                <p className="text-sm font-medium text-gray-700">{activeDocumentTemplate.subheading}</p>
+              )}
+              <h2 className="text-center text-lg font-semibold text-gray-900">
+                {activeDocumentTemplate.heading}
+              </h2>
+              <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
+                {activeDocumentTemplate.paragraphs.map((paragraph, idx) => (
+                  <p key={idx}>{paragraph}</p>
+                ))}
+              </div>
+
+              <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {activeDocumentTemplate.fieldKeys.map((fieldKey) => (
+                      <tr key={fieldKey} className="border-t border-gray-200 first:border-t-0">
+                        <td className="bg-gray-50 font-medium px-4 py-2 w-1/3">{fieldKey}</td>
+                        <td className="px-4 py-2 text-gray-800">{getStudentFieldValue(fieldKey)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="space-y-3 text-sm text-gray-700 leading-relaxed">
+                {activeDocumentTemplate.closingLines.map((line, idx) => (
+                  <p key={idx}>{line}</p>
+                ))}
+              </div>
+
+              <div className="space-y-1 text-sm text-gray-900">
+                <p>Yours faithfully,</p>
+                <p className="font-semibold">{activeDocumentTemplate.signatureName}</p>
+                <p>{activeDocumentTemplate.signatureRole}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <button className="h-10 px-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2">
+              <FilePlus size={16} /> Save to students profile
+            </button>
+            <button className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2">
+              <Mail size={16} /> Send document
+            </button>
+            <button
+              onClick={handlePrintDocument}
+              className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2"
+            >
+              <Download size={16} /> Print
+            </button>
+            <button
+              onClick={() => setOpenDocumentId(null)}
+              className="h-10 px-4 rounded-lg bg-gray-800 text-white text-sm"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const renderHolidaysContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
@@ -1392,6 +1703,8 @@ export default function StudentProfile() {
           </div>
         </div>
       )}
+
+      {renderDocumentModal()}
     </div>
   )
 }

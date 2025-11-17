@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   LayoutDashboard,
@@ -10,17 +10,21 @@ import {
   Download,
   MoreHorizontal
 } from "lucide-react"
+import axiosInstance from "./axiosInstance"
 
 type TabId = "dashboard" | "students" | "teachers" | "staff" | "related" | "prospects"
 
 type StudentRow = {
-  name: string
-  id: string
-  phone: string
-  email: string
-  registration: string
-  payments: string
-  avatar?: string
+  Id: number
+  FirstName?: string | null
+  Surname?: string | null
+  LastName?: string | null
+  MobilePhone?: string | null
+  Email?: string | null
+  RegistrationDate?: string | null
+  IdNumber?: string | null
+  TuitionFees?: number | string | null
+  Photo?: string | null
 }
 
 type TeacherRow = {
@@ -66,19 +70,6 @@ const studentFilters = [
   { label: "Status", value: "Live" }
 ]
 
-const studentRows: StudentRow[] = [
-  { name: "Abdullah Jan", id: "DCE3314", phone: "353857208236", email: "abdullahjanirl@gmail.com", registration: "16-10-2025", payments: "€0.00", avatar: "https://i.pravatar.cc/48?img=11" },
-  { name: "Abdurrakhim Umirbyek", id: "DCE2848", phone: "353831330558", email: "omirbekrahkim@gmail.com", registration: "04-04-2025", payments: "€0.00", avatar: "https://i.pravatar.cc/48?img=32" },
-  { name: "Abraham Emmanuel Acosta Garcia", id: "DCE2851", phone: "353831330558", email: "manuel.garcavz@gmail.com", registration: "07-04-2025", payments: "€0.00", avatar: "https://i.pravatar.cc/48?img=5" },
-  { name: "Adiyadorj Erdev", id: "DCE3220", phone: "353834074840", email: "adiyadorj_erdev@yahoo.com", registration: "15-09-2025", payments: "€0.00", avatar: "https://i.pravatar.cc/48?img=15" },
-  { name: "Adriana Jaimes Garcia", id: "DCE2926", phone: "3530834368847", email: "4drjaimes@gmail.com", registration: "02-05-2025", payments: "€0.00", avatar: "https://i.pravatar.cc/48?img=47" },
-  { name: "Adriana Martins De Abreu", id: "DCE2970", phone: "3530834368847", email: "aabreu.ama@gmail.com", registration: "16-05-2025", payments: "€0.00", avatar: "https://i.pravatar.cc/48?img=49" },
-  { name: "Adriana Xavier Arruda", id: "DCE2482", phone: "529831252831", email: "adrianaxavier637@gmail.com", registration: "02-12-2024", payments: "€0.00", avatar: "https://i.pravatar.cc/48?img=36" },
-  { name: "Aldo Valencia Pantoja", id: "DCE2517", phone: "529831252831", email: "aldox.valencia14@gmail.com", registration: "10-12-2024", payments: "€0.00" },
-  { name: "Alejandro Diaz Salinas", id: "DCE3131", phone: "", email: "alejandro23dsa@gmail.com", registration: "05-08-2025", payments: "€0.00" },
-  { name: "Alejandro Ezequiel Contreras", id: "DCE3275", phone: "", email: "ale201019@hotmail.com", registration: "03-10-2025", payments: "€0.00", avatar: "https://i.pravatar.cc/48?img=64" }
-]
-
 const teacherRows: TeacherRow[] = [
   { name: "Abbey teacher", phone: "0858330601", email: "elisabethsmiddy@hotmail.com" },
   { name: "Adao Lopes Teacher", phone: "0831495753", email: "didina7@gmail.com" },
@@ -108,13 +99,172 @@ const avatarPalette = ["bg-indigo-500","bg-rose-500","bg-purple-500","bg-emerald
 export default function PeopleDashboard() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabId>("students")
+  const [students, setStudents] = useState<StudentRow[]>([])
+  const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false)
+  const [studentError, setStudentError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    const fetchStudents = async () => {
+      setIsLoadingStudents(true)
+      setStudentError(null)
+      try {
+        const response = await axiosInstance.get("/Student/GetAll", {
+          signal: controller.signal
+        })
+
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+          setStudents(response.data.Data)
+        } else {
+          setStudents([])
+          setStudentError("No student data available.")
+        }
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return
+        console.error("Failed to load students", error)
+        setStudentError("Failed to load students. Please try again.")
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingStudents(false)
+        }
+      }
+    }
+
+    fetchStudents()
+
+    return () => controller.abort()
+  }, [])
+
+  const getStudentName = (student: StudentRow) => {
+    const lastName = student.Surname ?? student.LastName
+    const parts = [student.FirstName, lastName].filter(Boolean)
+    return parts.length ? parts.join(" ") : "Unnamed student"
+  }
+
+  const getInitials = (student: StudentRow) => {
+    const name = getStudentName(student)
+    const initials = name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("")
+    return initials || "NA"
+  }
+
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return "—"
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return "—"
+    return date.toLocaleDateString("en-GB")
+  }
+
+  const formatCurrency = (value: number | string | null | undefined) => {
+    if (value === null || value === undefined || value === "") {
+      return "€0.00"
+    }
+    const numericValue = Number(value)
+    if (Number.isNaN(numericValue)) {
+      return typeof value === "string" ? value : "€0.00"
+    }
+    return `€${numericValue.toFixed(2)}`
+  }
+
+  const resolvedTabs = tabs.map((tab) =>
+    tab.id === "students" ? { ...tab, count: students.length } : tab
+  )
+
+  const renderStudentTableBody = () => {
+    if (isLoadingStudents) {
+      return (
+        <tr>
+          <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+            Loading students...
+          </td>
+        </tr>
+      )
+    }
+
+    if (studentError) {
+      return (
+        <tr>
+          <td colSpan={8} className="px-4 py-6 text-center text-red-600">
+            {studentError}
+          </td>
+        </tr>
+      )
+    }
+
+    if (!students.length) {
+      return (
+        <tr>
+          <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+            No students found.
+          </td>
+        </tr>
+      )
+    }
+
+    return students.map((student, idx) => {
+      const studentName = getStudentName(student)
+      const initials = getInitials(student)
+
+      return (
+        <tr key={student.Id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+          <td className="px-4 py-3">
+            <input type="checkbox" aria-label={`Select ${studentName}`} />
+          </td>
+          <td className="px-4 py-3 text-indigo-700">
+            <button
+              type="button"
+              onClick={() => navigate(`/people/students/${student.Id}`)}
+              className="flex items-center gap-3 text-left w-full focus:outline-none"
+            >
+              {student.Photo ? (
+                <img src={student.Photo} alt={studentName} className="h-8 w-8 rounded-full object-cover" />
+              ) : (
+                <div
+                  className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}
+                >
+                  {initials}
+                </div>
+              )}
+              <div>
+                <div className="font-medium text-gray-800">{studentName}</div>
+                <div className="text-xs text-gray-500">{student.IdNumber || "—"}</div>
+              </div>
+            </button>
+          </td>
+          <td className="px-4 py-3 text-gray-700">{student.MobilePhone || "—"}</td>
+          <td className="px-4 py-3 text-blue-600">
+            {student.Email ? (
+              <a href={`mailto:${student.Email}`} className="hover:underline">
+                {student.Email}
+              </a>
+            ) : (
+              "—"
+            )}
+          </td>
+          <td className="px-4 py-3 text-gray-700">{formatDate(student.RegistrationDate)}</td>
+          <td className="px-4 py-3 text-gray-700">{student.IdNumber || "—"}</td>
+          <td className="px-4 py-3 text-emerald-600">{formatCurrency(student.TuitionFees)}</td>
+          <td className="px-4 py-3">
+            <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" aria-label="More actions">
+              <MoreHorizontal size={18} />
+            </button>
+          </td>
+        </tr>
+      )
+    })
+  }
 
   return (
     <div className="px-6 py-6">
       <h1 className="text-2xl font-semibold text-gray-900">People</h1>
 
       <div className="mt-4 flex items-center gap-6 border-b border-gray-200 pb-3">
-        {tabs.map(({ id, label, count, icon: Icon }) => (
+        {resolvedTabs.map(({ id, label, count, icon: Icon }) => (
           <button
             key={id}
             onClick={() => setActiveTab(id)}
@@ -147,7 +297,9 @@ export default function PeopleDashboard() {
       {activeTab === "students" && (
         <div className="mt-6">
           <div className="flex items-center justify-between">
-            <div className="text-xl font-semibold text-gray-800">999 Students</div>
+            <div className="text-xl font-semibold text-gray-800">
+              {isLoadingStudents ? "Loading students..." : `${students.length} Students`}
+            </div>
             <div className="flex items-center gap-3">
               <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
                 <Download size={16} /> Export
@@ -193,40 +345,7 @@ export default function PeopleDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {studentRows.map((student, idx) => {
-                  const initials = student.name
-                    .split(" ")
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((part) => part[0])
-                    .join("")
-                    .toUpperCase()
-
-                  return (
-                    <tr key={student.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                      <td className="px-4 py-3"><input type="checkbox" /></td>
-                      <td className="px-4 py-3 text-indigo-700 flex items-center gap-3">
-                        {student.avatar ? (
-                          <img src={student.avatar} alt={student.name} className="h-8 w-8 rounded-full object-cover" />
-                        ) : (
-                          <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}>
-                            {initials}
-                          </div>
-                        )}
-                        <div>
-                          <div className="font-medium text-gray-800">{student.name}</div>
-                          <div className="text-xs text-gray-500">{student.id}</div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700">{student.phone}</td>
-                      <td className="px-4 py-3 text-blue-600">{student.email}</td>
-                      <td className="px-4 py-3 text-gray-700">{student.registration}</td>
-                      <td className="px-4 py-3 text-gray-700">{student.id}</td>
-                      <td className="px-4 py-3 text-emerald-600">{student.payments}</td>
-                      <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"><MoreHorizontal size={18} /></button></td>
-                    </tr>
-                  )
-                })}
+              {renderStudentTableBody()}
               </tbody>
             </table>
           </div>
