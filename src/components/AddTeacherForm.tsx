@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { X } from "lucide-react"
+import axiosInstance from "./axiosInstance"
 
 interface AddTeacherFormProps {
   isOpen: boolean
@@ -14,11 +15,13 @@ export default function AddTeacherForm({ isOpen, onClose, asPage }: AddTeacherFo
     gender: "Not specified",
     dateOfBirth: "",
     idNumber: "",
-    photo: null as File | null,
+    photoName: "",
+    photoBase64: "",
     about: "",
     mobilePhone: "",
     homePhone: "",
     email: "",
+    password: "",
     onlineLessonLink: "",
     streetAddress: "",
     city: "",
@@ -28,20 +31,92 @@ export default function AddTeacherForm({ isOpen, onClose, asPage }: AddTeacherFo
     timezone: "Europe/London",
     generalNotes: ""
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null
-    setFormData(prev => ({ ...prev, photo: file }))
+    const file = e.target.files?.[0]
+    if (!file) {
+      setFormData(prev => ({ ...prev, photoName: "", photoBase64: "" }))
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      const base64 = result.includes(",") ? result.split(",")[1] : result
+      setFormData(prev => ({
+        ...prev,
+        photoName: file.name,
+        photoBase64: base64
+      }))
+    }
+    reader.onerror = () => {
+      console.error("Failed to read file")
+      setFormData(prev => ({ ...prev, photoName: "", photoBase64: "" }))
+    }
+    reader.readAsDataURL(file)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const toIsoOrNull = (value: string) => {
+    if (!value) return null
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return value
+    return date.toISOString()
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Teacher data:', formData)
-    onClose()
+    setErrorMessage(null)
+    setSuccessMessage(null)
+
+    if (!formData.email || !formData.password) {
+      setErrorMessage("Email and password are required.")
+      return
+    }
+
+    const payload = {
+      Id: 0,
+      AccountId: 0,
+      Name: formData.name,
+      Surname: formData.surname,
+      Gender: formData.gender,
+      DateOfBirth: toIsoOrNull(formData.dateOfBirth),
+      IdNumber: formData.idNumber,
+      Photo: formData.photoBase64,
+      About: formData.about,
+      Mobile: formData.mobilePhone,
+      HomeNumber: formData.homePhone,
+      Email: formData.email,
+      OnlineSessionLink: formData.onlineLessonLink,
+      StreetAddress: formData.streetAddress,
+      City: formData.city,
+      Postcode: formData.postcode,
+      State: formData.state,
+      Country: formData.country,
+      TimeZone: formData.timezone,
+      Notes: formData.generalNotes,
+      Password: formData.password
+    }
+
+    try {
+      setIsSubmitting(true)
+      await axiosInstance.post("/Teacher/AddOrUpdateTeacher", payload)
+      setSuccessMessage("Teacher has been added successfully.")
+      setTimeout(() => {
+        onClose()
+      }, 800)
+    } catch (error: any) {
+      console.error("Failed to save teacher", error)
+      setErrorMessage(error?.response?.data?.message || "Failed to add teacher. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!asPage && !isOpen) return null
@@ -59,6 +134,15 @@ export default function AddTeacherForm({ isOpen, onClose, asPage }: AddTeacherFo
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {(errorMessage || successMessage) && (
+            <div
+              className={`p-4 rounded-xl text-sm ${
+                errorMessage ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"
+              }`}
+            >
+              {errorMessage || successMessage}
+            </div>
+          )}
           {/* Personal details */}
           <div className="bg-gray-50 rounded-xl p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal details</h3>
@@ -133,7 +217,9 @@ export default function AddTeacherForm({ isOpen, onClose, asPage }: AddTeacherFo
                   <label htmlFor="photo" className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm cursor-pointer flex items-center">
                     Choose file
                   </label>
-                  <span className="text-sm text-gray-500">No file chosen</span>
+                  <span className="text-sm text-gray-500">
+                    {formData.photoName || "No file chosen"}
+                  </span>
                 </div>
                 <p className="text-gray-500 text-xs mt-1">Accepted file types: jpg, jpeg, png, gif</p>
               </div>
@@ -211,12 +297,24 @@ export default function AddTeacherForm({ isOpen, onClose, asPage }: AddTeacherFo
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email address (recommended)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email address *</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange('email', e.target.value)}
                   className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  required
+                  minLength={6}
                 />
               </div>
               <div>
@@ -306,20 +404,23 @@ export default function AddTeacherForm({ isOpen, onClose, asPage }: AddTeacherFo
               type="button"
               onClick={onClose}
               className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm"
+              disabled={isSubmitting}
             >
               Cancel
             </button>
-            <button
+            {/* <button
               type="button"
-              className="h-10 px-4 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-sm"
+              className="h-10 px-4 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 text-sm disabled:opacity-60"
+              disabled={isSubmitting}
             >
               Add and new
-            </button>
+            </button> */}
             <button
               type="submit"
-              className="h-10 px-4 rounded-xl bg-blue-600 text-white text-sm"
+              className="h-10 px-4 rounded-xl bg-blue-600 text-white text-sm disabled:opacity-60"
+              disabled={isSubmitting}
             >
-              Add teacher
+              {isSubmitting ? "Saving..." : "Add teacher"}
             </button>
           </div>
         </form>

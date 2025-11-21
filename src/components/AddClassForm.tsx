@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axiosInstance from './axiosInstance'; 
 import Swal from "sweetalert2";
 import { 
@@ -13,13 +14,13 @@ import {
 } from "lucide-react";
 
 export default function AddClassForm() {
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     title: "",
     subject: "",
     level: "",
     description: "",
-    teacher: "Abbey teacher",
-    teacherFee: "",
+    teacherAssignments: [{ teacherId: "", hourlyFee: "" }],
     classroom: "Class 1",
     recurrence: "weekly",
     startDate: "",
@@ -30,6 +31,36 @@ export default function AddClassForm() {
     students: "skip",
     publishDate: ""
   });
+  const [teachers, setTeachers] = useState<any[]>([])
+  const [isLoadingTeachers, setIsLoadingTeachers] = useState(false)
+  const [teacherError, setTeacherError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const fetchTeachers = async () => {
+      setIsLoadingTeachers(true)
+      setTeacherError(null)
+      try {
+        const response = await axiosInstance.get("/Teacher/GetAllTeachers", { signal: controller.signal })
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+          setTeachers(response.data.Data)
+        } else {
+          setTeachers([])
+          setTeacherError("No teachers available.")
+        }
+      } catch (error: any) {
+        if (controller.signal.aborted) return
+        console.error("Failed to load teachers", error)
+        setTeacherError("Failed to load teachers. Please try again.")
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingTeachers(false)
+        }
+      }
+    }
+    fetchTeachers()
+    return () => controller.abort()
+  }, [])
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -42,6 +73,29 @@ export default function AddClassForm() {
       days: [...prev.days, { day: "Monday", startTime: "", endTime: "" }]
     }));
   };
+
+  const handleTeacherAssignmentChange = (index: number, field: string, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      teacherAssignments: prev.teacherAssignments.map((assignment, i) =>
+        i === index ? { ...assignment, [field]: value } : assignment
+      )
+    }))
+  }
+
+  const addTeacherAssignment = () => {
+    setFormData((prev) => ({
+      ...prev,
+      teacherAssignments: [...prev.teacherAssignments, { teacherId: "", hourlyFee: "" }]
+    }))
+  }
+
+  const removeTeacherAssignment = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      teacherAssignments: prev.teacherAssignments.filter((_, i) => i !== index)
+    }))
+  }
 
   // ####################################################################
   // ## CHANGED: This entire function is updated to match your C# model ##
@@ -84,6 +138,17 @@ export default function AddClassForm() {
     }, {} as { [key: string]: { StartTime: string, EndTime: string }[] });
 
 
+    const teacherEntries = formData.teacherAssignments
+      .filter((assignment) => assignment.teacherId)
+      .map((assignment) => ({
+        TeacherId: Number(assignment.teacherId),
+        HourlyFee: Number(assignment.hourlyFee || 0)
+      }))
+
+    if (!teacherEntries.length) {
+      return Swal.fire("Required", "Please assign at least one teacher.", "warning")
+    }
+
     // 2. Build the final payload matching the C# model EXACTLY
     const payload = {
       Id: 0,
@@ -91,8 +156,7 @@ export default function AddClassForm() {
       ClassSubject: formData.subject,
       ClassLevel: formData.level,
       ClassDescription: formData.description,
-      TeacherId: 1, // TODO: Replace this hardcoded ID with a real one
-      TeacherHourlyFees: Number(formData.teacherFee || 0),
+      Teachers: teacherEntries,
       StartDate: formData.startDate, // "YYYY-MM-DD"
       EndDate: formData.endDate,     // "YYYY-MM-DD"
       PublishDate: formData.publishDate || null, // "YYYY-MM-DD" or null
@@ -211,35 +275,75 @@ export default function AddClassForm() {
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Teacher and classroom</h3>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Teacher <span className="text-red-500">*</span>
-                  <button className="text-blue-600 text-sm ml-2 hover:underline">(add new)</button>
-                </label>
-                <select
-                  value={formData.teacher}
-                  onChange={(e) => handleInputChange('teacher', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option>Abbey teacher</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Teacher hourly fee</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
-                  <input
-                    type="number" // CHANGED: type="number" for fees
-                    value={formData.teacherFee}
-                    onChange={(e) => handleInputChange('teacherFee', e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0.00"
-                  />
+              {formData.teacherAssignments.map((assignment, index) => (
+                <div key={index} className="flex flex-col gap-3 md:flex-row md:items-end">
+                  <div className="flex-1">
+                    {index === 0 && (
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Teacher <span className="text-red-500">*</span>
+                        <button 
+                          type="button"
+                          onClick={() => navigate('/people/teachers/new')}
+                          className="text-blue-600 text-sm ml-2 hover:underline"
+                        >
+                          (add new)
+                        </button>
+                      </label>
+                    )}
+                    <select
+                      value={assignment.teacherId}
+                      onChange={(e) => handleTeacherAssignmentChange(index, "teacherId", e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                      disabled={isLoadingTeachers}
+                    >
+                      <option value="">
+                        {isLoadingTeachers ? "Loading teachers..." : "Select teacher"}
+                      </option>
+                      {teachers.map((teacher) => (
+                        <option key={teacher.Id} value={teacher.Id}>
+                          {teacher.Name} {teacher.Surname}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="w-full md:w-56">
+                    {index === 0 && (
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Teacher hourly fee</label>
+                    )}
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={assignment.hourlyFee}
+                        onChange={(e) => handleTeacherAssignmentChange(index, "hourlyFee", e.target.value)}
+                        className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                  </div>
+                  {formData.teacherAssignments.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTeacherAssignment(index)}
+                      className="text-sm text-red-600 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
-              </div>
-              
-              <button className="text-blue-600 text-sm hover:underline">+ Add another teacher</button>
+              ))}
+              {teacherError && <p className="text-sm text-red-600">{teacherError}</p>}
+              <button
+                type="button"
+                onClick={addTeacherAssignment}
+                className="text-blue-600 text-sm hover:underline"
+                disabled={isLoadingTeachers}
+              >
+                + Add another teacher
+              </button>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
