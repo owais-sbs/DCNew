@@ -383,7 +383,7 @@ export default function Dashboard() {
       <div className="px-6 pt-4 pb-6">
         {/* Top row: Greeting */}
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Welcome, Asif</h1>
+          <h1 className="text-2xl font-semibold text-gray-800">Wellcome, Asif</h1>
         </div>
 
         {/* MAIN GRID: Left lessons list + Right widgets */}
