@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "./AuthContext";
+
 import {
   Plus,
   ChevronDown,
@@ -11,8 +13,6 @@ import {
   LogOut,
   HelpCircle,
   Star,
-  Import,
-  Calendar,
   BookOpen,
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
@@ -24,7 +24,7 @@ export default function Header() {
   const [isAddNewOpen, setIsAddNewOpen] = useState(false);
   const { isExpanded } = useSidebar();
   const navigate = useNavigate();
-
+  const { logout } = useAuth();
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -41,7 +41,7 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-20 bg-gradient-to-r from-indigo-50 via-blue-50 to-white border-b border-blue-100 shadow-sm">
-      <div className={`transition-all duration-300 ${isExpanded ? 'pl-[250px]' : 'pl-[90px]'}`}>
+      <div className={`transition-all duration-300 ${isExpanded ? 'pl-[325px]' : 'pl-[117px]'}`}>
         {/* Increased height & spacing */}
         <div className="h-20 flex items-center justify-between px-8 relative">
           
@@ -96,18 +96,11 @@ export default function Header() {
               {isAddNewOpen && (
                 <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-lg border border-blue-100 p-3 z-30">
                   {[
-                    { icon: CreditCard, label: "Payment", path: "/payments/add-payment" },
                     { icon: BookOpen, label: "Class", path: "/notes/add-class" },
-                    { icon: Calendar, label: "Event", path: "/notes/events" },
-                    { icon: MessageSquare, label: "Message", path: "/compose" },
                     { icon: Users, label: "Student", path: "/people/students/new" },
                     { icon: Users, label: "Teacher", path: "/people/teachers/new" },
                     { icon: Users, label: "Staff", path: "/people/staffs/new" },
                     { icon: Users, label: "Related contact", path: "/people/related/new" },
-                    { icon: Users, label: "Prospect", path: "/people/prospects/new" },
-                    { icon: Import, label: "Import people", path: "/people" },
-                    { icon: Import, label: "Import class", path: "/notes" },
-                    { icon: Import, label: "Import lessons", path: "/notes" },
                   ].map((item, i) => (
                     <button
                       key={i}
@@ -165,15 +158,17 @@ export default function Header() {
                     { icon: HelpCircle, label: "Help center" },
                     { icon: Star, label: "Feature ideas" },
                     { icon: Star, label: "Become an affiliate" },
-                    { icon: LogOut, label: "Log out" },
+                    { icon: LogOut,  label: "Log out" },
                   ].map((item, i) => (
                     <button
-                      key={i}
-                      className="flex w-full items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 transition"
-                    >
-                      <item.icon size={18} />
-                      {item.label}
-                    </button>
+  key={i}
+  onClick={item.label === "Log out" ? logout : undefined}
+  className="flex w-full items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 transition"
+>
+  <item.icon size={18} />
+  {item.label}
+</button>
+
                   ))}
                 </div>
               )}

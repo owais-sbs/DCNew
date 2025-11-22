@@ -1,28 +1,29 @@
 import { useState } from 'react';
 import { MessageCircle } from 'lucide-react';
-import HelpModal from './HelpModal';
+import HomeModal from './HomeModal';
+import HelpTopicsModal from './HelpTopicsModal';
 import MessagesModal from './MessagesModal';
 import FinChatModal from './FinChatModal';
 import { useNavigate } from 'react-router-dom';
 
 export default function ChatIcon() {
   const navigate = useNavigate();
-  const [activeModal, setActiveModal] = useState<'messages' | 'help' | 'fin' | null>(null);
+  const [activeModal, setActiveModal] = useState<'messages' | 'help' | 'fin' | 'home' | null>(null);
 
   const handleChatClick = () => {
-    // Cycle through: Messages -> Help -> Fin Chat -> Close
+    // Cycle through: Home -> Messages -> Fin Chat -> Close
     if (activeModal === null) {
+      setActiveModal('home');
+    } else if (activeModal === 'home') {
       setActiveModal('messages');
     } else if (activeModal === 'messages') {
-      setActiveModal('help');
-    } else if (activeModal === 'help') {
       setActiveModal('fin');
     } else if (activeModal === 'fin') {
       setActiveModal(null);
     }
   };
 
-  const handleNavigation = (modal: 'messages' | 'help' | 'fin') => {
+  const handleNavigation = (modal: 'messages' | 'help' | 'fin' | 'home') => {
     setActiveModal(modal);
   };
 
@@ -48,6 +49,15 @@ export default function ChatIcon() {
       </div>
 
       {/* Modals */}
+      {activeModal === 'home' && (
+        <HomeModal 
+          onClose={handleClose} 
+          onNavigate={handleNavigation}
+          activeModal={activeModal}
+          onHome={handleHome}
+        />
+      )}
+
       {activeModal === 'messages' && (
         <MessagesModal 
           onClose={handleClose} 
@@ -58,7 +68,7 @@ export default function ChatIcon() {
       )}
       
       {activeModal === 'help' && (
-        <HelpModal 
+        <HelpTopicsModal 
           onClose={handleClose} 
           onNavigate={handleNavigation}
           activeModal={activeModal}

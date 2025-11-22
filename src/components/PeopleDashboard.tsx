@@ -1,749 +1,530 @@
-import { useState, useEffect } from "react"
-import { useNavigate, useLocation } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import {
+  LayoutDashboard,
   Users,
   GraduationCap,
   UserRoundCog,
   UserPlus,
-  Gauge,
   ChevronDown,
   Download,
-  MoreHorizontal,
+  MoreHorizontal
 } from "lucide-react"
+import axiosInstance from "./axiosInstance"
 
-const metrics = [
-  { id: "newStudents", title: "New students", value: 54, sub: "11% Active", icon: Users },
-  { id: "newTeachers", title: "New teachers", value: 0, sub: "", icon: GraduationCap },
-  { id: "newRelated", title: "New related contacts", value: 0, sub: "", icon: UserRoundCog },
-  { id: "newProspects", title: "New prospects", value: 0, sub: "", icon: UserPlus },
+type TabId = "dashboard" | "students" | "teachers" | "staff" | "related" | "prospects"
+
+type StudentRow = {
+  Id: number
+  FirstName?: string | null
+  Surname?: string | null
+  LastName?: string | null
+  MobilePhone?: string | null
+  Email?: string | null
+  RegistrationDate?: string | null
+  IdNumber?: string | null
+  TuitionFees?: number | string | null
+  Photo?: string | null
+}
+
+type TeacherRow = {
+  name: string
+  phone: string
+  email: string
+}
+
+type StaffRow = {
+  name: string
+  email: string
+}
+
+type RelatedRow = {
+  name: string
+  email: string
+}
+
+type ProspectRow = {
+  name: string
+  phone: string
+  email: string
+  firstContact: string
+  lastAction: string
+  subject: string
+  level: string
+  status: string
+}
+
+const tabs: Array<{ id: TabId; label: string; count?: number; icon: any }> = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "students", label: "Students", count: 999, icon: Users },
+  { id: "teachers", label: "Teachers", count: 41, icon: GraduationCap },
+  { id: "staff", label: "Staff", count: 2, icon: UserRoundCog },
+  { id: "related", label: "Related contacts", count: 6, icon: UserRoundCog },
+  { id: "prospects", label: "Prospects", count: 2, icon: UserPlus }
 ]
 
-const tabs = [
-  { id: "dashboard", label: "Dashboard", path: "/people" },
-  { id: "students", label: "Students", count: 966, path: "/people/students" },
-  { id: "teachers", label: "Teachers", count: 41, path: "/people/teachers" },
-  { id: "staffs", label: "Staffs", count: 2, path: "/people/staffs" },
-  { id: "related", label: "Related contacts", count: 6, path: "/people/related" },
-  { id: "prospects", label: "Prospects", count: 2, path: "/people/prospects" },
+const studentFilters = [
+  { label: "Teacher", value: "All" },
+  { label: "Classes", value: "All" },
+  { label: "Payments", value: "All" },
+  { label: "Status", value: "Live" }
 ]
+
+const teacherRows: TeacherRow[] = [
+  { name: "Abbey teacher", phone: "0858330601", email: "elisabethsmiddy@hotmail.com" },
+  { name: "Adao Lopes Teacher", phone: "0831495753", email: "didina7@gmail.com" },
+  { name: "Anne Smiddy Elisabeth", phone: "0852014537", email: "dmytroolginxbocx_yns@indeedemail.com" },
+  { name: "Colm Delmar1", phone: "353", email: "ale201019@hotmail.com" },
+  { name: "Daiana Teacher", phone: "0852014537", email: "daiana.teacher@example.com" }
+]
+
+const staffRows: StaffRow[] = [
+  { name: "Lia Reception", email: "liasantosmarketing@gmail.com" },
+  { name: "Patrick Admin", email: "patrick.admin@example.com" }
+]
+
+const relatedRows: RelatedRow[] = [
+  { name: "Parent A", email: "related1@example.com" },
+  { name: "Guardian B", email: "related2@example.com" },
+  { name: "Parent C", email: "related3@example.com" }
+]
+
+const prospectRows: ProspectRow[] = [
+  { name: "Julio Cesar", phone: "", email: "julio@example.com", firstContact: "01-09-2025", lastAction: "Email", subject: "General English", level: "B2", status: "Active" },
+  { name: "Maria Lopez", phone: "", email: "maria@example.com", firstContact: "12-08-2025", lastAction: "Call", subject: "IELTS", level: "C1", status: "Pending" }
+]
+
+const avatarPalette = ["bg-indigo-500","bg-rose-500","bg-purple-500","bg-emerald-500","bg-blue-500"]
 
 export default function PeopleDashboard() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const [active, setActive] = useState("dashboard")
+  const [activeTab, setActiveTab] = useState<TabId>("students")
+  const [students, setStudents] = useState<StudentRow[]>([])
+  const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false)
+  const [studentError, setStudentError] = useState<string | null>(null)
 
-  // ✅ Sync active tab based on route (exact + nested support)
   useEffect(() => {
-    const { pathname } = location
-    // Exact matches in `tabs`
-    const found = tabs.find((t) => pathname === t.path)
-    if (found) {
-      setActive(found.id)
-      return
-    }
-    // Root -> dashboard
-    if (pathname === "/people") {
-      setActive("dashboard")
-      return
-    }
-    // Nested routes mapping (e.g., /people/students/123)
-    if (pathname.startsWith("/people/students")) {
-      setActive("students")
-      return
-    }
-    if (pathname.startsWith("/people/teachers")) {
-      setActive("teachers")
-      return
-    }
-    if (pathname.startsWith("/people/staffs")) {
-      setActive("staffs")
-      return
-    }
-    if (pathname.startsWith("/people/related")) {
-      setActive("related")
-      return
-    }
-    if (pathname.startsWith("/people/prospects")) {
-      setActive("prospects")
-      return
-    }
-    setActive("dashboard")
-  }, [location.pathname])
+    const controller = new AbortController()
 
-  const handleTabClick = (id: string, path: string) => {
-    setActive(id)
-    navigate(path)
+    const fetchStudents = async () => {
+      setIsLoadingStudents(true)
+      setStudentError(null)
+      try {
+        const response = await axiosInstance.get("/Student/GetAll", {
+          signal: controller.signal
+        })
+
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+          setStudents(response.data.Data)
+        } else {
+          setStudents([])
+          setStudentError("No student data available.")
+        }
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return
+        console.error("Failed to load students", error)
+        setStudentError("Failed to load students. Please try again.")
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingStudents(false)
+        }
+      }
+    }
+
+    fetchStudents()
+
+    return () => controller.abort()
+  }, [])
+
+  const getStudentName = (student: StudentRow) => {
+    const lastName = student.Surname ?? student.LastName
+    const parts = [student.FirstName, lastName].filter(Boolean)
+    return parts.length ? parts.join(" ") : "Unnamed student"
   }
 
-  // Students filters state (Teacher, Classes, Payments, Status)
-  const [studentsOpenFilter, setStudentsOpenFilter] = useState<string | null>(null)
-  const [studentsQuery, setStudentsQuery] = useState("")
-  // Add forms are routed screens now; no modal state
-  const [teachersStatusFilter, setTeachersStatusFilter] = useState<string | null>(null)
-  const [staffStatusFilter, setStaffStatusFilter] = useState<string | null>(null)
-  const [studentsSelected, setStudentsSelected] = useState<{ teacher: string; class: string; payment: string; status: string }>({
-    teacher: "All",
-    class: "All",
-    payment: "All",
-    status: "Live",
-  })
+  const getInitials = (student: StudentRow) => {
+    const name = getStudentName(student)
+    const initials = name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("")
+    return initials || "NA"
+  }
 
-  const teacherOptions = [
-    "Abbey teacher","Adao Lopes Teacher","Ane 1","Anne Smiddy Elisabeth","Aoife Sinead Buckley","Ava Collopy","Beni Teacher","Carla Kerr","Cathrine Teacher","Colm Delmar1","Conor O'Riordan","Daiana Teacher","David Teacher","Dimitrina Teacher","Isabela Teacher","Maeve Teacher","Oriana Teacher","Saba Teacher","Sara Lagarto Teacher"
-  ]
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return "—"
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return "—"
+    return date.toLocaleDateString("en-GB")
+  }
 
-  const classOptions = [
-    "AM B1 WALID/ABBEY",
-    "Advanced_AM_DCE1_PART 1",
-    "Advanced_AM_DCE1_PART 2",
-    "Advanced_PM_DCE1_PART 1",
-    "Advanced_PM_DCE1_PART 2",
-    "Cork Classroom C1 AM ABAIGH/ANNE",
-    "Elementary_AM_DCE1_PART 1",
-    "Elementary_AM_DCE1_PART 2",
-    "Elementary_AM_DCE1_PART 2",
-    "PM A2 WALID/DIMITRO",
-  ]
+  const formatCurrency = (value: number | string | null | undefined) => {
+    if (value === null || value === undefined || value === "") {
+      return "€0.00"
+    }
+    const numericValue = Number(value)
+    if (Number.isNaN(numericValue)) {
+      return typeof value === "string" ? value : "€0.00"
+    }
+    return `€${numericValue.toFixed(2)}`
+  }
 
-  const paymentOptions = ["All", "Overdue", "Up to date"]
-  const statusOptions = ["Live", "Enrolled", "Not Enrolled", "Archived"]
+  const resolvedTabs = tabs.map((tab) =>
+    tab.id === "students" ? { ...tab, count: students.length } : tab
+  )
+
+  const renderStudentTableBody = () => {
+    if (isLoadingStudents) {
+      return (
+        <tr>
+          <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+            Loading students...
+          </td>
+        </tr>
+      )
+    }
+
+    if (studentError) {
+      return (
+        <tr>
+          <td colSpan={8} className="px-4 py-6 text-center text-red-600">
+            {studentError}
+          </td>
+        </tr>
+      )
+    }
+
+    if (!students.length) {
+      return (
+        <tr>
+          <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+            No students found.
+          </td>
+        </tr>
+      )
+    }
+
+    return students.map((student, idx) => {
+      const studentName = getStudentName(student)
+      const initials = getInitials(student)
+
+      return (
+        <tr key={student.Id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+          <td className="px-4 py-3">
+            <input type="checkbox" aria-label={`Select ${studentName}`} />
+          </td>
+          <td className="px-4 py-3 text-indigo-700">
+            <button
+              type="button"
+              onClick={() => navigate(`/people/students/${student.Id}`)}
+              className="flex items-center gap-3 text-left w-full focus:outline-none"
+            >
+              {student.Photo ? (
+                <img src={student.Photo} alt={studentName} className="h-8 w-8 rounded-full object-cover" />
+              ) : (
+                <div
+                  className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}
+                >
+                  {initials}
+                </div>
+              )}
+              <div>
+                <div className="font-medium text-gray-800">{studentName}</div>
+                <div className="text-xs text-gray-500">{student.IdNumber || "—"}</div>
+              </div>
+            </button>
+          </td>
+          <td className="px-4 py-3 text-gray-700">{student.MobilePhone || "—"}</td>
+          <td className="px-4 py-3 text-blue-600">
+            {student.Email ? (
+              <a href={`mailto:${student.Email}`} className="hover:underline">
+                {student.Email}
+              </a>
+            ) : (
+              "—"
+            )}
+          </td>
+          <td className="px-4 py-3 text-gray-700">{formatDate(student.RegistrationDate)}</td>
+          <td className="px-4 py-3 text-gray-700">{student.IdNumber || "—"}</td>
+          <td className="px-4 py-3 text-emerald-600">{formatCurrency(student.TuitionFees)}</td>
+          <td className="px-4 py-3">
+            <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" aria-label="More actions">
+              <MoreHorizontal size={18} />
+            </button>
+          </td>
+        </tr>
+      )
+    })
+  }
 
   return (
-    <div>
-      <div className="px-6 py-6">
-        {/* Page Title */}
-        <div className="mb-4">
-          <h1 className="text-2xl font-semibold text-gray-900">People</h1>
-        </div>
-        {/* Tabs Row */}
-        <div className="flex items-center gap-6 border-b border-gray-200 pb-3">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => handleTabClick(t.id, t.path)}
-              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
-                active === t.id
-                  ? "text-blue-700 font-medium"
-                  : "text-gray-700 hover:text-gray-900"
-              }`}
-            >
-              <span>{t.label}</span>
-              {t.count != null && (
-                <span
-                  className={`text-xs ${
-                    active === t.id ? "text-blue-700" : "text-gray-500"
-                  }`}
-                >
-                  {t.count}
-                </span>
-              )}
-              {active === t.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
-              )}
-            </button>
-          ))}
-        </div>
+    <div className="px-6 py-6">
+      <h1 className="text-2xl font-semibold text-gray-900">People</h1>
 
-        {/* -------- DASHBOARD (cards) -------- */}
-        {active === "dashboard" && (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          {metrics.map((m) => {
-            const Icon = m.icon
-            return (
-              <div
-                key={m.id}
-                className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-emerald-50"
+      <div className="mt-4 flex items-center gap-6 border-b border-gray-200 pb-3">
+        {resolvedTabs.map(({ id, label, count, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setActiveTab(id)}
+            className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
+              activeTab === id ? "text-blue-700 font-semibold" : "text-gray-600 hover:text-gray-800"
+            }`}
+          >
+            <Icon size={16} />
+            <span>{label}</span>
+            {typeof count === "number" && (
+              <span
+                className={`text-xs px-2 py-1 rounded-full ${
+                  activeTab === id ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
+                }`}
               >
-                <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-gradient-to-br from-emerald-100 to-transparent" />
-                <div className="p-5">
-                  <div className="flex items-center gap-3 text-emerald-700">
-                    <Icon size={18} />
-                    <div className="font-semibold">{m.title}</div>
-                  </div>
-                  <div className="mt-3 text-2xl font-semibold text-gray-900">
-                    {m.value}
-                  </div>
-                  {m.sub && (
-                    <div className="mt-1 text-sm text-gray-600">{m.sub}</div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        )}
-
-        {active === "dashboard" && (
-        <>
-        <div className="mt-6 grid grid-cols-1 xl:grid-cols-[2fr_1fr] gap-6">
-          {/* Student Enrollment Tenure */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <div className="font-semibold text-gray-800 mb-4">
-              Student enrollment tenure
-            </div>
-            <div className="space-y-4">
-              {["0-3 Months", "3-12 Months", "1-2 Years", "2+ Years"].map(
-                (l, i) => (
-                  <div
-                    key={l}
-                    className="flex items-center gap-4 text-sm text-gray-700"
-                  >
-                    <div className="w-24 text-gray-600">{l}</div>
-                    <div className="flex-1 h-2 rounded-full bg-gray-200 overflow-hidden">
-                      <div
-                        className="h-full bg-blue-500"
-                        style={{ width: `${30 + i * 15}%` }}
-                      />
-                    </div>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-
-          {/* Upcoming Birthdays */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <div className="font-semibold text-gray-800 mb-3">
-              Upcoming birthdays
-            </div>
-            <div className="space-y-4 max-h-72 overflow-auto pr-2">
-              {[
-                "Wilker De Lima Carvalho",
-                "Glauce Jacqueline Sales Melo",
-                "Thamiris Klycia De Moraes",
-                "Margarita Huanca Esposo",
-                "Dennys Rolando Molina",
-              ].map((n, i) => (
-                <div key={n} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-full bg-purple-200 text-purple-700 grid place-items-center text-sm font-semibold">
-                      {n
-                        .split(" ")
-                        .map((w) => w[0])
-                        .slice(0, 2)
-                        .join("")}
-                    </div>
-                    <div className="text-sm text-gray-800">{n}</div>
-                  </div>
-                  <div className="text-xs text-gray-500">19 October, 2025</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        </>
-        )}
-
-        {active === "dashboard" && (
-        <>
-        <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Most Active Teachers */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-            <div className="font-semibold text-gray-800 mb-3">
-              Most active teachers
-            </div>
-            <div className="divide-y">
-              {[
-                "Colm Delmar1",
-                "Anne Smiddy Elisabeth",
-                "Olga Teacher",
-                "Walid Teacher",
-                "Dimitro Teacher",
-              ].map((n, i) => (
-                <div key={n} className="py-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${
-                        [
-                          "bg-purple-500",
-                          "bg-rose-500",
-                          "bg-blue-600",
-                          "bg-indigo-500",
-                          "bg-sky-500",
-                        ][i]
-                      }`}
-                    >
-                      {n
-                        .split(" ")
-                        .map((w) => w[0])
-                        .slice(0, 2)
-                        .join("")}
-                    </div>
-                    <div className="text-sm text-gray-800">{n}</div>
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {[10, 5, 5, 5, 5][i]}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Prospect Source */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm grid place-items-center">
-            <div className="text-gray-600">Prospect source</div>
-            <div className="mt-3 h-48 w-48 rounded-full bg-gray-300" />
-          </div>
-
-          {/* Prospect Status */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm grid">
-            <div className="text-gray-600">Prospect status</div>
-            <div className="mt-3 h-48 w-full border border-gray-200" />
-          </div>
-        </div>
-        </>
-        )}
-
-        {/* -------- STUDENTS (img1) -------- */}
-        {active === "students" && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between">
-              <div className="text-xl font-semibold text-gray-800">966 Students</div>
-              <div className="flex items-center gap-3">
-                <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                  <Download size={16} /> Export
-                </button>
-                <button 
-                  onClick={() => navigate('/people/students/new')}
-                  className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-                >
-                  + Add student
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-3">
-              <div className="flex-1 max-w-sm">
-                <input placeholder="Search" className="w-full h-10 px-4 rounded-xl border border-gray-200 bg-white placeholder:text-gray-400 text-sm" />
-              </div>
-              <div className="ml-auto flex items-center gap-2 relative">
-                {/* Teacher dropdown (img1 style) */}
-                <div className="relative">
-                  <button
-                    onClick={() => { setStudentsQuery(""); setStudentsOpenFilter(studentsOpenFilter === 'teacher' ? null : 'teacher') }}
-                    className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
-                  >
-                    Teacher: {studentsSelected.teacher} <ChevronDown size={14} className="text-gray-500" />
-                  </button>
-                  {studentsOpenFilter === 'teacher' && (
-                    <div className="absolute z-50 mt-2 w-96 bg-white border border-gray-200 rounded-2xl shadow-lg p-2">
-                      <input
-                        autoFocus
-                        className="w-full h-9 px-3 rounded-lg border border-gray-200 mb-2 text-sm"
-                        placeholder=""
-                        value={studentsQuery}
-                        onChange={(e) => setStudentsQuery(e.target.value)}
-                      />
-                      <div className="max-h-80 overflow-auto">
-                        <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={() => { setStudentsSelected(s => ({...s, teacher: 'All'})); setStudentsOpenFilter(null) }}>All</div>
-                        {(studentsQuery ? teacherOptions.filter(t => t.toLowerCase().includes(studentsQuery.toLowerCase())) : teacherOptions).map((t) => (
-                          <div key={t} className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={() => { setStudentsSelected(s => ({...s, teacher: t})); setStudentsOpenFilter(null) }}>{t}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Classes dropdown (img2 style with sections) */}
-                <div className="relative">
-                  <button
-                    onClick={() => { setStudentsQuery(""); setStudentsOpenFilter(studentsOpenFilter === 'class' ? null : 'class') }}
-                    className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
-                  >
-                    Classes: {studentsSelected.class} <ChevronDown size={14} className="text-gray-500" />
-                  </button>
-                  {studentsOpenFilter === 'class' && (
-                    <div className="absolute z-50 mt-2 w-[28rem] bg-white border border-gray-200 rounded-2xl shadow-lg p-2">
-                      <input
-                        autoFocus
-                        className="w-full h-9 px-3 rounded-lg border border-gray-200 mb-2 text-sm"
-                        placeholder=""
-                        value={studentsQuery}
-                        onChange={(e) => setStudentsQuery(e.target.value)}
-                      />
-                      <div className="max-h-96 overflow-auto">
-                        <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={() => { setStudentsSelected(s => ({...s, class: 'All'})); setStudentsOpenFilter(null) }}>All</div>
-                        <div className="px-3 py-2 text-xs text-gray-500">Active</div>
-                        {(studentsQuery ? classOptions.filter(c => c.toLowerCase().includes(studentsQuery.toLowerCase())) : classOptions).map((c) => (
-                          <div key={c} className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={() => { setStudentsSelected(s => ({...s, class: c})); setStudentsOpenFilter(null) }}>{c}</div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Payments dropdown (img3 simple menu) */}
-                <div className="relative">
-                  <button
-                    onClick={() => setStudentsOpenFilter(studentsOpenFilter === 'payment' ? null : 'payment')}
-                    className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
-                  >
-                    Payments: {studentsSelected.payment} <ChevronDown size={14} className="text-gray-500" />
-                  </button>
-                  {studentsOpenFilter === 'payment' && (
-                    <div className="absolute z-50 mt-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-lg p-2">
-                      {paymentOptions.map((p) => (
-                        <div key={p} className={`px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center justify-between ${studentsSelected.payment===p? 'text-gray-900':''}`} onClick={() => { setStudentsSelected(s => ({...s, payment: p})); setStudentsOpenFilter(null) }}>
-                          {p}
-                          {studentsSelected.payment === p && <span>✔</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Status dropdown (img4 simple menu) */}
-                <div className="relative">
-                  <button
-                    onClick={() => setStudentsOpenFilter(studentsOpenFilter === 'status' ? null : 'status')}
-                    className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
-                  >
-                    Status: {studentsSelected.status} <ChevronDown size={14} className="text-gray-500" />
-                  </button>
-                  {studentsOpenFilter === 'status' && (
-                    <div className="absolute z-50 mt-2 w-56 bg-white border border-gray-200 rounded-2xl shadow-lg p-2">
-                      {statusOptions.map((s) => (
-                        <div key={s} className={`px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center justify-between ${studentsSelected.status===s? 'text-gray-900':''}`} onClick={() => { setStudentsSelected(prev => ({...prev, status: s})); setStudentsOpenFilter(null) }}>
-                          {s}
-                          {studentsSelected.status === s && <span>✔</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-600">⟲</button>
-                <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-600">⋯</button>
-              </div>
-            </div>
-
-            <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
-                  <tr>
-                    {["", "Name", "Phone", "Email", "Registration date", "ID Number", "Payments", ""].map((h, i) => (
-                      <th key={i} className="text-left px-4 py-3 border-b border-gray-200 font-medium">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 10 }).map((_, i) => {
-                    const name = [
-                      "Abdurrakhim Umirbyek",
-                      "Abraham Emmanuel Acosta Garcia",
-                      "Adiyadorj Erdev",
-                      "Adriana Jaimes Garcia",
-                      "Adriana Martins De Abreu",
-                      "Adriana Xavier Arruda"
-                    ][i % 6]
-                    const phone = ["353831330558", "353834074840", "3530834368847"][i % 3]
-                    const email = [
-                      "omirbekrahkim@gmail.com",
-                      "manuel.garcavz@gmail.com",
-                      "adiyadorj_erdev@yahoo.com",
-                      "4drjaimes@gmail.com",
-                      "aabreu.ama@gmail.com"
-                    ][i % 5]
-                    const reg = ["04-04-2025", "07-04-2025", "15-09-2025", "02-05-2025", "16-05-2025"][i % 5]
-                    const idNum = ["DCE2848", "DCE2851", "DCE3220", "DCE2926", "DCE2970"][i % 5]
-                    return (
-                      <tr key={i} className="border-b last:border-0 border-gray-100 hover:bg-gray-50">
-                        <td className="px-4 py-3"><input type="checkbox" /></td>
-                        <td className="px-4 py-3 text-indigo-700 flex items-center gap-2">
-                          <img 
-                            src={`https://i.pravatar.cc/48?img=${(i % 70) + 1}`} 
-                            className="h-8 w-8 rounded-full cursor-pointer hover:ring-2 hover:ring-blue-200 transition-all" 
-                            onClick={() => navigate(`/people/students/${i + 1}`)}
-                            alt={`${name} profile`}
-                          />
-                          <div>
-                            <div>{name}</div>
-                            <div className="text-xs text-gray-500">{idNum}</div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-gray-700">{phone}</td>
-                        <td className="px-4 py-3 text-blue-600">{email}</td>
-                        <td className="px-4 py-3">{reg}</td>
-                        <td className="px-4 py-3">{idNum}</td>
-                        <td className="px-4 py-3 text-emerald-600">€0.00</td>
-                        <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"><MoreHorizontal size={18} /></button></td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* -------- TEACHERS (img2) -------- */}
-        {active === "teachers" && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between">
-              <div className="text-xl font-semibold text-gray-800">41 Teachers</div>
-              <div className="flex items-center gap-3">
-                <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                  <Download size={16} /> Export
-                </button>
-                <button 
-                  onClick={() => navigate('/people/teachers/new')}
-                  className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-                >
-                  + Add teacher
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-3 justify-end">
-              <div className="relative">
-                <button 
-                  onClick={() => setTeachersStatusFilter(teachersStatusFilter === 'status' ? null : 'status')}
-                  className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
-                >
-                  Status: All <ChevronDown size={14} className="text-gray-500" />
-                </button>
-                {teachersStatusFilter === 'status' && (
-                  <div className="absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center justify-between">
-                      All <span className="text-black">✓</span>
-                    </div>
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">Assigned</div>
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">Not Assigned</div>
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">Archived</div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
-                  <tr>
-                    {["", "Name", "Phone", "Email", ""].map((h, i) => (
-                      <th key={i} className="text-left px-4 py-3 border-b border-gray-200 font-medium">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({ length: 10 }).map((_, i) => {
-                    const name = [
-                      "Abbey teacher",
-                      "Adao Lopes Teacher",
-                      "Anne Smiddy Elisabeth",
-                      "Colm Delmar1",
-                      "Daiana Teacher",
-                      "David Teacher",
-                      "Dimitrina Teacher",
-                    ][i % 7]
-                    const phone = ["0858330601", "0831495753", "0852014537", "353"][i % 4]
-                    const email = [
-                      "elisabethsmiddy@hotmail.com",
-                      "didina7@gmail.com",
-                      "dmytroolginxbocx_yns@indeedemail.com",
-                      "ale201019@hotmail.coM",
-                    ][i % 4]
-                    return (
-                      <tr key={i} className="border-b last:border-0 border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/people/teachers/${i + 1}`)}>
-                        <td className="px-4 py-3"><input type="checkbox" onClick={(e) => e.stopPropagation()} /></td>
-                        <td className="px-4 py-3 text-indigo-700 flex items-center gap-2">
-                          <div 
-                            className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold cursor-pointer hover:ring-2 hover:ring-blue-200 transition-all ${["bg-green-500","bg-rose-500","bg-orange-500","bg-indigo-500"][i%4]}`}
-                            onClick={() => navigate(`/people/teachers/${i + 1}`)}
-                          >
-                            {name.split(" ").map(w=>w[0]).slice(0,2).join("")}
-                          </div>
-                          <div>
-                            <div className="font-medium">{name}</div>
-                            <div className="text-xs text-gray-500">Teacher</div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-gray-700">{phone}</td>
-                        <td className="px-4 py-3 text-blue-600">{email}</td>
-                        <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" onClick={(e) => e.stopPropagation()}><MoreHorizontal size={18} /></button></td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* -------- STAFFS (img3) -------- */}
-        {active === "staffs" && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between">
-              <div className="text-xl font-semibold text-gray-800">2 Staff</div>
-              <div className="flex items-center gap-3">
-                <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                  <Download size={16} /> Export
-                </button>
-                <button 
-                  onClick={() => navigate('/people/staffs/new')}
-                  className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-                >
-                  + Add staff
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-4 flex items-center gap-3 justify-end">
-              <div className="relative">
-                <button 
-                  onClick={() => setStaffStatusFilter(staffStatusFilter === 'status' ? null : 'status')}
-                  className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
-                >
-                  Status: All <ChevronDown size={14} className="text-gray-500" />
-                </button>
-                {staffStatusFilter === 'status' && (
-                  <div className="absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer flex items-center justify-between">
-                      All <span className="text-black">✓</span>
-                    </div>
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">Assigned</div>
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">Not Assigned</div>
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">Archived</div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
-                  <tr>
-                    {["", "Name", "Phone", "Email", ""].map((h, i) => (
-                      <th key={i} className="text-left px-4 py-3 border-b border-gray-200 font-medium">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {["Lia Reception","Lia Reception"].map((name, i) => (
-                    <tr key={i} className="border-b last:border-0 border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/people/staffs/${i + 1}`)}>
-                      <td className="px-4 py-3"><input type="checkbox" onClick={(e) => e.stopPropagation()} /></td>
-                      <td className="px-4 py-3 text-indigo-700 flex items-center gap-2">
-                        <div 
-                          className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold cursor-pointer hover:ring-2 hover:ring-blue-200 transition-all ${["bg-purple-500","bg-red-500"][i%2]}`}
-                          onClick={() => navigate(`/people/staffs/${i + 1}`)}
-                        >
-                          {name.split(" ").map(w=>w[0]).slice(0,2).join("")}
-                        </div>
-                        <div>
-                          <div className="font-medium">{name}</div>
-                          <div className="text-xs text-gray-500">Staff</div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-gray-700"></td>
-                      <td className="px-4 py-3 text-blue-600">liasantosmarketing@gmail.com</td>
-                      <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" onClick={(e) => e.stopPropagation()}><MoreHorizontal size={18} /></button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* -------- RELATED CONTACTS (img4) -------- */}
-        {active === "related" && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between">
-              <div className="text-xl font-semibold text-gray-800">6 Related contacts</div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigate('/people/related/new')}
-                  className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"
-                >
-                  + Add related contact
-                </button>
-              </div>
-            </div>
-            <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
-                  <tr>
-                    {["", "Name", "Phone", "Email"].map((h, i) => (
-                      <th key={i} className="text-left px-4 py-3 border-b border-gray-200 font-medium">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {Array.from({length:6}).map((_,i)=>{
-                    const name = ["Parent A","Parent B","Parent C","Guardian D","Guardian E","Parent F"][i]
-                    const phone = ""
-                    const email = `related${i+1}@example.com`
-                    return (
-                      <tr key={i} className="border-b last:border-0 border-gray-100 hover:bg-gray-50">
-                        <td className="px-4 py-3"><input type="checkbox" /></td>
-                        <td className="px-4 py-3 text-indigo-700 flex items-center gap-2">
-                          <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${["bg-emerald-500","bg-sky-500","bg-orange-500","bg-indigo-500","bg-rose-500","bg-purple-500"][i%6]}`}>{name.split(" ").map(w=>w[0]).slice(0,2).join("")}</div>
-                          {name}
-                        </td>
-                        <td className="px-4 py-3 text-gray-700">{phone}</td>
-                        <td className="px-4 py-3 text-blue-600">{email}</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* -------- PROSPECTS (img5) -------- */}
-        {active === "prospects" && (
-          <div className="mt-6">
-            <div className="flex items-center justify-between">
-              <div className="text-xl font-semibold text-gray-800">0 Prospects</div>
-              <div className="flex items-center gap-3">
-                <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                  <Download size={16} /> Export
-                </button>
-                <button onClick={() => navigate('/people/prospects/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm">
-                  + Add prospect
-                </button>
-              </div>
-            </div>
-
-          <div className="mt-4 flex items-center gap-3 justify-end">
-            {/* Subjects dropdown (img7) */}
-            <div className="relative">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                Subject: All <ChevronDown size={14} className="text-gray-500" />
-              </button>
-              {/* Implement options same as calendar subjects if needed */}
-            </div>
-            {/* All dropdown (img8) */}
-            <div className="relative">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                Level: All <ChevronDown size={14} className="text-gray-500" />
-              </button>
-            </div>
-            {/* Status dropdown (img9) */}
-            <div className="relative">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                Status: Active Prospects <ChevronDown size={14} className="text-gray-500" />
-              </button>
-            </div>
-          </div>
-
-            <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-600">
-                  <tr>
-                    {["", "Name", "Phone", "Email", "First contact", "Last action", "Subject", "Level", "Status"].map((h, i) => (
-                      <th key={i} className="text-left px-4 py-3 border-b border-gray-200 font-medium">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-              </table>
-              <div className="py-12 text-center text-gray-600">No records found</div>
-            </div>
-          </div>
-        )}
+                {count}
+              </span>
+            )}
+            {activeTab === id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />}
+          </button>
+        ))}
       </div>
 
-      {/* No modals here; forms are full-screen pages */}
+      {activeTab === "dashboard" && (
+        <div className="mt-10 text-center text-gray-400 text-sm">
+          Dashboard widgets are not configured in this prototype.
+        </div>
+      )}
+
+      {activeTab === "students" && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between">
+            <div className="text-xl font-semibold text-gray-800">
+              {isLoadingStudents ? "Loading students..." : `${students.length} Students`}
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
+                <Download size={16} /> Export
+              </button>
+              <button
+                onClick={() => navigate('/people/students/new')}
+                className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm"
+              >
+                + Add student
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <div className="relative w-64">
+              <input
+                placeholder="Search"
+                className="w-full h-10 pl-4 pr-3 rounded-xl border border-gray-200 bg-white text-sm placeholder:text-gray-400"
+              />
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              {studentFilters.map((filter) => (
+                <button
+                  key={filter.label}
+                  className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
+                >
+                  {filter.label}: {filter.value}
+                  <ChevronDown size={14} className="text-gray-500" />
+                </button>
+              ))}
+              <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">⟳</button>
+              <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">⋯</button>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  {["", "Name", "Phone", "Email", "Registration date", "ID Number", "Payments", ""].map((heading, idx) => (
+                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+              {renderStudentTableBody()}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "teachers" && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between">
+            <div className="text-xl font-semibold text-gray-800">41 Teachers</div>
+            <div className="flex items-center gap-3">
+              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
+                <Download size={16} /> Export
+              </button>
+              <button onClick={() => navigate('/people/teachers/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm">
+                + Add teacher
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  {["", "Name", "Phone", "Email", ""].map((heading, idx) => (
+                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {teacherRows.map((teacher, idx) => (
+                  <tr key={teacher.name} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3"><input type="checkbox" /></td>
+                    <td className="px-4 py-3 text-indigo-700 flex items-center gap-3">
+                      <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}>
+                        {teacher.name.split(" ").map(w=>w[0]).slice(0,2).join("")}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-800">{teacher.name}</div>
+                        <div className="text-xs text-gray-500">Teacher</div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">{teacher.phone}</td>
+                    <td className="px-4 py-3 text-blue-600">{teacher.email}</td>
+                    <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"><MoreHorizontal size={18} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "staff" && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between">
+            <div className="text-xl font-semibold text-gray-800">2 Staff</div>
+            <div className="flex items-center gap-3">
+              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
+                <Download size={16} /> Export
+              </button>
+              <button onClick={() => navigate('/people/staffs/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm">
+                + Add staff
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  {["", "Name", "Email", ""].map((heading, idx) => (
+                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {staffRows.map((staff, idx) => (
+                  <tr key={staff.email} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3"><input type="checkbox" /></td>
+                    <td className="px-4 py-3 text-indigo-700 flex items-center gap-3">
+                      <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}>
+                        {staff.name.split(" ").map(w=>w[0]).slice(0,2).join("")}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-800">{staff.name}</div>
+                        <div className="text-xs text-gray-500">Staff</div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-blue-600">{staff.email}</td>
+                    <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"><MoreHorizontal size={18} /></button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "related" && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between">
+            <div className="text-xl font-semibold text-gray-800">6 Related contacts</div>
+            <button onClick={() => navigate('/people/related/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm">
+              + Add related contact
+            </button>
+          </div>
+
+          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  {["", "Name", "Email"].map((heading, idx) => (
+                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {relatedRows.map((person, idx) => (
+                  <tr key={person.email} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3"><input type="checkbox" /></td>
+                    <td className="px-4 py-3 text-indigo-700 flex items-center gap-3">
+                      <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}>
+                        {person.name.split(" ").map(w=>w[0]).slice(0,2).join("")}
+                      </div>
+                      <div className="font-medium text-gray-800">{person.name}</div>
+                    </td>
+                    <td className="px-4 py-3 text-blue-600">{person.email}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "prospects" && (
+        <div className="mt-6">
+          <div className="flex items-center justify-between">
+            <div className="text-xl font-semibold text-gray-800">2 Prospects</div>
+            <div className="flex items-center gap-3">
+              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
+                <Download size={16} /> Export
+              </button>
+              <button onClick={() => navigate('/people/prospects/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm">
+                + Add prospect
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 text-gray-500">
+                <tr>
+                  {["", "Name", "Phone", "Email", "First contact", "Last action", "Subject", "Level", "Status"].map((heading, idx) => (
+                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {prospectRows.map((prospect, idx) => (
+                  <tr key={prospect.email} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                    <td className="px-4 py-3"><input type="checkbox" /></td>
+                    <td className="px-4 py-3 text-indigo-700">{prospect.name}</td>
+                    <td className="px-4 py-3 text-gray-700">{prospect.phone || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-blue-600">{prospect.email}</td>
+                    <td className="px-4 py-3 text-gray-700">{prospect.firstContact}</td>
+                    <td className="px-4 py-3 text-gray-700">{prospect.lastAction}</td>
+                    <td className="px-4 py-3 text-gray-700">{prospect.subject}</td>
+                    <td className="px-4 py-3 text-gray-700">{prospect.level}</td>
+                    <td className="px-4 py-3 text-gray-700">{prospect.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

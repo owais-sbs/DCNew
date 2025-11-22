@@ -3,8 +3,8 @@ import { X, ArrowLeft, MoreHorizontal, Paperclip, Smile, Mic, Send, ChevronDown,
 
 interface FinChatModalProps {
   onClose: () => void;
-  onNavigate: (modal: 'messages' | 'help' | 'fin') => void;
-  activeModal: 'messages' | 'help' | 'fin' | null;
+  onNavigate: (modal: 'messages' | 'help' | 'fin' | 'home') => void;
+  activeModal: 'messages' | 'help' | 'fin' | 'home' | null;
   onHome: () => void;
 }
 
@@ -135,27 +135,29 @@ export default function FinChatModal({ onClose, onNavigate, activeModal, onHome 
           <div className="border-t border-gray-200 p-4 mt-4">
             <div className="flex items-center justify-around">
               <button 
-                onClick={onHome}
-                className="flex flex-col items-center gap-1 p-2 text-blue-600"
+                onClick={() => onNavigate('home')}
+                className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
               >
-                <div className="relative h-5 w-5 bg-blue-600 rounded flex items-center justify-center">
-                  <Home className="h-3 w-3 text-white" />
-                  <span className="absolute text-white text-[6px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">😊</span>
+                <div className="relative">
+                  <div className="h-6 w-6 bg-gray-400 rounded flex items-center justify-center">
+                    <Home className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="absolute text-white text-[8px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">😊</span>
                 </div>
-                <span className="text-xs text-blue-600">Home</span>
+                <span className="text-xs">Home</span>
               </button>
               <button 
                 onClick={() => onNavigate('messages')}
                 className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
               >
-                <MessageSquare className="h-5 w-5" />
+                <MessageSquare className="h-6 w-6" />
                 <span className="text-xs">Messages</span>
               </button>
               <button 
                 onClick={() => onNavigate('help')}
                 className="flex flex-col items-center gap-1 p-2 text-gray-500 hover:text-blue-600 transition-colors"
               >
-                <HelpCircle className="h-5 w-5" />
+                <HelpCircle className="h-6 w-6" />
                 <span className="text-xs">Help</span>
               </button>
             </div>

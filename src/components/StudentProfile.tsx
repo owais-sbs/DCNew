@@ -1,17 +1,94 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import axiosInstance from "./axiosInstance"
+import html2canvas from "html2canvas"
+import { jsPDF } from "jspdf"
+
+type StudentFieldKey =
+  | "Name"
+  | "Student ID"
+  | "Address"
+  | "Date of Birth"
+  | "Nationality"
+  | "Passport Number"
+  | "Course Start Date"
+  | "Course End Date"
+  | "Course Title"
+  | "Course Level"
+  | "Mode of Study"
+  | "Number of Weeks"
+  | "Hours Per Week"
+  | "Tuition Fees"
+  | "Course Code"
+
+type DocumentTemplateContent = {
+  id: string
+  label: string
+  heading: string
+  subheading?: string
+  recipientLines?: string[]
+  paragraphs: string[]
+  fieldKeys: StudentFieldKey[]
+  closingLines: string[]
+  signatureName: string
+  signatureRole: string
+}
+
+const formatDateValue = (value?: string | null) => {
+  if (!value) return "—"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return value.split("T")[0] ?? value
+  }
+  return date.toLocaleDateString("en-GB")
+}
+
+const formatCurrency = (value?: number | string | null) => {
+  if (value === null || value === undefined || value === "") return "—"
+  const numeric = Number(value)
+  if (Number.isNaN(numeric)) {
+    return typeof value === "string" ? value : "—"
+  }
+  return `€${numeric.toFixed(2)}`
+}
+
+const slugify = (text: string) =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "")
+
 
 export default function StudentProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
+
   const [activeTab, setActiveTab] = useState("profile")
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [openModal, setOpenModal] = useState<string | null>(null)
-  
-  console.log('StudentProfile rendered with id:', id)
+  const [studentdetails, setStudent] = useState<any>(null)
+  const [openDocumentId, setOpenDocumentId] = useState<string | null>(null)
+  const documentContentRef = useRef<HTMLDivElement | null>(null)
 
-  // Close dropdowns when clicking outside
+  
+
+  // ✅ MOVE THESE UP
+  const [classesSubTab, setClassesSubTab] = useState<'classes'|'lessons'|'events'>('classes')
+  const [feesTab, setFeesTab] = useState<'grouped'|'individual'>('grouped')
+
+  useEffect(() => {
+    const fetchStudent = async () => {
+      try {
+        const response = await axiosInstance.get(`/Student/GetById/${id}`);
+        if (response.data?.IsSuccess) setStudent(response.data.Data);
+      } catch (error) {
+        console.error("Failed to fetch student:", error);
+      }
+    };
+    fetchStudent();
+  }, [id]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (openDropdown && !(event.target as Element).closest('.dropdown-container')) {
@@ -22,19 +99,168 @@ export default function StudentProfile() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openDropdown])
 
-  const student = {
-    id,
-    name: "Abdurrakhim Umirbyek",
-    gender: "Male",
-    age: 18,
-    email: "omirbekrakhim@gmail.com",
-    idNumber: "DCE2848",
-    courseTitle: "General English With Exam Preparation",
-    level: "B1",
-    weeks: 25,
-    department: "English DCE-Dublin 7",
-    externalExam: "TIE"
+  // ✅ SAFE TO RETURN NOW
+  if (!studentdetails) {
+    return (
+      <div className="p-6 text-center text-gray-600">
+        Loading student profile...
+      </div>
+    );
   }
+
+  const studentName = `${studentdetails.FirstName ?? ""} ${studentdetails.LastName ?? studentdetails.Surname ?? ""}`.trim();
+
+  const age = studentdetails.DateOfBirth
+  ? Math.floor(
+      (new Date().getTime() - new Date(studentdetails.DateOfBirth).getTime()) /
+      (365.25 * 24 * 60 * 60 * 1000)
+    )
+  : null;
+
+  
+
+  const studentAddress = [
+    studentdetails.StreetAddress,
+    studentdetails.City,
+    studentdetails.State,
+    studentdetails.ZipCode,
+    studentdetails.Country
+  ]
+    .filter(Boolean)
+    .join(", ")
+
+  const defaultFieldKeys: StudentFieldKey[] = [
+    "Name",
+    "Student ID",
+    "Address",
+    "Date of Birth",
+    "Nationality",
+    "Passport Number",
+    "Course Start Date",
+    "Course End Date",
+    "Course Title",
+    "Course Level",
+    "Mode of Study",
+    "Number of Weeks",
+    "Hours Per Week",
+    "Tuition Fees",
+    "Course Code"
+  ]
+
+  const studentFieldResolvers: Record<StudentFieldKey, () => string> = {
+    "Name": () => studentName || "—",
+    "Student ID": () => studentdetails.IdNumber || "—",
+    "Address": () => studentAddress || "—",
+    "Date of Birth": () => formatDateValue(studentdetails.DateOfBirth),
+    "Nationality": () => studentdetails.Nationality || "—",
+    "Passport Number": () => studentdetails.PassportNumber || "—",
+    "Course Start Date": () => formatDateValue(studentdetails.CourseStartDate),
+    "Course End Date": () => formatDateValue(studentdetails.CourseEndDate),
+    "Course Title": () => studentdetails.CourseTitle || "—",
+    "Course Level": () => studentdetails.CourseLevel || "—",
+    "Mode of Study": () => studentdetails.ModeOfStudy || "—",
+    "Number of Weeks": () => studentdetails.NumberOfWeeks ?? "—",
+    "Hours Per Week": () => studentdetails.HoursPerWeek ?? "—",
+    "Tuition Fees": () => formatCurrency(studentdetails.TuitionFees),
+    "Course Code": () => studentdetails.CourseCode || "—"
+  }
+
+  const getStudentFieldValue = (key: StudentFieldKey) => studentFieldResolvers[key]()
+
+  const documentButtonLabels = [
+    "Confirmation of Enrolment (Colm Delmar)",
+    "Letter of Acceptance (Colm)",
+    "Bank Letter (Ahmed)",
+    "Letter of Acceptance (Ahmed)",
+    "Leap Card Letter",
+    "Confirmation of Enrolment (Ahmed)",
+    "Holiday Letter (Carla)",
+    "Student Status Letter (Colm Delmar)",
+    "Student Reference Letter for GNIB",
+    "Christmas Holiday Letter (Carla)",
+    "Summer Holiday - Reference Letter",
+    "Exit Letter - No Show (Colm)",
+    "Exit Letter - Exam Later Date",
+    "Exit Letter - Exam Taken",
+    "Exit Letter - Covid-19",
+    "Exit Letter - Short Term",
+    "gnib 2025",
+    "Certificate of Attendance (2025)",
+    "Letter of Acceptance (2025)",
+    "Confirmation of Enrollment (2025)"
+  ]
+
+  const documentTemplateOverrides: Record<string, Partial<Omit<DocumentTemplateContent, "id" | "label">>> = {
+    [slugify("Confirmation of Enrolment (Colm Delmar)")]: {
+      heading: "Confirmation of Enrolment",
+      recipientLines: [
+        "To,",
+        "Garda National Immigration Bureau:",
+        "13-14 Burgh Quay, Dublin 2."
+      ],
+      paragraphs: [
+        "We are pleased to confirm that the below-named student has been enrolled on a course at Dublin Centre of Education, as follows. This 8-month course is listed on the Interim List of Eligible Programmes (ILEP) under Dublin Centre of Education."
+      ],
+      closingLines: [
+        "The student has agreed to abide by the rules and regulations governing their study set by the Irish National Immigration Bureau. This student is covered by Learner Protection Insurance through Endeavour Insurance Services, Academic+.",
+        "Should you require any further information regarding this student, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
+      ],
+      signatureName: "Colm Delmar",
+      signatureRole: "Director of Studies."
+    },
+    [slugify("Letter of Acceptance (Colm)")]: {
+      heading: "Letter of Acceptance",
+      subheading: "Re: Letter of Acceptance",
+      paragraphs: [
+        "Following your application, it has been agreed to offer you a place on the programme detailed below. This 8-month course is listed on the Interim List of Eligible Programmes (ILEP) under Dublin Centre of Education.",
+        "You have been issued with private medical insurance and Learner Protection insurance cover for the current academic period of 8 months. This policy is administered by Endeavour Insurance Services, Academic+, which will be activated upon your arrival. Your registration will take place immediately after arrival in the college. Your detailed timetable, course materials, module handouts etc. will be provided to you during registration."
+      ],
+      closingLines: [
+        "Should you require any further information, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
+      ],
+      signatureName: "Colm Delmar",
+      signatureRole: "Director of Studies."
+    },
+    [slugify("Bank Letter (Ahmed)")]: {
+      heading: "Bank Letter",
+      paragraphs: [
+        "We are pleased to confirm that the below-named student is currently enrolled on a course at Dublin Centre of Education, as follows, and we request that you open a bank account for our student:"
+      ],
+      closingLines: [
+        "Should you require any further information regarding this student, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
+      ],
+      signatureName: "Asif Omer",
+      signatureRole: "Manager"
+    }
+  }
+
+  const documentTemplates: DocumentTemplateContent[] = documentButtonLabels.map((label) => {
+    const id = slugify(label)
+    const override = documentTemplateOverrides[id] ?? {}
+
+    return {
+      id,
+      label,
+      heading: override.heading ?? label,
+      subheading: override.subheading,
+      recipientLines: override.recipientLines ?? ["To whom it may concern,"],
+      paragraphs:
+        override.paragraphs ??
+        [
+          `${studentName || "The student"} has been issued the document "${label}". The details of their enrolment are outlined below.`,
+          "Please retain this letter for your records and contact us if additional information is needed."
+        ],
+      fieldKeys: override.fieldKeys ?? defaultFieldKeys,
+      closingLines:
+        override.closingLines ?? [
+          "Should you require any further information regarding this student, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
+        ],
+      signatureName: override.signatureName ?? "Asif Omer",
+      signatureRole: override.signatureRole ?? "Director of Studies"
+    }
+  })
+
+  const activeDocumentTemplate = documentTemplates.find((doc) => doc.id === openDocumentId) || null
 
   const tabs = [
     "Profile", "Activity", "Classes", "Attendance", "Fees", "Receipts", 
@@ -88,14 +314,14 @@ export default function StudentProfile() {
     </div>
   )
 
-  const [classesSubTab, setClassesSubTab] = useState<'classes'|'lessons'|'events'>('classes')
+
 
   const renderClassesContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Classes</h2>
-          <p className="text-gray-600 mt-1">The classes that {student.name} is enrolled in</p>
+          <p className="text-gray-600 mt-1">The classes that {studentName} is enrolled in</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -263,8 +489,7 @@ export default function StudentProfile() {
           <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
             <BookOpen size={32} className="text-blue-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Enroll {student.name} in an Event</h3>
-          <p className="text-gray-600 mb-4">Events will appear here when you invite {student.name} to an event.</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Enroll {studentName} in an Event</h3>
           <button 
             onClick={() => setOpenModal('enroll-event')}
             className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2"
@@ -370,7 +595,6 @@ export default function StudentProfile() {
     </div>
   )
 
-  const [feesTab, setFeesTab] = useState<'grouped'|'individual'>('grouped')
 
   const renderFeesContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
@@ -404,7 +628,7 @@ export default function StudentProfile() {
               <DollarSign size={32} className="text-blue-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Class fees</h3>
-            <p className="text-gray-600 mb-4">Class fees will appear here when you enroll {student.name} in a class.</p>
+            <p className="text-gray-600 mb-4">Class fees will appear here when you enroll {studentName} in a class.</p>
             <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
               <Plus size={16} /> Enroll student
             </button>
@@ -466,8 +690,8 @@ export default function StudentProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Receipt size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {student.name}'s first payment.</h3>
-        <p className="text-gray-600 mb-4">{student.name}'s receipts will appear here once a payment is made.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {studentName}'s first payment.</h3>
+        <p className="text-gray-600 mb-4">{studentName}'s receipts will appear here once a payment is made.</p>
         <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> New payment
         </button>
@@ -481,8 +705,8 @@ export default function StudentProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Users size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {student.name}'s relationships</h3>
-        <p className="text-gray-600 mb-4">Add {student.name}'s mother, father and any other related contacts here.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {studentName}'s relationships</h3>
+        <p className="text-gray-600 mb-4">Add {studentName}'s mother, father and any other related contacts here.</p>
         <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> Add relationship
         </button>
@@ -585,8 +809,8 @@ export default function StudentProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Award size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">{student.name}'s Grade Results</h3>
-        <p className="text-gray-600">{student.name}'s grades will appear here when their result have been added to a gradebook.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">{studentName}'s Grade Results</h3>
+        <p className="text-gray-600">{studentName}'s grades will appear here when their result have been added to a gradebook.</p>
       </div>
     </div>
   )
@@ -598,35 +822,145 @@ export default function StudentProfile() {
       </div>
       
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {[
-          "Confirmation of Enrolment (Colm Delmar)",
-          "Letter of Acceptance (Colm)",
-          "Bank Letter (Ahmed)",
-          "Letter of Acceptance (Ahmed)",
-          "Leap Card Letter",
-          "Confirmation of Enrolment (Ahmed)",
-          "Holiday Letter (Carla)",
-          "Student Status Letter (Colm Delmar)",
-          "Student Reference Letter for GNIB",
-          "Christmas Holiday Letter (Carla)",
-          "Summer Holiday - Reference Letter",
-          "Exit Letter - No Show (Colm)",
-          "Exit Letter - Exam Later Date",
-          "Exit Letter - Exam Taken",
-          "Exit Letter - Covid-19",
-          "Exit Letter - Short Term",
-          "gnib 2025",
-          "Certificate of Attendance (2025)",
-          "Letter of Acceptance (2025)",
-          "Confirmation of Enrollment (2025)"
-        ].map((doc, i) => (
-          <button key={i} className="h-12 px-3 rounded-lg bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left">
-            {doc}
+        {documentTemplates.map((doc) => (
+          <button
+            key={doc.id}
+            onClick={() => setOpenDocumentId(doc.id)}
+            className="h-12 px-3 rounded-lg bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left"
+          >
+            {doc.label}
           </button>
         ))}
       </div>
     </div>
   )
+
+  const handlePrintDocument = async () => {
+    if (!documentContentRef.current || !activeDocumentTemplate) return
+
+    try {
+      const canvas = await html2canvas(documentContentRef.current, {
+        scale: 2,
+        useCORS: true
+      })
+      const imgData = canvas.toDataURL("image/png")
+      const pdf = new jsPDF("p", "mm", "a4")
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 12
+      const printableWidth = pageWidth - margin * 2
+      const printableHeight = (canvas.height * printableWidth) / canvas.width
+
+      let position = margin
+      let heightLeft = printableHeight
+
+      pdf.addImage(imgData, "PNG", margin, position, printableWidth, printableHeight)
+      heightLeft -= pageHeight - margin * 2
+
+      while (heightLeft > 0) {
+        pdf.addPage()
+        position = heightLeft - printableHeight + margin
+        pdf.addImage(imgData, "PNG", margin, position, printableWidth, printableHeight)
+        heightLeft -= pageHeight - margin * 2
+      }
+
+      const sanitizedTitle = activeDocumentTemplate.heading.replace(/[^a-z0-9]+/gi, "-").toLowerCase()
+      pdf.save(`${sanitizedTitle || "student-document"}.pdf`)
+    } catch (error) {
+      console.error("Failed to generate PDF", error)
+      alert("Unable to generate PDF. Please try again.")
+    }
+  }
+
+  const renderDocumentModal = () => {
+    if (!activeDocumentTemplate) return null
+    const todayDisplay = formatDateValue(new Date().toISOString())
+
+    return (
+      <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenDocumentId(null)}>
+        <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Create document</h3>
+            <button onClick={() => setOpenDocumentId(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+              <span className="text-gray-500">×</span>
+            </button>
+          </div>
+          <div className="p-6 max-h-[70vh] overflow-y-auto bg-white">
+            <div
+              ref={documentContentRef}
+              className="space-y-5 text-gray-900 bg-white p-6 md:p-8 rounded-xl shadow-sm"
+              style={{ minHeight: "fit-content" }}
+            >
+              <div className="text-sm text-gray-700">Date: {todayDisplay}</div>
+              {activeDocumentTemplate.recipientLines && (
+                <div className="text-sm text-gray-700 space-y-1">
+                  {activeDocumentTemplate.recipientLines.map((line, idx) => (
+                    <div key={idx}>{line}</div>
+                  ))}
+                </div>
+              )}
+              {activeDocumentTemplate.subheading && (
+                <p className="text-sm font-medium text-gray-700">{activeDocumentTemplate.subheading}</p>
+              )}
+              <h2 className="text-center text-lg font-semibold text-gray-900">
+                {activeDocumentTemplate.heading}
+              </h2>
+              <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
+                {activeDocumentTemplate.paragraphs.map((paragraph, idx) => (
+                  <p key={idx}>{paragraph}</p>
+                ))}
+              </div>
+
+              <div className="border border-gray-300 rounded-lg overflow-hidden">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {activeDocumentTemplate.fieldKeys.map((fieldKey) => (
+                      <tr key={fieldKey} className="border-t border-gray-200 first:border-t-0">
+                        <td className="bg-gray-50 font-medium px-4 py-2 w-1/3">{fieldKey}</td>
+                        <td className="px-4 py-2 text-gray-800">{getStudentFieldValue(fieldKey)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="space-y-3 text-sm text-gray-700 leading-relaxed">
+                {activeDocumentTemplate.closingLines.map((line, idx) => (
+                  <p key={idx}>{line}</p>
+                ))}
+              </div>
+
+              <div className="space-y-1 text-sm text-gray-900">
+                <p>Yours faithfully,</p>
+                <p className="font-semibold">{activeDocumentTemplate.signatureName}</p>
+                <p>{activeDocumentTemplate.signatureRole}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <button className="h-10 px-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2">
+              <FilePlus size={16} /> Save to students profile
+            </button>
+            <button className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2">
+              <Mail size={16} /> Send document
+            </button>
+            <button
+              onClick={handlePrintDocument}
+              className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2"
+            >
+              <Download size={16} /> Print
+            </button>
+            <button
+              onClick={() => setOpenDocumentId(null)}
+              className="h-10 px-4 rounded-lg bg-gray-800 text-white text-sm"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   const renderHolidaysContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
@@ -634,8 +968,8 @@ export default function StudentProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Sun size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add a holiday for {student.name}</h3>
-        <p className="text-gray-600 mb-4">Holidays for {student.name} will appear here.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add a holiday for {studentName}</h3>
+        <p className="text-gray-600 mb-4">Holidays for {studentName} will appear here.</p>
         <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> Add holiday
         </button>
@@ -652,29 +986,29 @@ export default function StudentProfile() {
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Email</div>
-              <div className="text-sm text-gray-900 mt-1">{student.email}</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Email}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Phone</div>
-              <div className="text-sm text-gray-900 mt-1">+353 89 944 4444</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.MobilePhone}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Address</div>
-              <div className="text-sm text-gray-900 mt-1">123 Main St</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.StreetAddress}</div>
             </div>
           </div>
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">City</div>
-              <div className="text-sm text-gray-900 mt-1">Dublin</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.City}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Country</div>
-              <div className="text-sm text-gray-900 mt-1">Ireland</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Country}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Postcode</div>
-              <div className="text-sm text-gray-900 mt-1">D01 A1B2</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.ZipCode}</div>
             </div>
           </div>
         </div>
@@ -687,21 +1021,21 @@ export default function StudentProfile() {
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Nationality</div>
-              <div className="text-sm text-gray-900 mt-1">Mongolian</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Nationality}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Passport Number</div>
-              <div className="text-sm text-gray-900 mt-1">E3464538</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.PassportNumber?.split('T')[0]}</div>
             </div>
           </div>
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Passport Expiry Date</div>
-              <div className="text-sm text-gray-900 mt-1">06-06-2033</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.PassportExpiryDate?.split('T')[0]}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">GNIB Expiry Date</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.GnibExpiryDate?.split('T')[0] || '-'}</div>
             </div>
           </div>
         </div>
@@ -714,49 +1048,49 @@ export default function StudentProfile() {
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Course Title</div>
-              <div className="text-sm text-gray-900 mt-1">General English With Exam Preparation</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseTitle}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Course Start Date</div>
-              <div className="text-sm text-gray-900 mt-1">21-07-2025</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseStartDate?.split('T')[0]}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Course End Date</div>
-              <div className="text-sm text-gray-900 mt-1">20-03-2026</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseEndDate?.split('T')[0]}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Attendance</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Attendance}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Course Level</div>
-              <div className="text-sm text-gray-900 mt-1">B1</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseLevel}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Mode of Study</div>
-              <div className="text-sm text-gray-900 mt-1">Full Time</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseLevel}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Number of Weeks</div>
-              <div className="text-sm text-gray-900 mt-1">25 Weeks</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.NumberOfWeeks}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Hours Per Week</div>
-              <div className="text-sm text-gray-900 mt-1">15</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.HoursPerWeek}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Tuition Fees</div>
-              <div className="text-sm text-gray-900 mt-1">Fully Paid</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.TuitionFees}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Course Code</div>
-              <div className="text-sm text-gray-900 mt-1">0355/0003</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseCode}</div>
             </div>
           </div>
           <div className="space-y-4">
             <div>
               <div className="text-sm text-gray-500">Date of External Exam</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.ExternalExam}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Duration</div>
@@ -768,27 +1102,27 @@ export default function StudentProfile() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Department</div>
-              <div className="text-sm text-gray-900 mt-1">English DCE-Dublin 7</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">External Exam</div>
-              <div className="text-sm text-gray-900 mt-1">TIE</div>
+              <div className="text-sm text-gray-900 mt-1">-</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Score External Exam</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.ScoreExternalExam}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Date of Payment</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.DateOfPayment?.split('T')[0]}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Schedule</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.Schedule}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">ILEP reference number</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
+              <div className="text-sm text-gray-900 mt-1">{studentdetails.IlepReference}</div>
             </div>
           </div>
         </div>
@@ -812,7 +1146,7 @@ export default function StudentProfile() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Username</div>
-              <div className="text-sm text-gray-900 mt-1">{student.email}</div>
+              <div className="text-sm text-gray-900 mt-1">{studentName}</div>
             </div>
             <div>
               <div className="text-sm text-gray-500 mb-2">Automatic reminders</div>
@@ -892,14 +1226,25 @@ export default function StudentProfile() {
             <img src={`https://i.pravatar.cc/96?img=${(Number(id||1)%70)+1}`} className="h-16 w-16 rounded-full object-cover" />
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-semibold text-gray-900 truncate">{student.name}</h1>
+                <h1 className="text-xl font-semibold text-gray-900 truncate">{studentName}</h1>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Student</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <div>Male</div>
-                <div>18 years old</div>
-                <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add phone')}>+ add phone</button>
-                <a className="text-blue-700" href={`mailto:${student.email}`}>{student.email}</a>
+                <div>{studentdetails.Gender || "-"}</div>
+                  <div>{age ? `${age} years old` : "-"}</div>
+
+                  {studentdetails.MobilePhone ? (
+                    <div>{studentdetails.MobilePhone}</div>
+                  ) : (
+                    <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add phone')}>
+                      + add phone
+                    </button>
+                  )}
+
+                  <a className="text-blue-700" href={`mailto:${studentdetails.Email}`}>
+                    {studentdetails.Email}
+                  </a>
+
                 <div className="inline-flex items-center gap-1 text-emerald-700">
                   <span className="h-2 w-2 rounded-full bg-emerald-600" />
                   1
@@ -1358,6 +1703,8 @@ export default function StudentProfile() {
           </div>
         </div>
       )}
+
+      {renderDocumentModal()}
     </div>
   )
 }
