@@ -6,10 +6,6 @@ import {
   LayoutDashboard,
   NotebookPen,
   Calendar,
-  CreditCard,
-  MessageSquare,
-  BarChart3,
-  Building2,
   BookOpen,
   ChevronRight,
   ChevronLeft,
@@ -24,10 +20,6 @@ import { useSidebar } from "../contexts/SidebarContext";
     { id: "calendar", icon: Calendar, label: "Calendar", path: "/calendar" },
     { id: "people", icon: Users, label: "People", path: "/people" },
     { id: "notes", icon: BookOpen, label: "Classes & Events", path: "/notes" },
-    { id: "payments", icon: CreditCard, label: "Payments", path: "/payments" },
-    { id: "communication", icon: MessageSquare, label: "Communication", path: "/communication" },
-    { id: "reports", icon: BarChart3, label: "Reports", path: "/reports" },
-    { id: "school", icon: Building2, label: "School Management", path: "/school" },
   ];
   
 export default function Sidebar() {

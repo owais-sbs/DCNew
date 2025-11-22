@@ -13,8 +13,6 @@ import {
   LogOut,
   HelpCircle,
   Star,
-  Import,
-  Calendar,
   BookOpen,
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
@@ -98,18 +96,11 @@ export default function Header() {
               {isAddNewOpen && (
                 <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-lg border border-blue-100 p-3 z-30">
                   {[
-                    { icon: CreditCard, label: "Payment", path: "/payments/add-payment" },
                     { icon: BookOpen, label: "Class", path: "/notes/add-class" },
-                    { icon: Calendar, label: "Event", path: "/notes/events" },
-                    { icon: MessageSquare, label: "Message", path: "/compose" },
                     { icon: Users, label: "Student", path: "/people/students/new" },
                     { icon: Users, label: "Teacher", path: "/people/teachers/new" },
                     { icon: Users, label: "Staff", path: "/people/staffs/new" },
                     { icon: Users, label: "Related contact", path: "/people/related/new" },
-                    { icon: Users, label: "Prospect", path: "/people/prospects/new" },
-                    { icon: Import, label: "Import people", path: "/people" },
-                    { icon: Import, label: "Import class", path: "/notes" },
-                    { icon: Import, label: "Import lessons", path: "/notes" },
                   ].map((item, i) => (
                     <button
                       key={i}
