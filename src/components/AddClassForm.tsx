@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axiosInstance from './axiosInstance'; 
 import Swal from "sweetalert2";
 import { 
@@ -14,19 +13,16 @@ import {
 } from "lucide-react";
 
 export default function AddClassForm() {
-  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     title: "",
     subject: "",
     level: "",
     description: "",
-    teacherAssignments: [{ teacherId: "", hourlyFee: "" }],
-    classroom: "Class 1",
+    classRoomId: "",
     recurrence: "weekly",
     startDate: "",
     endDate: "",
-    // CHANGED: startTime and endTime defaults to ""
-    days: [{ day: "Monday", startTime: "", endTime: "" }],
+    days: [{ day: "Monday", startTime: "", endTime: "", teacherIds: [] as string[] }],
     pricingMethod: "skip",
     students: "skip",
     publishDate: ""
@@ -34,6 +30,14 @@ export default function AddClassForm() {
   const [teachers, setTeachers] = useState<any[]>([])
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false)
   const [teacherError, setTeacherError] = useState<string | null>(null)
+  const [classrooms, setClassrooms] = useState<any[]>([])
+  const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(false)
+  const [classroomError, setClassroomError] = useState<string | null>(null)
+  const [classroomSuccess, setClassroomSuccess] = useState<string | null>(null)
+  const [showClassroomModal, setShowClassroomModal] = useState(false)
+  const [newClassroomName, setNewClassroomName] = useState("")
+  const [savingClassroom, setSavingClassroom] = useState(false)
+  const [openTeacherDropdown, setOpenTeacherDropdown] = useState<number | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -62,6 +66,53 @@ export default function AddClassForm() {
     return () => controller.abort()
   }, [])
 
+  useEffect(() => {
+    if (openTeacherDropdown === null) return
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (!target.closest("[data-teacher-dropdown-root]")) {
+        setOpenTeacherDropdown(null)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [openTeacherDropdown])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const fetchClassrooms = async () => {
+      try {
+        setIsLoadingClassrooms(true)
+        setClassroomError(null)
+        const response = await axiosInstance.get("/Class/GetAllClassRooms", {
+          signal: controller.signal,
+        })
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+          setClassrooms(response.data.Data)
+          if (!formData.classRoomId && response.data.Data.length) {
+            setFormData((prev) => ({
+              ...prev,
+              classRoomId: String(response.data.Data[0].Id),
+            }))
+          }
+        } else {
+          setClassrooms([])
+          setClassroomError("No classrooms available.")
+        }
+      } catch (error: any) {
+        if (controller.signal.aborted) return
+        console.error("Failed to load classrooms", error)
+        setClassroomError("Failed to load classrooms. Please try again.")
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingClassrooms(false)
+        }
+      }
+    }
+    fetchClassrooms()
+    return () => controller.abort()
+  }, [])
+
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -69,32 +120,25 @@ export default function AddClassForm() {
   const addDay = () => {
     setFormData(prev => ({
       ...prev,
-      // CHANGED: startTime and endTime defaults to ""
-      days: [...prev.days, { day: "Monday", startTime: "", endTime: "" }]
+      days: [...prev.days, { day: "Monday", startTime: "", endTime: "", teacherIds: [] }]
     }));
   };
 
-  const handleTeacherAssignmentChange = (index: number, field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      teacherAssignments: prev.teacherAssignments.map((assignment, i) =>
-        i === index ? { ...assignment, [field]: value } : assignment
-      )
-    }))
-  }
-
-  const addTeacherAssignment = () => {
-    setFormData((prev) => ({
-      ...prev,
-      teacherAssignments: [...prev.teacherAssignments, { teacherId: "", hourlyFee: "" }]
-    }))
-  }
-
-  const removeTeacherAssignment = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      teacherAssignments: prev.teacherAssignments.filter((_, i) => i !== index)
-    }))
+  const refreshClassrooms = async (selectedId?: number) => {
+    try {
+      setIsLoadingClassrooms(true)
+      const response = await axiosInstance.get("/Class/GetAllClassRooms")
+      if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+        setClassrooms(response.data.Data)
+        if (selectedId) {
+          setFormData((prev) => ({ ...prev, classRoomId: String(selectedId) }))
+        }
+      }
+    } catch (error) {
+      console.error("Failed to refresh classrooms", error)
+    } finally {
+      setIsLoadingClassrooms(false)
+    }
   }
 
   // ####################################################################
@@ -112,59 +156,43 @@ export default function AddClassForm() {
       return Swal.fire("Required", "Please add at least one schedule day.", "warning");
     }
 
-    // ✅ Prepare API model
-    
-    // 1. Transform the 'days' array into the 'Schedule' object (dictionary)
-    //    This groups all time slots by the day of the week.
-    const scheduleObject = formData.days.reduce((acc, currentDay) => {
-      const { day, startTime, endTime } = currentDay;
+    if (!formData.classRoomId) {
+      return Swal.fire("Required", "Please select a classroom.", "warning")
+    }
 
-      // The time slot object for the API
-      const timeSlot = {
-        StartTime: startTime || "00:00", // Use "HH:mm" format from type="time"
-        EndTime: endTime || "00:00"
-      };
+    const scheduleEntries = formData.days.map((day) => ({
+      WeekDay: day.day,
+      StartTime: day.startTime,
+      EndTime: day.endTime,
+      TeacherIds: day.teacherIds.map((id) => Number(id)).filter((id) => !Number.isNaN(id)),
+    }))
 
-      // If this day isn't in our accumulator object yet, create an empty array for it
-      if (!acc[day]) {
-        acc[day] = [];
-      }
+    if (scheduleEntries.some((entry) => !entry.StartTime || !entry.EndTime)) {
+      return Swal.fire("Required", "Please enter start and end time for each schedule day.", "warning")
+    }
 
-      // Push the new time slot into the correct day's array
-      acc[day].push(timeSlot);
-      
-      return acc;
-    // We type the initial value as an empty object that will match the C# model
-    }, {} as { [key: string]: { StartTime: string, EndTime: string }[] });
-
-
-    const teacherEntries = formData.teacherAssignments
-      .filter((assignment) => assignment.teacherId)
-      .map((assignment) => ({
-        TeacherId: Number(assignment.teacherId),
-        HourlyFee: Number(assignment.hourlyFee || 0)
-      }))
-
-    if (!teacherEntries.length) {
-      return Swal.fire("Required", "Please assign at least one teacher.", "warning")
+    if (scheduleEntries.some((entry) => !entry.TeacherIds.length)) {
+      return Swal.fire("Required", "Please select at least one teacher for each schedule day.", "warning")
     }
 
     // 2. Build the final payload matching the C# model EXACTLY
     const payload = {
       Id: 0,
       ClassTitle: formData.title,
+      ClassRooomId: Number(formData.classRoomId),
       ClassSubject: formData.subject,
       ClassLevel: formData.level,
       ClassDescription: formData.description,
-      Teachers: teacherEntries,
-      StartDate: formData.startDate, // "YYYY-MM-DD"
-      EndDate: formData.endDate,     // "YYYY-MM-DD"
-      PublishDate: formData.publishDate || null, // "YYYY-MM-DD" or null
-      IsDeleted: false, // Default value from your model
-      IsActive: true,  // Default value from your model
-      CreatedBy: "system", // Or get from auth user
-      UpdatedBy: "system", // Or get from auth user
-      Schedule: scheduleObject // The object we just built
+      StartDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+      EndDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+      PublishDate: formData.publishDate ? new Date(formData.publishDate).toISOString() : null,
+      IsDeleted: false,
+      IsActive: true,
+      CreatedOn: new Date().toISOString(),
+      UpdatedOn: new Date().toISOString(),
+      CreatedBy: "system",
+      UpdatedBy: "system",
+      Schedule: scheduleEntries,
     };
 
     console.log("Sending payload to API:", JSON.stringify(payload, null, 2));
@@ -199,6 +227,56 @@ export default function AddClassForm() {
     }));
   };
 
+  const toggleTeacherSelection = (dayIndex: number, teacherId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      days: prev.days.map((day, i) => {
+        if (i !== dayIndex) return day
+        const exists = day.teacherIds.includes(teacherId)
+        return {
+          ...day,
+          teacherIds: exists
+            ? day.teacherIds.filter((id) => id !== teacherId)
+            : [...day.teacherIds, teacherId],
+        }
+      }),
+    }))
+  }
+
+  const handleCreateClassroom = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newClassroomName.trim()) {
+      setClassroomError("Classroom name is required.")
+      return
+    }
+    try {
+      setSavingClassroom(true)
+      setClassroomError(null)
+      setClassroomSuccess(null)
+      const response = await axiosInstance.post("/Class/AddClassRoom", {
+        Id: 0,
+        Name: newClassroomName.trim(),
+      })
+      if (response.data?.IsSuccess && response.data?.Data?.Id) {
+        await refreshClassrooms(response.data.Data.Id)
+        setShowClassroomModal(false)
+        setNewClassroomName("")
+        setClassroomSuccess("Classroom added successfully.")
+        setTimeout(() => setClassroomSuccess(null), 3000)
+      } else {
+        setClassroomError(response.data?.Message || "Failed to add classroom.")
+      }
+    } catch (error: any) {
+      console.error("Failed to add classroom", error)
+      setClassroomError(
+        error?.response?.data?.Message || "Failed to add classroom. Please try again."
+      )
+      setClassroomSuccess(null)
+    } finally {
+      setSavingClassroom(false)
+    }
+  }
+
   // ####################################################################
   // ## The JSX remains mostly the same, with minor input type fixes   ##
   // ####################################################################
@@ -217,43 +295,45 @@ export default function AddClassForm() {
             </div>
             
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Class title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => handleInputChange('title', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder=""
-                />
-                {/* A small validation improvement */}
-                {/* <p className="text-red-500 text-xs mt-1">This field is required</p> */}
+              {/* Three fields in one row */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Class title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder=""
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Class subject</label>
+                  <input
+                    type="text"
+                    value={formData.subject}
+                    onChange={(e) => handleInputChange('subject', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder=""
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Class level</label>
+                  <input
+                    type="text"
+                    value={formData.level}
+                    onChange={(e) => handleInputChange('level', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder=""
+                  />
+                </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Class subject</label>
-                <input
-                  type="text"
-                  value={formData.subject}
-                  onChange={(e) => handleInputChange('subject', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder=""
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Class level</label>
-                <input
-                  type="text"
-                  value={formData.level}
-                  onChange={(e) => handleInputChange('level', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder=""
-                />
-              </div>
-              
+              {/* Description takes full row */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Class description</label>
                 <textarea
@@ -269,94 +349,43 @@ export default function AddClassForm() {
             </div>
           </div>
           
-          {/* Teacher and classroom */}
+          {/* Classroom */}
           <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            {/* ... (No changes in this section) ... */}
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Teacher and classroom</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Classroom</h3>
             
             <div className="space-y-4">
-              {formData.teacherAssignments.map((assignment, index) => (
-                <div key={index} className="flex flex-col gap-3 md:flex-row md:items-end">
-                  <div className="flex-1">
-                    {index === 0 && (
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Teacher <span className="text-red-500">*</span>
-                        <button 
-                          type="button"
-                          onClick={() => navigate('/people/teachers/new')}
-                          className="text-blue-600 text-sm ml-2 hover:underline"
-                        >
-                          (add new)
-                        </button>
-                      </label>
-                    )}
-                    <select
-                      value={assignment.teacherId}
-                      onChange={(e) => handleTeacherAssignmentChange(index, "teacherId", e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                      disabled={isLoadingTeachers}
-                    >
-                      <option value="">
-                        {isLoadingTeachers ? "Loading teachers..." : "Select teacher"}
-                      </option>
-                      {teachers.map((teacher) => (
-                        <option key={teacher.Id} value={teacher.Id}>
-                          {teacher.Name} {teacher.Surname}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="w-full md:w-56">
-                    {index === 0 && (
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Teacher hourly fee</label>
-                    )}
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={assignment.hourlyFee}
-                        onChange={(e) => handleTeacherAssignmentChange(index, "hourlyFee", e.target.value)}
-                        className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="0.00"
-                        required
-                      />
-                    </div>
-                  </div>
-                  {formData.teacherAssignments.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => removeTeacherAssignment(index)}
-                      className="text-sm text-red-600 hover:underline"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
-              {teacherError && <p className="text-sm text-red-600">{teacherError}</p>}
-              <button
-                type="button"
-                onClick={addTeacherAssignment}
-                className="text-blue-600 text-sm hover:underline"
-                disabled={isLoadingTeachers}
-              >
-                + Add another teacher
-              </button>
-              
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Classroom <span className="text-red-500">*</span>
-                  <button className="text-blue-600 text-sm ml-2 hover:underline">(add new)</button>
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      setNewClassroomName("")
+                      setClassroomError(null)
+                      setShowClassroomModal(true)
+                    }}
+                    className="text-blue-600 text-sm ml-2 hover:underline"
+                  >
+                    (add new)
+                  </button>
                 </label>
                 <select
-                  value={formData.classroom}
-                  onChange={(e) => handleInputChange('classroom', e.target.value)}
+                  value={formData.classRoomId}
+                  onChange={(e) => handleInputChange('classRoomId', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  disabled={isLoadingClassrooms}
                 >
-                  <option>Class 1</option>
+                  <option value="">
+                    {isLoadingClassrooms ? "Loading classrooms..." : "Select classroom"}
+                  </option>
+                  {classrooms.map((room: any) => (
+                    <option key={room.Id} value={room.Id}>
+                      {room.Name}
+                    </option>
+                  ))}
                 </select>
+                {classroomError && <p className="text-sm text-red-600 mt-1">{classroomError}</p>}
+                {classroomSuccess && <p className="text-sm text-green-600 mt-1">{classroomSuccess}</p>}
               </div>
             </div>
           </div>
@@ -420,125 +449,108 @@ export default function AddClassForm() {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Select the lesson days and times</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Select the lesson days, times & teachers</label>
                 {formData.days.map((day, index) => (
-                  <div key={index} className="flex items-center gap-3 mb-3">
-                    <select
-                      value={day.day}
-                      onChange={(e) => updateDay(index, 'day', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option>Monday</option>
-                      <option>Tuesday</option>
-                      <option>Wednesday</option>
-                      <option>Thursday</option>
-                      <option>Friday</option>
-                      <option>Saturday</option>
-                      <option>Sunday</option>
-                    </select>
-                    
-                    {/* CHANGED: type="time" is much simpler and matches the API model */}
-                    <input
-                      type="time"
-                      value={day.startTime}
-                      onChange={(e) => updateDay(index, 'startTime', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    {/* CHANGED: type="time" is much simpler and matches the API model */}
-                    <input
-                      type="time"
-                      value={day.endTime}
-                      onChange={(e) => updateDay(index, 'endTime', e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <Info className="h-4 w-4 text-gray-400" />
+                  <div key={index} className="space-y-3 mb-4 border border-gray-200 rounded-lg p-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <select
+                        value={day.day}
+                        onChange={(e) => updateDay(index, 'day', e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option>Monday</option>
+                        <option>Tuesday</option>
+                        <option>Wednesday</option>
+                        <option>Thursday</option>
+                        <option>Friday</option>
+                        <option>Saturday</option>
+                        <option>Sunday</option>
+                      </select>
+                      
+                      <input
+                        type="time"
+                        value={day.startTime}
+                        onChange={(e) => updateDay(index, 'startTime', e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <input
+                        type="time"
+                        value={day.endTime}
+                        onChange={(e) => updateDay(index, 'endTime', e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </div>
+                    <div data-teacher-dropdown-root>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Teachers for this session
+                      </label>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenTeacherDropdown(
+                              openTeacherDropdown === index ? null : index
+                            )
+                          }
+                          disabled={isLoadingTeachers}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between"
+                        >
+                          <span className="truncate text-sm text-gray-700">
+                            {day.teacherIds.length
+                              ? day.teacherIds
+                                  .map((id) => {
+                                    const teacher = teachers.find((t) => String(t.Id) === id)
+                                    return teacher
+                                      ? `${teacher.Name ?? ""} ${teacher.Surname ?? ""}`.trim()
+                                      : "Unknown"
+                                  })
+                                  .join(", ")
+                              : "Select teachers"}
+                          </span>
+                          <ChevronDown className="h-4 w-4 text-gray-400" />
+                        </button>
+                        {openTeacherDropdown === index && (
+                          <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {teachers.map((teacher) => {
+                              const value = String(teacher.Id)
+                              const checked = day.teacherIds.includes(value)
+                              return (
+                                <label
+                                  key={teacher.Id}
+                                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleTeacherSelection(index, value)}
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  />
+                                  <span className="truncate">
+                                    {teacher.Name} {teacher.Surname}
+                                  </span>
+                                </label>
+                              )
+                            })}
+                            {!teachers.length && (
+                              <div className="px-3 py-2 text-sm text-gray-500">
+                                {isLoadingTeachers
+                                  ? "Loading teachers..."
+                                  : "No teachers available"}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {teacherError && index === 0 && (
+                        <p className="text-sm text-red-600 mt-1">{teacherError}</p>
+                      )}
+                      <p className="text-xs text-gray-500 mt-1">
+                        Click to open the dropdown then check all teachers who teach this slot.
+                      </p>
+                    </div>
                   </div>
                 ))}
                 <button onClick={addDay} className="text-blue-600 text-sm hover:underline">+ Add another day</button>
-              </div>
-              
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                {/* ... (No changes in this section) ... */}
-                <div>
-                  <span className="text-gray-600">Total lessons:</span>
-                  <span className="ml-2 font-medium">0</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Total lessons hours:</span>
-                  <span className="ml-2 font-medium">0</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Skipped lessons:</span>
-                  <span className="ml-2 font-medium">0</span>
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Skipped lesson dates</label>
-                {/* ... (No changes in this section) ... */}
-                <div className="relative">
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Add dates"
-                  />
-                  <Info className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Class price */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            {/* ... (No changes in this section) ... */}
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Class price</h3>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">Select class pricing method</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleInputChange('pricingMethod', 'skip')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                    formData.pricingMethod === 'skip' 
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                      : 'bg-white text-gray-700 border border-gray-300'
-                  }`}
-                >
-                  <SkipForward className="h-4 w-4" />
-                  Skip
-                </button>
-                <button
-                  onClick={() => handleInputChange('pricingMethod', 'hourly')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                    formData.pricingMethod === 'hourly' 
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                      : 'bg-white text-gray-700 border border-gray-300'
-                  }`}
-                >
-                  <Clock className="h-4 w-4" />
-                  Hourly fee
-                </button>
-                <button
-                  onClick={() => handleInputChange('pricingMethod', 'monthly')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                    formData.pricingMethod === 'monthly' 
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                      : 'bg-white text-gray-700 border border-gray-300'
-                  }`}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Monthly fee
-                </button>
-                <button
-                  onClick={() => handleInputChange('pricingMethod', 'custom')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                    formData.pricingMethod === 'custom' 
-                      ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                      : 'bg-white text-gray-700 border border-blue-300'
-                  }`}
-                >
-                  <Calendar className="h-4 w-4" />
-                  Custom fee
-                </button>
               </div>
             </div>
           </div>
@@ -603,6 +615,61 @@ export default function AddClassForm() {
           </div>
         </div>
       </div>
+      {showClassroomModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-800">Add classroom</h2>
+              <button
+                onClick={() => {
+                  setShowClassroomModal(false)
+                  setClassroomError(null)
+                }}
+                className="text-gray-500 hover:text-gray-700 text-lg leading-none"
+              >
+                <span className="sr-only">Close</span>X
+              </button>
+            </div>
+            <form onSubmit={handleCreateClassroom} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Classroom name *
+                </label>
+                <input
+                  type="text"
+                  value={newClassroomName}
+                  onChange={(e) => setNewClassroomName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter classroom name"
+                />
+              </div>
+              {classroomError && (
+                <p className="text-sm text-red-600">{classroomError}</p>
+              )}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowClassroomModal(false)
+                    setClassroomError(null)
+                  }}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  disabled={savingClassroom}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-70"
+                  disabled={savingClassroom}
+                >
+                  {savingClassroom ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

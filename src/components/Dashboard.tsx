@@ -21,7 +21,8 @@ import {
   Copy,
   Plus,
   X,
-  Loader2
+  Loader2,
+  MoreVertical
 } from "lucide-react"
 import AddStudentForm from "./AddStudentForm"
 import axiosInstance from "./axiosInstance"
@@ -38,24 +39,30 @@ type Lesson = {
   id: string
   time: string
   duration: string
-  room: string
-  subtitle?: string
+  className: string
+  subject: string
+  classroom: string
   location: string
-  teacher: { name: string; initials: string; color: string }
-  students: number
-  stats: { green: number; red: number; gray: number }
-  accent: string
+  teacherNames: string[]
+  totalStudents: number
+  presentCount: number
+  absentCount: number
 }
 
 
 type ApiSession = {
   ClassId: number
   SessionId: number
+  TeacherNames: string[]
+  ClassRoomName: string
   ClassTitle: string
   ClassSubject: string
   StartTime: string
   EndTime: string
   DayOfWeek: string
+  TotalStudents: number
+  PresentCount: number
+  AbsentCount: number
 }
 
 type ApiResponse = {
@@ -70,12 +77,12 @@ function formatTime(dateString: string): string {
   try {
     const date = new Date(dateString)
     return date.toLocaleTimeString(undefined, {
-      hour: "2-digit",
+      hour: "numeric",
       minute: "2-digit",
-      hour12: false
+      hour12: true
     })
   } catch (e) {
-    return "00:00"
+    return "12:00 AM"
   }
 }
 
@@ -112,10 +119,20 @@ function ProgressBar({ green, red, gray }: { green: number; red: number; gray: n
   const r = (red / total) * 100
   const gr = 100 - g - r
   return (
-    <div className="h-3 w-56 rounded-full bg-gray-200 overflow-hidden flex text-xs">
-      <div className="h-full" style={{ width: `${g}%`, backgroundColor: "#2f9c6a" }} />
-      <div className="h-full" style={{ width: `${r}%`, backgroundColor: "#ef5a66" }} />
-      <div className="h-full bg-gray-300" style={{ width: `${gr}%` }} />
+    <div className="h-3 w-48 rounded-full bg-gray-200 overflow-hidden flex text-xs relative">
+      {green > 0 && (
+        <div className="h-full flex items-center justify-center text-white font-semibold" style={{ width: `${g}%`, backgroundColor: "#2f9c6a", minWidth: green > 0 ? '20px' : '0' }}>
+          {green}
+        </div>
+      )}
+      {red > 0 && (
+        <div className="h-full flex items-center justify-center text-white font-semibold" style={{ width: `${r}%`, backgroundColor: "#ef5a66", minWidth: red > 0 ? '20px' : '0' }}>
+          {red}
+        </div>
+      )}
+      {gr > 0 && (
+        <div className="h-full bg-gray-300" style={{ width: `${gr}%` }} />
+      )}
     </div>
   )
 }
@@ -196,6 +213,8 @@ export default function Dashboard() {
   const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false)
   const [alreadyEnrolled, setAlreadyEnrolled] = useState<number[]>([])
   const [updatingStudent, setUpdatingStudent] = useState<number | null>(null)
+  const [openStudentMenu, setOpenStudentMenu] = useState<number | null>(null)
+  const [sessionClassId, setSessionClassId] = useState<number | null>(null)
 
 
   const fetchAllStudents = async () => {
@@ -211,6 +230,10 @@ export default function Dashboard() {
       if(enrollRes.data?.IsSuccess){
         const ids = enrollRes.data.Data.map((s: any) => s.StudentId)
         setAlreadyEnrolled(ids)
+        // Get classId from the first student in the session (all students in a session belong to the same class)
+        if(enrollRes.data.Data.length > 0 && enrollRes.data.Data[0].ClassId) {
+          setSessionClassId(enrollRes.data.Data[0].ClassId)
+        }
       }
 
 
@@ -233,11 +256,10 @@ export default function Dashboard() {
     if(!selected || selectedToEnroll.length === 0)
       return 
     
-    const classId = sessionStudents[0]?.classId 
     const sessionId = selected 
 
     try{
-      const response = await axiosInstance.post(`/Class/EnrollStudentToClassInBulk`, selectedToEnroll, { params: { classId, sessionId }})
+      const response = await axiosInstance.post(`/Class/EnrollStudentToClassInBulk`, selectedToEnroll, { params: { sessionId }})
       
       if(response.data?.IsSuccess){
         setShowEnrollModal(false)
@@ -260,7 +282,8 @@ export default function Dashboard() {
             id: s.StudentId,
             name: s.StudentName,
             status: s.AttendanceStatus,
-            classId: s.ClassId
+            classId: s.ClassId,
+            photo: s.Photo
           }))
 
           setSessionStudents(mapped)
@@ -282,6 +305,21 @@ export default function Dashboard() {
     fetchStudents()
   }, [selected, currentDate])
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openStudentMenu !== null) {
+        const target = event.target as HTMLElement;
+        if (!target.closest('.student-menu-container')) {
+          setOpenStudentMenu(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openStudentMenu])
+
   // This useEffect will now work correctly
   useEffect(() => {
     const fetchLessons = async () => {
@@ -299,19 +337,14 @@ export default function Dashboard() {
             id: item.SessionId.toString(),
             time: formatTime(item.StartTime),
             duration: calculateDuration(item.StartTime, item.EndTime),
-            room: item.ClassTitle,
-            subtitle: item.ClassSubject,
-            location: item.DayOfWeek,
-            // --- Placeholder data (replace with real data when available) ---
-            teacher: {
-              name: "TBD Teacher",
-              initials: "TBD",
-              color: index % 2 === 0 ? "bg-blue-500" : "bg-purple-500"
-            },
-            students: 0, // API doesn't provide this
-            stats: { green: 0, red: 0, gray: 0 }, // API doesn't provide this
-            accent: "border-l-2 border-blue-500" // Hardcoded accent
-            // --- End Placeholder data ---
+            className: item.ClassTitle,
+            subject: item.ClassSubject,
+            classroom: item.ClassRoomName || item.DayOfWeek,
+            location: item.ClassRoomName || item.DayOfWeek,
+            teacherNames: item.TeacherNames || [],
+            totalStudents: item.TotalStudents || 0,
+            presentCount: item.PresentCount || 0,
+            absentCount: item.AbsentCount || 0
           }))
           setLessons(mappedLessons)
         } else {
@@ -334,8 +367,8 @@ export default function Dashboard() {
     let present = 0
     let absent = 0
     lessons.forEach((l) => {
-      present += l.stats.green
-      absent += l.stats.red
+      present += l.presentCount
+      absent += l.absentCount
     })
     return { present, absent }
   }, [lessons])
@@ -371,6 +404,32 @@ export default function Dashboard() {
       alert("Failed to mark attnedance")
     }finally{
       setUpdatingStudent(null)
+    }
+  }
+
+  const removeStudent = async (classId: number, studentId: number) => {
+    if (!selected) return;
+    
+    try {
+      setUpdatingStudent(studentId);
+      const sessionId = selected;
+      
+      // Assuming there's an unenroll endpoint - adjust the endpoint as needed
+      const response = await axiosInstance.delete(`/Class/RemoveStudentFromSession`, {
+        params: { classId, sessionId, studentId }
+      });
+      
+      if (response.data?.IsSuccess) {
+        fetchStudents();
+        setOpenStudentMenu(null);
+      } else {
+        alert("Failed to remove student");
+      }
+    } catch (err) {
+      console.log("Error removing student", err);
+      alert("Failed to remove student");
+    } finally {
+      setUpdatingStudent(null);
     }
   }
 
@@ -496,7 +555,7 @@ export default function Dashboard() {
                       role="button"
                       tabIndex={0}
                       // CHANGED: Dynamic accent color
-                      className={`group cursor-pointer bg-white border-t border-r border-b border-white border-l-4 ${l.accent} rounded-xl transition-transform duration-150 flex items-center ${
+                      className={`group cursor-pointer bg-white border-t border-r border-b border-white border-l-2 border-l-red-500 rounded-xl transition-transform duration-150 flex items-center ${
                         isSelected
                           ? "ring-2 ring-indigo-200 shadow-md transform -translate-y-1 scale-[1.01]"
                           : isHovered
@@ -509,44 +568,77 @@ export default function Dashboard() {
                         }
                       }}
                     >
-                      <div className="p-4 grid grid-cols-[90px_1fr_auto] gap-4 items-center w-full">
-                        {/* time */}
+                      <div className="py-2 px-3 grid grid-cols-[75px_1fr_auto] gap-3 items-center w-full">
+                        {/* Left: Time and Duration */}
                         <div>
-                          <div className="text-gray-900 font-semibold text-sm">{l.time}</div>
-                          <div className="text-xs text-gray-500 mt-1">{l.duration}</div>
+                          <div className="text-gray-900 font-semibold text-base">{l.time}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{l.duration}</div>
                         </div>
 
-                        {/* details */}
-                        <div>
+                        {/* Middle: Class Details */}
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 text-gray-900">
-                            <span className="font-semibold">{l.room}</span>
-                            {l.subtitle && <span className="text-sm text-gray-500">({l.subtitle})</span>}
+                            <span className="font-semibold text-sm">{l.className}</span>
+                            {l.subject && <span className="text-xs text-gray-500">({l.subject})</span>}
                           </div>
-                          <div className="mt-1 flex items-center gap-2 text-sm text-gray-500">
-                            <MapPin size={14} />
-                            <span>{l.location}</span>
+                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
+                            <MapPin size={12} />
+                            <span>{l.classroom}</span>
+                          </div>
+                        </div>
+
+                        {/* Right: Icons, Teacher, and Progress Bar */}
+                        <div className="flex flex-col items-end gap-1.5">
+                          {/* Top row: Stats icons */}
+                          <div className="flex items-center gap-2.5 text-gray-600">
+                            <div className="flex items-center gap-1 text-xs">
+                              <Users2 size={14} className="text-gray-500" />
+                              {l.totalStudents}
+                            </div>
+                            <div className="flex items-center gap-1 text-xs">
+                              <Plus size={14} className="text-gray-500" />
+                              0
+                            </div>
+                            <div className="flex items-center gap-1 text-xs">
+                              <Copy size={14} className="text-gray-500" />
+                              0
+                            </div>
                           </div>
 
-                          <div className="mt-3 flex items-center gap-4 text-gray-600">
-                            <div className="flex items-center gap-1 text-sm">
-                              <Users2 size={16} className="text-gray-500" />
-                              {l.students}
+                          {/* Middle row: Teacher */}
+                          {l.teacherNames.length > 0 && (
+                            <div className="flex items-center gap-2">
+                              <div className="text-xs text-gray-700 truncate max-w-[120px]">
+                                {l.teacherNames.join(", ")}
+                              </div>
+                              <div className="h-7 w-7 rounded-full grid place-items-center text-white text-[10px] font-semibold bg-blue-500 flex-shrink-0">
+                                {l.teacherNames[0].split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1 text-sm">
-                              <StickyNote size={16} className="text-gray-500" />
+                          )}
+
+                          {/* Bottom row: More Stats and Progress Bar */}
+                          <div className="flex items-center gap-2.5 text-gray-600">
+                            <div className="flex items-center gap-1 text-xs">
+                              <Star size={14} className="text-gray-500" />
+                              0
+                            </div>
+                            <div className="flex items-center gap-1 text-xs">
+                              <Flag size={14} className="text-gray-500" />
+                              0
+                            </div>
+                            <div className="flex items-center gap-1 text-xs">
+                              <StickyNote size={14} className="text-gray-500" />
                               0
                             </div>
                             <div className="flex items-center gap-2">
-                              <BarChart3 size={16} className="text-gray-500" />
-                              <ProgressBar {...l.stats} />
+                              <ProgressBar 
+                                green={l.presentCount} 
+                                red={l.absentCount} 
+                                gray={l.totalStudents - l.presentCount - l.absentCount} 
+                              />
                             </div>
                           </div>
-                        </div>
-
-                        {/* teacher area */}
-                        <div className="justify-self-end flex items-center gap-3">
-                          <div className="hidden sm:block text-sm text-gray-700 max-w-[160px] truncate">{l.teacher.name}</div>
-                          <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${l.teacher.color}`}>{l.teacher.initials}</div>
                         </div>
                       </div>
                     </article>
@@ -804,16 +896,20 @@ export default function Dashboard() {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <div className="flex items-center gap-4">
-              <div className="h-9 w-9 rounded-full bg-indigo-500 text-white grid place-items-center text-sm font-semibold">
-                {lesson.teacher.initials}
-              </div>
-              <div className="text-sm text-gray-700 mr-2">{lesson.teacher.name}</div>
+              {lesson.teacherNames.length > 0 && (
+                <>
+                  <div className="h-9 w-9 rounded-full bg-blue-500 text-white grid place-items-center text-sm font-semibold">
+                    {lesson.teacherNames[0].split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="text-sm text-gray-700 mr-2">{lesson.teacherNames.join(", ")}</div>
+                </>
+              )}
               <div>
                 <div className="text-lg font-semibold text-gray-900">
-                  {lesson.time} - {lesson.room} ({lesson.subtitle || lesson.location})
+                  {lesson.time} - {lesson.className} ({lesson.subject || lesson.location})
                 </div>
                 <div className="text-sm text-gray-600">
-                  {formatDateFriendly(currentDate)} #{lesson.id} {lesson.room}
+                  {formatDateFriendly(currentDate)} #{lesson.id} {lesson.classroom}
                 </div>
               </div>
             </div>
@@ -878,15 +974,21 @@ export default function Dashboard() {
                         className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-sm transition-shadow"
                       >
                         <div className="flex items-center gap-3">
-                          <img
-                            src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
-                            alt={student.name}
-                            className="h-12 w-12 rounded-full object-cover border border-gray-200"
-                            onError={(e) => {
-                              const target = e.currentTarget as HTMLImageElement
-                              target.style.display = 'none'
-                            }}
-                          />
+                          {student.photo ? (
+                            <img
+                              src={student.photo}
+                              alt={student.name}
+                              className="h-12 w-12 rounded-full object-cover border border-gray-200"
+                              onError={(e) => {
+                                const target = e.currentTarget as HTMLImageElement
+                                target.style.display = 'none'
+                              }}
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-indigo-100 border border-gray-200 flex items-center justify-center text-indigo-600 font-semibold text-sm">
+                              {student.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
           <div className="text-[16px] font-semibold text-gray-900 truncate">{student.name}</div>
 
@@ -956,25 +1058,45 @@ export default function Dashboard() {
 
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
-                              <svg
-                                className="w-4 h-4 text-indigo-600"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
+                          <div className="flex items-center gap-2 relative student-menu-container">
+                            <button 
+                              className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenStudentMenu(openStudentMenu === student.id ? null : student.id);
+                              }}
+                            >
+                              <MoreVertical className="w-4 h-4 text-indigo-600" />
                             </button>
-                            <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
-                              ⋯
-                            </button>
+                            
+                            {/* Dropdown menu */}
+                            {openStudentMenu === student.id && (
+                              <div className="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                                <button
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (window.confirm(`Are you sure you want to remove ${student.name} from this session?`)) {
+                                      removeStudent(student.classId, student.id);
+                                    } else {
+                                      setOpenStudentMenu(null);
+                                    }
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                                <button
+                                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setOpenStudentMenu(null);
+                                    navigate(`/people/students/${student.id}`);
+                                  }}
+                                >
+                                  View profile
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -983,81 +1105,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Prospects section */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800">Prospects 0</h3>
-                  <button
-                    onClick={() => navigate('/people/prospects/new')}
-                    className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-                  >
-                    + Add prospects
-                  </button>
-                </div>
-              </div>
-
-              {/* Notes sections */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800">Teacher notes</h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => navigate('/notes')}
-                      className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
-                    >
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => navigate('/notes')}
-                      className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-                    >
-                      + Add teacher notes
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800">Student notes</h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => navigate('/notes')}
-                      className="h-8 w-8 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
-                    >
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => navigate('/notes')}
-                      className="px-4 h-9 rounded-lg bg-indigo-600 text-white text-sm hover:bg-indigo-700"
-                    >
-                      + Add student notes
-                    </button>
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Right sidebar */}
@@ -1078,11 +1125,7 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-2">
                     {[
-                      { label: "Teacher", icon: "🎓", path: "/people/teachers" },
-                      { label: "Date & time", icon: "📅", path: "/calendar" },
-                      { label: "Cancel lesson", icon: "❌", path: "/notes/classes" },
-                      { label: "Location", icon: "📍", path: "/calendar/classroom" },
-                      { label: "Class details", icon: "📄", path: "/notes/class-details" }
+                      { label: "Teacher", icon: "🎓", path: "/people/teachers" }
                     ].map((item) => (
                       <button
                         key={item.label}
@@ -1112,12 +1155,7 @@ export default function Dashboard() {
                   </div>
                   <div className="space-y-2">
                     {[
-                      { label: "Add students", icon: "👥", onClick: () => setShowEnrollModal(true) },
-                      { label: "Add prospects", icon: "👥", onClick: () => navigate('/people/prospects/new') },
-                      { label: "Add attachment", icon: "📎", onClick: () => navigate('/notes/class-details') },
-                      { label: "Add assignment", icon: "📋", onClick: () => navigate('/notes/class-details') },
-                      { label: "Invite to portal", icon: "➡️", onClick: () => navigate('/compose') },
-                      { label: "Print register", icon: "🖨️", onClick: () => navigate('/reports/attendance') }
+                      { label: "Add students", icon: "👥", onClick: () => setShowEnrollModal(true) }
                     ].map((item) => (
                       <button
                         key={item.label}

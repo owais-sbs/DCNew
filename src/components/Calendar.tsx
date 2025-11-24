@@ -112,6 +112,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
   const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false)
   const [alreadyEnrolled, setAlreadyEnrolled] = useState<number[]>([])
   const [updatingStudent, setUpdatingStudent] = useState<number | null>(null)
+  const [sessionClassId, setSessionClassId] = useState<number | null>(null)
 
   const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [showAddStudent, setShowAddStudent] = useState(false)
@@ -316,7 +317,8 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
           id: s.StudentId,
           name: s.StudentName,
           status: s.AttendanceStatus,
-          classId: s.ClassId
+          classId: s.ClassId,
+          photo: s.Photo
         }));
         setSessionStudents(mapped);
       } else {
@@ -343,6 +345,10 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
       if (enrollRes?.data?.IsSuccess) {
         const ids = enrollRes.data.Data.map((s: any) => s.StudentId)
         setAlreadyEnrolled(ids)
+        // Get classId from the first student in the session (all students in a session belong to the same class)
+        if(enrollRes.data.Data.length > 0 && enrollRes.data.Data[0].ClassId) {
+          setSessionClassId(enrollRes.data.Data[0].ClassId)
+        }
       }
     } catch (err) {
       console.log("Error fetching student list", err)
@@ -363,11 +369,10 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
   const enrollStudents = async () => {
     if (!selected || selectedToEnroll.length === 0) return
 
-    const classId = sessionStudents[0]?.classId
     const sessionId = selected
 
     try {
-      const response = await axiosInstance.post(`/Class/EnrollStudentToClassInBulk`, selectedToEnroll, { params: { classId, sessionId }})
+      const response = await axiosInstance.post(`/Class/EnrollStudentToClassInBulk`, selectedToEnroll, { params: { sessionId }})
       if (response.data?.IsSuccess) {
         setShowEnrollModal(false)
         setSelectedToEnroll([])
@@ -882,12 +887,18 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                             sessionStudents.map((student, i) => (
                               <div key={student.id} className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-sm transition-shadow">
                                 <div className="flex items-center gap-3">
-                                  <img
-                                    src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
-                                    alt={student.name}
-                                    className="h-12 w-12 rounded-full object-cover border border-gray-200"
-                                    onError={(e) => { const t = e.currentTarget as HTMLImageElement; t.style.display = 'none' }}
-                                  />
+                                  {student.photo ? (
+                                    <img
+                                      src={student.photo}
+                                      alt={student.name}
+                                      className="h-12 w-12 rounded-full object-cover border border-gray-200"
+                                      onError={(e) => { const t = e.currentTarget as HTMLImageElement; t.style.display = 'none' }}
+                                    />
+                                  ) : (
+                                    <div className="h-12 w-12 rounded-full bg-indigo-100 border border-gray-200 flex items-center justify-center text-indigo-600 font-semibold text-sm">
+                                      {student.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                    </div>
+                                  )}
                                   <div className="flex-1 min-w-0">
                                     <div className="text-[16px] font-semibold text-gray-900 truncate">{student.name}</div>
 

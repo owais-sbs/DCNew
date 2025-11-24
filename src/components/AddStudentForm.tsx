@@ -3,7 +3,12 @@ import { X } from "lucide-react";
 import axiosInstance from './axiosInstance'; 
 import axios from 'axios'; 
 // Assume SweetAlert2 is installed and imported for better popups
-import Swal from 'sweetalert2'; 
+import Swal from 'sweetalert2';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
+import { ChevronDown } from "lucide-react"; 
 
 
 // -------------------------------------------------------------
@@ -12,15 +17,16 @@ import Swal from 'sweetalert2';
 
 // Defines the exact structure of the data sent to the C# API
 interface StudentApiPayload {
-    // ... (All StudentApiPayload fields remain the same)
     Id: number; 
     FirstName: string | null;
     Surname: string | null;
     Gender: string | null;
     RegistrationDate: string | null; 
-    DateOfBirth: string | null;     
+    DateOfBirth: string | null;
+    AccountId: number | null;
     IdNumber: string | null;
     Photo: string | null;
+    Password: string | null;
     PreferredPaymentMethod: string | null;
     Discount: number | null; 
     MobilePhone: string | null;
@@ -64,6 +70,12 @@ interface StudentApiPayload {
     SubstituteLessonsPerMonth: number | null; 
     SubstituteStartDate: string | null;
     SubstituteEndDate: string | null;
+    CreatedOn: string | null;
+    CreatedBy: number | null;
+    UpdatedOn: string | null;
+    UpdatedBy: number | null;
+    IsActive: boolean | null;
+    IsDeleted: boolean | null;
 }
 
 // Defines the shape of the full form data state (client-side)
@@ -217,20 +229,27 @@ const parseDecimal = (value: string): number | null => {
     return isNaN(num) ? null : num;
 };
 
-const parseInt = (value: string): number | null => {
-    if (!value) return null;
-    const num = parseInt(value);
-    return isNaN(1) ? null : num;
-};
-
-const parseInteger = (value: string): number | null => {
+const parseIntegerValue = (value: string): number | null => {
     if (!value) return null;
     const num = Number.parseInt(value, 10);
     return Number.isNaN(num) ? null : num;
 };
 
+// Helper function to convert File to base64 with data header
+const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            // Keep the full data URL with header (e.g., "data:image/jpeg;base64,/9j/4AAQSkZJRg...")
+            const base64String = reader.result as string;
+            resolve(base64String);
+        };
+        reader.onerror = (error) => reject(error);
+    });
+};
 
-const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>): StudentApiPayload => {
+const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>, photoBase64?: string): StudentApiPayload => {
     // This mapping object MUST match the C# Student model properties (case-sensitive)
     return {
         Id: formData.id,
@@ -239,8 +258,10 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>): StudentApiPayl
         Gender: formData.gender || null,
         RegistrationDate: parseDate(formData.registrationDate),
         DateOfBirth: parseDate(formData.dateOfBirth),
+        AccountId: null,
         IdNumber: formData.idNumber || null,
-        Photo: null, 
+        Photo: photoBase64 || null,
+        Password: null, 
         PreferredPaymentMethod: formData.preferredPaymentMethod || null,
         Discount: parseDecimal(formData.discount),
 
@@ -267,7 +288,7 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>): StudentApiPayl
         CourseCode: formData.courseCode || null,
         CourseTitle: formData.courseTitle || null,
         ModeOfStudy: formData.modeOfStudy || null,
-        NumberOfWeeks: parseInt(formData.numberOfWeeks),
+        NumberOfWeeks: parseIntegerValue(formData.numberOfWeeks),
         TuitionFees: parseDecimal(formData.tuitionFees),
         Department: formData.department || null,
         ExternalExam: formData.externalExam || null,
@@ -287,9 +308,15 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>): StudentApiPayl
         ClassLevel: formData.classLevel || null,
 
         AllowSubstituteLessons: formData.allowSubstituteLessons,
-        SubstituteLessonsPerMonth: parseInt(formData.substituteLessonsPerMonth),
+        SubstituteLessonsPerMonth: parseIntegerValue(formData.substituteLessonsPerMonth),
         SubstituteStartDate: parseDate(formData.substituteStartDate),
         SubstituteEndDate: parseDate(formData.substituteEndDate),
+        CreatedOn: new Date().toISOString(),
+        CreatedBy: null,
+        UpdatedOn: new Date().toISOString(),
+        UpdatedBy: null,
+        IsActive: true,
+        IsDeleted: false,
     };
 };
 
@@ -335,7 +362,25 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
         setError(null);
 
         const { photo, ...clientPayload } = formData;
-        const apiPayload = mapToApiPayload(clientPayload);
+        
+        // Convert photo to base64 if provided
+        let photoBase64: string | undefined;
+        if (photo) {
+            try {
+                photoBase64 = await fileToBase64(photo);
+            } catch (error) {
+                await Swal.fire({
+                    icon: 'error',
+                    title: 'Photo Conversion Failed',
+                    text: 'Failed to convert photo to base64. Please try again.',
+                    confirmButtonColor: '#d33'
+                });
+                setIsLoading(false);
+                return;
+            }
+        }
+        
+        const apiPayload = mapToApiPayload(clientPayload, photoBase64);
         
         const API_ENDPOINT = "Student/AddStudent"; 
 
@@ -428,17 +473,17 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
 
     return (
         <div className={asPage ? "" : "fixed inset-0 z-50 grid place-items-center bg-black/30 px-4"} onClick={asPage ? undefined : onClose}>
-            <div className={`w-full ${asPage ? "" : "max-w-4xl"} bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden ${asPage ? "" : "max-h-[90vh] overflow-y-auto"}`} onClick={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">Add student</h2>
-                    {!asPage && (
+            <div className={`w-full ${asPage ? "bg-white" : "max-w-4xl bg-white rounded-2xl border border-gray-200 shadow-xl"} overflow-hidden ${asPage ? "" : "max-h-[90vh] overflow-y-auto"}`} onClick={(e) => e.stopPropagation()}>
+                {!asPage && (
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                        <h2 className="text-xl font-semibold text-gray-900">Add student</h2>
                         <button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" disabled={isLoading}>
                             <X size={20} />
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
 
-                <form onSubmit={(e) => handleSubmit(e, false)} className="p-6 space-y-6">
+                <form onSubmit={(e) => handleSubmit(e, false)} className={`${asPage ? "p-6" : "p-6"} space-y-6`}>
                     {/* --- Global Error Message (Optional, Swal handles the primary alert) --- */}
                     {error && (
                         <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
@@ -451,14 +496,14 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                     {/* ------------------------------------------------------------- */}
                     <div className="bg-gray-50 rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">First name *</label>
                                 <input
                                     type="text"
                                     value={formData.firstName}
                                     onChange={(e) => handleInputChange('firstName', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                     required
                                 />
                                 <p className={`text-red-500 text-xs mt-1 ${formData.firstName ? 'hidden' : ''}`}>This field is required</p>
@@ -469,24 +514,30 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.surname}
                                     onChange={(e) => handleInputChange('surname', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                     required
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-                                <div className="flex gap-4">
+                                <div className="flex gap-0 rounded-lg border border-gray-200 bg-white p-1 w-fit">
                                     {["Male", "Female", "Not specified"].map((option) => (
-                                        <label key={option} className="flex items-center gap-2">
+                                        <label key={option} className="cursor-pointer">
                                             <input
                                                 type="radio"
                                                 name="gender"
                                                 value={option}
                                                 checked={formData.gender === option}
                                                 onChange={(e) => handleInputChange('gender', e.target.value)}
-                                                className="w-4 h-4"
+                                                className="hidden"
                                             />
-                                            <span className="text-sm text-gray-700">{option}</span>
+                                            <span className={`block px-4 py-1.5 rounded text-sm transition ${
+                                                formData.gender === option
+                                                    ? "bg-blue-100 text-blue-700 font-medium"
+                                                    : "text-gray-700 hover:bg-gray-50"
+                                            }`}>
+                                                {option}
+                                            </span>
                                         </label>
                                     ))}
                                 </div>
@@ -497,20 +548,46 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.registrationDate}
                                     onChange={(e) => handleInputChange('registrationDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                     required
                                 />
                                 <p className="text-gray-500 text-xs mt-1">dd-mm-yyyy</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Date of birth</label>
-                                <input
-                                    type="text"
-                                    value={formData.dateOfBirth}
-                                    onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
-                                    placeholder="dd-mm-yyyy"
-                                />
+                                <div className="[&_.react-datepicker-wrapper]:w-full [&_input]:w-full [&_input]:h-10 [&_input]:px-3 [&_input]:rounded-lg [&_input]:border [&_input]:border-gray-200 [&_input]:bg-white [&_input]:text-sm">
+                                    <DatePicker
+                                        selected={formData.dateOfBirth ? (() => {
+                                            // Parse dd-mm-yyyy format
+                                            const parts = formData.dateOfBirth.split('-');
+                                            if (parts.length === 3) {
+                                                const day = Number.parseInt(parts[0], 10);
+                                                const month = Number.parseInt(parts[1], 10);
+                                                const year = Number.parseInt(parts[2], 10);
+                                                if (!isNaN(day) && !isNaN(month) && !isNaN(year) && day > 0 && month > 0 && year > 0) {
+                                                    return new Date(year, month - 1, day);
+                                                }
+                                            }
+                                            // Fallback to standard date parsing
+                                            const date = new Date(formData.dateOfBirth);
+                                            return isNaN(date.getTime()) ? null : date;
+                                        })() : null}
+                                        onChange={(date: Date | null) => {
+                                            if (date) {
+                                                const formattedDate = date.toLocaleDateString('en-IE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+                                                handleInputChange('dateOfBirth', formattedDate);
+                                            } else {
+                                                handleInputChange('dateOfBirth', '');
+                                            }
+                                        }}
+                                        dateFormat="dd-MM-yyyy"
+                                        placeholderText="Select date"
+                                        maxDate={new Date()}
+                                        showYearDropdown
+                                        showMonthDropdown
+                                        dropdownMode="select"
+                                    />
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">ID number</label>
@@ -518,13 +595,13 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.idNumber}
                                     onChange={(e) => handleInputChange('idNumber', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                                 <p className="text-gray-500 text-xs mt-1">Please confirm ID after student has been created.</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Photo</label>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-3">
                                     <input
                                         type="file"
                                         id="photo"
@@ -532,8 +609,8 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                         accept="image/jpeg,image/jpg,image/png,image/gif"
                                         className="hidden"
                                     />
-                                    <label htmlFor="photo" className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm cursor-pointer flex items-center">
-                                        Choose file
+                                    <label htmlFor="photo" className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm cursor-pointer flex items-center text-gray-700">
+                                        Choose File
                                     </label>
                                     <span className="text-sm text-gray-500">{formData.photo ? formData.photo.name : 'No file chosen'}</span>
                                 </div>
@@ -544,7 +621,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 <select
                                     value={formData.preferredPaymentMethod}
                                     onChange={(e) => handleInputChange('preferredPaymentMethod', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 >
                                     <option value="">select</option>
                                     <option value="cash">Cash</option>
@@ -559,7 +636,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                         type="text"
                                         value={formData.discount}
                                         onChange={(e) => handleInputChange('discount', e.target.value)}
-                                        className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                        className="flex-1 h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                     />
                                     <span className="text-sm text-gray-500">%</span>
                                 </div>
@@ -572,34 +649,26 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                     {/* ------------------------------------------------------------- */}
                     <div className="bg-gray-50 rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Mobile phone</label>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-1 h-10 px-3 rounded-xl border border-gray-200 bg-white">
-                                        <span className="text-sm">🇮🇪</span>
-                                        <span className="text-sm">+353</span>
-                                    </div>
-                                    <input
-                                        type="tel"
+                                <div className="[&_.PhoneInput]:flex [&_.PhoneInput]:items-center [&_.PhoneInput]:h-10 [&_.PhoneInput]:rounded-xl [&_.PhoneInput]:border [&_.PhoneInput]:border-gray-200 [&_.PhoneInput]:bg-white [&_.PhoneInput]:w-full [&_.PhoneInputCountry]:flex [&_.PhoneInputCountry]:items-center [&_.PhoneInputCountry]:gap-1 [&_.PhoneInputCountry]:px-3 [&_.PhoneInputCountry]:h-full [&_.PhoneInputCountry]:border-r [&_.PhoneInputCountry]:border-gray-200 [&_.PhoneInputCountryIcon]:w-5 [&_.PhoneInputCountryIcon]:h-4 [&_.PhoneInputCountrySelect]:border-0 [&_.PhoneInputCountrySelect]:bg-transparent [&_.PhoneInputCountrySelect]:text-sm [&_.PhoneInputCountrySelect]:cursor-pointer [&_.PhoneInputCountrySelectArrow]:ml-1 [&_.PhoneInputInput]:flex-1 [&_.PhoneInputInput]:h-full [&_.PhoneInputInput]:px-3 [&_.PhoneInputInput]:border-0 [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:text-sm [&_.PhoneInputInput]:bg-transparent">
+                                    <PhoneInput
+                                        international
+                                        defaultCountry="IE"
                                         value={formData.mobilePhone}
-                                        onChange={(e) => handleInputChange('mobilePhone', e.target.value)}
-                                        className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                        onChange={(value) => handleInputChange('mobilePhone', value || '')}
                                     />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Home phone</label>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-1 h-10 px-3 rounded-xl border border-gray-200 bg-white">
-                                        <span className="text-sm">🇮🇪</span>
-                                        <span className="text-sm">+353</span>
-                                    </div>
-                                    <input
-                                        type="tel"
+                                <div className="[&_.PhoneInput]:flex [&_.PhoneInput]:items-center [&_.PhoneInput]:h-10 [&_.PhoneInput]:rounded-xl [&_.PhoneInput]:border [&_.PhoneInput]:border-gray-200 [&_.PhoneInput]:bg-white [&_.PhoneInput]:w-full [&_.PhoneInputCountry]:flex [&_.PhoneInputCountry]:items-center [&_.PhoneInputCountry]:gap-1 [&_.PhoneInputCountry]:px-3 [&_.PhoneInputCountry]:h-full [&_.PhoneInputCountry]:border-r [&_.PhoneInputCountry]:border-gray-200 [&_.PhoneInputCountryIcon]:w-5 [&_.PhoneInputCountryIcon]:h-4 [&_.PhoneInputCountrySelect]:border-0 [&_.PhoneInputCountrySelect]:bg-transparent [&_.PhoneInputCountrySelect]:text-sm [&_.PhoneInputCountrySelect]:cursor-pointer [&_.PhoneInputCountrySelectArrow]:ml-1 [&_.PhoneInputInput]:flex-1 [&_.PhoneInputInput]:h-full [&_.PhoneInputInput]:px-3 [&_.PhoneInputInput]:border-0 [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:text-sm [&_.PhoneInputInput]:bg-transparent">
+                                    <PhoneInput
+                                        international
+                                        defaultCountry="IE"
                                         value={formData.homePhone}
-                                        onChange={(e) => handleInputChange('homePhone', e.target.value)}
-                                        className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                        onChange={(value) => handleInputChange('homePhone', value || '')}
                                     />
                                 </div>
                             </div>
@@ -609,7 +678,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="email"
                                     value={formData.email}
                                     onChange={(e) => handleInputChange('email', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -618,7 +687,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.streetAddress}
                                     onChange={(e) => handleInputChange('streetAddress', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -627,7 +696,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.city}
                                     onChange={(e) => handleInputChange('city', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -636,7 +705,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.zipCode}
                                     onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -645,12 +714,12 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.state}
                                     onChange={(e) => handleInputChange('state', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                                <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-gray-200 bg-white">
+                                <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-gray-200 bg-white">
                                     <span className="text-sm">🇮🇪</span>
                                     <span className="text-sm">Ireland</span>
                                 </div>
@@ -660,16 +729,16 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
 
                     {/* Time zone and Country */}
                     <div className="bg-gray-50 rounded-xl p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Time zone</label>
-                                <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-gray-200 bg-white">
+                                <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-gray-200 bg-white">
                                     <span className="text-sm">Europe/London</span>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                                <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-gray-200 bg-white">
+                                <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-gray-200 bg-white">
                                     <span className="text-sm">🇮🇪</span>
                                     <span className="text-sm">Ireland</span>
                                 </div>
@@ -680,14 +749,14 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                     {/* Custom Fields (Course/Passport/Visa) */}
                     <div className="bg-gray-50 rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Custom Fields</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
                                 <input
                                     type="text"
                                     value={formData.nationality}
                                     onChange={(e) => handleInputChange('nationality', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -696,7 +765,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.passportNumber}
                                     onChange={(e) => handleInputChange('passportNumber', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -705,7 +774,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.gnibExpiryDate}
                                     onChange={(e) => handleInputChange('gnibExpiryDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -714,7 +783,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.passportExpiryDate}
                                     onChange={(e) => handleInputChange('passportExpiryDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -723,7 +792,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.finishedCourseDate}
                                     onChange={(e) => handleInputChange('finishedCourseDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -732,7 +801,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.courseStartDate}
                                     onChange={(e) => handleInputChange('courseStartDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -741,7 +810,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.courseLevel}
                                     onChange={(e) => handleInputChange('courseLevel', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -750,7 +819,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.courseEndDate}
                                     onChange={(e) => handleInputChange('courseEndDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -759,7 +828,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.hoursPerWeek}
                                     onChange={(e) => handleInputChange('hoursPerWeek', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -768,7 +837,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.attendance}
                                     onChange={(e) => handleInputChange('attendance', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -777,7 +846,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.courseCode}
                                     onChange={(e) => handleInputChange('courseCode', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -786,7 +855,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.courseTitle}
                                     onChange={(e) => handleInputChange('courseTitle', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -795,7 +864,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.modeOfStudy}
                                     onChange={(e) => handleInputChange('modeOfStudy', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -804,7 +873,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.numberOfWeeks}
                                     onChange={(e) => handleInputChange('numberOfWeeks', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -813,7 +882,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.tuitionFees}
                                     onChange={(e) => handleInputChange('tuitionFees', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -822,7 +891,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.department}
                                     onChange={(e) => handleInputChange('department', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -831,7 +900,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.externalExam}
                                     onChange={(e) => handleInputChange('externalExam', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                         </div>
@@ -848,7 +917,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.externalExamDate}
                                     onChange={(e) => handleInputChange('externalExamDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -857,7 +926,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.scoreExternalExam}
                                     onChange={(e) => handleInputChange('scoreExternalExam', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -866,7 +935,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.dateOfPayment}
                                     onChange={(e) => handleInputChange('dateOfPayment', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -875,7 +944,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.duration}
                                     onChange={(e) => handleInputChange('duration', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -884,7 +953,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.schedule}
                                     onChange={(e) => handleInputChange('schedule', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                             <div>
@@ -892,7 +961,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 <select
                                     value={formData.ilepReference}
                                     onChange={(e) => handleInputChange('ilepReference', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 >
                                     <option value="">Select</option>
                                 </select>
@@ -903,7 +972,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.endOfExamPaid}
                                     onChange={(e) => handleInputChange('endOfExamPaid', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
                         </div>
@@ -918,7 +987,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 <textarea
                                     value={formData.generalNotes}
                                     onChange={(e) => handleInputChange('generalNotes', e.target.value)}
-                                    className="w-full h-24 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm resize-none"
+                                    className="w-full h-24 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm resize-none"
                                 />
                             </div>
                             <div>
@@ -926,7 +995,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 <textarea
                                     value={formData.medicalNotes}
                                     onChange={(e) => handleInputChange('medicalNotes', e.target.value)}
-                                    className="w-full h-24 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm resize-none"
+                                    className="w-full h-24 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm resize-none"
                                 />
                             </div>
                         </div>
@@ -936,13 +1005,13 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                     <div className="bg-gray-50 rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Class options</h3>
                         <p className="text-sm text-gray-600 mb-4">If selected, this student can only be enrolled in these subjects or levels. Leaving it blank allows the student to be enrolled in any classes.</p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Class subject</label>
                                 <select
                                     value={formData.classSubject}
                                     onChange={(e) => handleInputChange('classSubject', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 >
                                     <option value="">Select</option>
                                 </select>
@@ -952,7 +1021,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 <select
                                     value={formData.classLevel}
                                     onChange={(e) => handleInputChange('classLevel', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 >
                                     <option value="">Select</option>
                                 </select>
@@ -981,7 +1050,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                         type="text"
                                         value={formData.substituteLessonsPerMonth}
                                         onChange={(e) => handleInputChange('substituteLessonsPerMonth', e.target.value)}
-                                        className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                        className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                         disabled={!formData.allowSubstituteLessons}
                                     />
                                 </div>
@@ -991,7 +1060,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                         type="text"
                                         value={formData.substituteStartDate}
                                         onChange={(e) => handleInputChange('substituteStartDate', e.target.value)}
-                                        className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                        className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                         placeholder="select..."
                                         disabled={!formData.allowSubstituteLessons}
                                     />
@@ -1002,7 +1071,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                         type="text"
                                         value={formData.substituteEndDate}
                                         onChange={(e) => handleInputChange('substituteEndDate', e.target.value)}
-                                        className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                                        className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                         placeholder="select..."
                                         disabled={!formData.allowSubstituteLessons}
                                     />
@@ -1015,7 +1084,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                     <div className="bg-gray-50 rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Enroll in classes</h3>
                         <p className="text-sm text-gray-600 mb-4">Enroll the student in a class</p>
-                        <button type="button" className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm" disabled={isLoading}>
+                        <button type="button" className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm" disabled={isLoading}>
                             Select classes
                         </button>
                     </div>
@@ -1025,7 +1094,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                         <button
                             type="button"
                             onClick={onClose}
-                            className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm"
+                            className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm"
                             disabled={isLoading}
                         >
                             Cancel
@@ -1033,14 +1102,14 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                         <button
                             type="button"
                             onClick={(e) => handleSubmit(e, true)}
-                            className={`h-10 px-4 rounded-xl border border-blue-200 text-sm ${addAndNewButton.className}`}
+                            className={`h-10 px-4 rounded-lg border border-blue-200 text-sm ${addAndNewButton.className}`}
                             disabled={addAndNewButton.disabled}
                         >
                             {addAndNewButton.text}
                         </button>
                         <button
                             type="submit"
-                            className={`h-10 px-4 rounded-xl text-white text-sm ${addStudentButton.className}`}
+                            className={`h-10 px-4 rounded-lg text-white text-sm ${addStudentButton.className}`}
                             disabled={addStudentButton.disabled}
                         >
                             {addStudentButton.text}

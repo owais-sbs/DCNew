@@ -14,6 +14,7 @@ import {
   HelpCircle,
   Star,
   BookOpen,
+  FileText,
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
 
@@ -97,6 +98,7 @@ export default function Header() {
                 <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-lg border border-blue-100 p-3 z-30">
                   {[
                     { icon: BookOpen, label: "Class", path: "/notes/add-class" },
+                    { icon: FileText, label: "Document", path: "/notes/documents" },
                     { icon: Users, label: "Student", path: "/people/students/new" },
                     { icon: Users, label: "Teacher", path: "/people/teachers/new" },
                     { icon: Users, label: "Staff", path: "/people/staffs/new" },

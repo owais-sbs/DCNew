@@ -20,6 +20,7 @@ import NotesDashboard from "./components/NotesDashboard";
 import AccountCreation from "./components/AccountCreation";
 import NotesClasses from "./components/NotesClasses";
 import NotesEvents from "./components/NotesEvents";
+import DocumentsScreen from "./components/DocumentsScreen";
 
 import PaymentsDashboard from "./components/PaymentsDashboard";
 import CommunicationDashboard from "./components/CommunicationDashboard";
@@ -330,6 +331,17 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <ClassDetailsScreen />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/notes/documents"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <DocumentsScreen />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }

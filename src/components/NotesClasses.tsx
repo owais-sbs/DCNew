@@ -15,7 +15,7 @@ export default function NotesClasses() {
     <div className="pl-[72px]">
       <div className="px-6 py-6">
         <div className="flex items-center gap-6 border-b border-gray-200 pb-3">
-          {["Dashboard","Classes","Events"].map((t,i)=> (
+          {["Dashboard","Classes"].map((t,i)=> (
             <button key={t} className={`px-4 h-10 rounded-xl text-sm ${i===1?"bg-white shadow-sm border border-blue-200 text-blue-700":"text-gray-700 hover:bg-gray-50"}`}>{t}</button>
           ))}
         </div>

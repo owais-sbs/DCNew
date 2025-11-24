@@ -61,21 +61,23 @@ const slugify = (text: string) =>
 
 
 export default function StudentProfile() {
+  // All hooks must be called unconditionally at the top level
   const { id } = useParams()
   const navigate = useNavigate()
 
+  // State hooks
   const [activeTab, setActiveTab] = useState("profile")
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [openModal, setOpenModal] = useState<string | null>(null)
   const [studentdetails, setStudent] = useState<any>(null)
-  const [openDocumentId, setOpenDocumentId] = useState<string | null>(null)
-  const documentContentRef = useRef<HTMLDivElement | null>(null)
-
-  
-
-  // ✅ MOVE THESE UP
   const [classesSubTab, setClassesSubTab] = useState<'classes'|'lessons'|'events'>('classes')
   const [feesTab, setFeesTab] = useState<'grouped'|'individual'>('grouped')
+  const [documents, setDocuments] = useState<any[]>([])
+  const [loadingDocuments, setLoadingDocuments] = useState(false)
+  const [selectedDocument, setSelectedDocument] = useState<any | null>(null)
+
+  // Ref hooks
+  const documentContentRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -99,35 +101,53 @@ export default function StudentProfile() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openDropdown])
 
-  // ✅ SAFE TO RETURN NOW
-  if (!studentdetails) {
-    return (
-      <div className="p-6 text-center text-gray-600">
-        Loading student profile...
-      </div>
-    );
-  }
+  useEffect(() => {
+    console.log("Active tab changed:", activeTab)
+    if (activeTab.toLowerCase() === "create documents") {
+      console.log("Tab matches 'create documents', fetching documents...")
+      const fetchDocuments = async () => {
+        try {
+          setLoadingDocuments(true)
+          console.log("Fetching documents from API: /Document/GetAllDocument")
+          const response = await axiosInstance.get("/Document/GetAllDocument")
+          console.log("Documents API response:", response.data)
+          if (response.data?.IsSuccess) {
+            setDocuments(response.data.Data || [])
+          } else {
+            setDocuments([])
+          }
+        } catch (error) {
+          console.error("Error fetching documents:", error)
+          setDocuments([])
+        } finally {
+          setLoadingDocuments(false)
+        }
+      }
+      fetchDocuments()
+    }
+  }, [activeTab])
 
-  const studentName = `${studentdetails.FirstName ?? ""} ${studentdetails.LastName ?? studentdetails.Surname ?? ""}`.trim();
+  // Don't use early return - render loading state conditionally to ensure hooks are always called
+  const studentName = studentdetails ? `${studentdetails.FirstName ?? ""} ${studentdetails.LastName ?? studentdetails.Surname ?? ""}`.trim() : "";
 
-  const age = studentdetails.DateOfBirth
-  ? Math.floor(
-      (new Date().getTime() - new Date(studentdetails.DateOfBirth).getTime()) /
-      (365.25 * 24 * 60 * 60 * 1000)
-    )
-  : null;
+  const age = studentdetails?.DateOfBirth
+    ? Math.floor(
+        (new Date().getTime() - new Date(studentdetails.DateOfBirth).getTime()) /
+        (365.25 * 24 * 60 * 60 * 1000)
+      )
+    : null;
 
-  
-
-  const studentAddress = [
-    studentdetails.StreetAddress,
-    studentdetails.City,
-    studentdetails.State,
-    studentdetails.ZipCode,
-    studentdetails.Country
-  ]
-    .filter(Boolean)
-    .join(", ")
+  const studentAddress = studentdetails
+    ? [
+        studentdetails.StreetAddress,
+        studentdetails.City,
+        studentdetails.State,
+        studentdetails.ZipCode,
+        studentdetails.Country
+      ]
+        .filter(Boolean)
+        .join(", ")
+    : ""
 
   const defaultFieldKeys: StudentFieldKey[] = [
     "Name",
@@ -149,123 +169,55 @@ export default function StudentProfile() {
 
   const studentFieldResolvers: Record<StudentFieldKey, () => string> = {
     "Name": () => studentName || "—",
-    "Student ID": () => studentdetails.IdNumber || "—",
+    "Student ID": () => studentdetails?.IdNumber || "—",
     "Address": () => studentAddress || "—",
-    "Date of Birth": () => formatDateValue(studentdetails.DateOfBirth),
-    "Nationality": () => studentdetails.Nationality || "—",
-    "Passport Number": () => studentdetails.PassportNumber || "—",
-    "Course Start Date": () => formatDateValue(studentdetails.CourseStartDate),
-    "Course End Date": () => formatDateValue(studentdetails.CourseEndDate),
-    "Course Title": () => studentdetails.CourseTitle || "—",
-    "Course Level": () => studentdetails.CourseLevel || "—",
-    "Mode of Study": () => studentdetails.ModeOfStudy || "—",
-    "Number of Weeks": () => studentdetails.NumberOfWeeks ?? "—",
-    "Hours Per Week": () => studentdetails.HoursPerWeek ?? "—",
-    "Tuition Fees": () => formatCurrency(studentdetails.TuitionFees),
-    "Course Code": () => studentdetails.CourseCode || "—"
+    "Date of Birth": () => formatDateValue(studentdetails?.DateOfBirth),
+    "Nationality": () => studentdetails?.Nationality || "—",
+    "Passport Number": () => studentdetails?.PassportNumber || "—",
+    "Course Start Date": () => formatDateValue(studentdetails?.CourseStartDate),
+    "Course End Date": () => formatDateValue(studentdetails?.CourseEndDate),
+    "Course Title": () => studentdetails?.CourseTitle || "—",
+    "Course Level": () => studentdetails?.CourseLevel || "—",
+    "Mode of Study": () => studentdetails?.ModeOfStudy || "—",
+    "Number of Weeks": () => {
+      const weeks = studentdetails?.NumberOfWeeks;
+      return weeks ? `${weeks} Weeks` : "—";
+    },
+    "Hours Per Week": () => studentdetails?.HoursPerWeek?.toString() || "—",
+    "Tuition Fees": () => {
+      const fees = studentdetails?.TuitionFees;
+      if (fees === null || fees === undefined || fees === "") return "—";
+      // Check if fully paid (you may need to adjust this logic based on your data)
+      return formatCurrency(fees);
+    },
+    "Course Code": () => studentdetails?.CourseCode || "—"
   }
 
   const getStudentFieldValue = (key: StudentFieldKey) => studentFieldResolvers[key]()
 
-  const documentButtonLabels = [
-    "Confirmation of Enrolment (Colm Delmar)",
-    "Letter of Acceptance (Colm)",
-    "Bank Letter (Ahmed)",
-    "Letter of Acceptance (Ahmed)",
-    "Leap Card Letter",
-    "Confirmation of Enrolment (Ahmed)",
-    "Holiday Letter (Carla)",
-    "Student Status Letter (Colm Delmar)",
-    "Student Reference Letter for GNIB",
-    "Christmas Holiday Letter (Carla)",
-    "Summer Holiday - Reference Letter",
-    "Exit Letter - No Show (Colm)",
-    "Exit Letter - Exam Later Date",
-    "Exit Letter - Exam Taken",
-    "Exit Letter - Covid-19",
-    "Exit Letter - Short Term",
-    "gnib 2025",
-    "Certificate of Attendance (2025)",
-    "Letter of Acceptance (2025)",
-    "Confirmation of Enrollment (2025)"
-  ]
-
-  const documentTemplateOverrides: Record<string, Partial<Omit<DocumentTemplateContent, "id" | "label">>> = {
-    [slugify("Confirmation of Enrolment (Colm Delmar)")]: {
-      heading: "Confirmation of Enrolment",
-      recipientLines: [
-        "To,",
-        "Garda National Immigration Bureau:",
-        "13-14 Burgh Quay, Dublin 2."
-      ],
-      paragraphs: [
-        "We are pleased to confirm that the below-named student has been enrolled on a course at Dublin Centre of Education, as follows. This 8-month course is listed on the Interim List of Eligible Programmes (ILEP) under Dublin Centre of Education."
-      ],
-      closingLines: [
-        "The student has agreed to abide by the rules and regulations governing their study set by the Irish National Immigration Bureau. This student is covered by Learner Protection Insurance through Endeavour Insurance Services, Academic+.",
-        "Should you require any further information regarding this student, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
-      ],
-      signatureName: "Colm Delmar",
-      signatureRole: "Director of Studies."
-    },
-    [slugify("Letter of Acceptance (Colm)")]: {
-      heading: "Letter of Acceptance",
-      subheading: "Re: Letter of Acceptance",
-      paragraphs: [
-        "Following your application, it has been agreed to offer you a place on the programme detailed below. This 8-month course is listed on the Interim List of Eligible Programmes (ILEP) under Dublin Centre of Education.",
-        "You have been issued with private medical insurance and Learner Protection insurance cover for the current academic period of 8 months. This policy is administered by Endeavour Insurance Services, Academic+, which will be activated upon your arrival. Your registration will take place immediately after arrival in the college. Your detailed timetable, course materials, module handouts etc. will be provided to you during registration."
-      ],
-      closingLines: [
-        "Should you require any further information, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
-      ],
-      signatureName: "Colm Delmar",
-      signatureRole: "Director of Studies."
-    },
-    [slugify("Bank Letter (Ahmed)")]: {
-      heading: "Bank Letter",
-      paragraphs: [
-        "We are pleased to confirm that the below-named student is currently enrolled on a course at Dublin Centre of Education, as follows, and we request that you open a bank account for our student:"
-      ],
-      closingLines: [
-        "Should you require any further information regarding this student, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
-      ],
-      signatureName: "Asif Omer",
-      signatureRole: "Manager"
-    }
+  // Replace placeholders in document body with student data
+  const replacePlaceholders = (text: string) => {
+    if (!text) return ""
+    return text
+      .replace(/\{StudentName\}/g, studentName || "—")
+      .replace(/\{StudentID\}/g, studentdetails.IdNumber || "—")
+      .replace(/\{Address\}/g, studentAddress || "—")
+      .replace(/\{DateOfBirth\}/g, formatDateValue(studentdetails.DateOfBirth))
+      .replace(/\{Nationality\}/g, studentdetails.Nationality || "—")
+      .replace(/\{PassportNumber\}/g, studentdetails.PassportNumber || "—")
+      .replace(/\{CourseStartDate\}/g, formatDateValue(studentdetails.CourseStartDate))
+      .replace(/\{CourseEndDate\}/g, formatDateValue(studentdetails.CourseEndDate))
+      .replace(/\{CourseTitle\}/g, studentdetails.CourseTitle || "—")
+      .replace(/\{CourseLevel\}/g, studentdetails.CourseLevel || "—")
+      .replace(/\{ModeOfStudy\}/g, studentdetails.ModeOfStudy || "—")
+      .replace(/\{NumberOfWeeks\}/g, String(studentdetails.NumberOfWeeks ?? "—"))
+      .replace(/\{HoursPerWeek\}/g, String(studentdetails.HoursPerWeek ?? "—"))
+      .replace(/\{TuitionFees\}/g, formatCurrency(studentdetails.TuitionFees))
+      .replace(/\{CourseCode\}/g, studentdetails.CourseCode || "—")
   }
 
-  const documentTemplates: DocumentTemplateContent[] = documentButtonLabels.map((label) => {
-    const id = slugify(label)
-    const override = documentTemplateOverrides[id] ?? {}
-
-    return {
-      id,
-      label,
-      heading: override.heading ?? label,
-      subheading: override.subheading,
-      recipientLines: override.recipientLines ?? ["To whom it may concern,"],
-      paragraphs:
-        override.paragraphs ??
-        [
-          `${studentName || "The student"} has been issued the document "${label}". The details of their enrolment are outlined below.`,
-          "Please retain this letter for your records and contact us if additional information is needed."
-        ],
-      fieldKeys: override.fieldKeys ?? defaultFieldKeys,
-      closingLines:
-        override.closingLines ?? [
-          "Should you require any further information regarding this student, please do not hesitate to contact us on +353 1 538 1502 or info@dcedu.ie."
-        ],
-      signatureName: override.signatureName ?? "Asif Omer",
-      signatureRole: override.signatureRole ?? "Director of Studies"
-    }
-  })
-
-  const activeDocumentTemplate = documentTemplates.find((doc) => doc.id === openDocumentId) || null
-
   const tabs = [
-    "Profile", "Activity", "Classes", "Attendance", "Fees", "Receipts", 
-    "Related contacts", "Notes", "Attachments", "Assignments", "Grades", 
-    "Create documents", "Holidays"
+    "Profile", "Activity", "Classes", "Attendance", "Create documents"
   ]
 
   const renderActivityContent = () => (
@@ -816,27 +768,42 @@ export default function StudentProfile() {
   )
 
   const renderCreateDocumentsContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Create documents</h2>
-      </div>
-      
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {documentTemplates.map((doc) => (
-          <button
-            key={doc.id}
-            onClick={() => setOpenDocumentId(doc.id)}
-            className="h-12 px-3 rounded-lg bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left"
-          >
-            {doc.label}
-          </button>
-        ))}
+    <div className="space-y-6">
+      {/* Documents List */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold text-gray-900">Create documents</h2>
+        </div>
+        
+        {loadingDocuments ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-500">Loading documents...</div>
+          </div>
+        ) : documents.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">No documents found</h3>
+            <p className="text-gray-600">Create document templates in the Documents section first.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            {documents.map((doc) => (
+              <button
+                key={doc.Id}
+                onClick={() => setSelectedDocument(doc)}
+                className="h-12 px-3 rounded-lg bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left"
+              >
+                {doc.Title || "Untitled Document"}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
 
   const handlePrintDocument = async () => {
-    if (!documentContentRef.current || !activeDocumentTemplate) return
+    if (!documentContentRef.current || !selectedDocument) return
 
     try {
       const canvas = await html2canvas(documentContentRef.current, {
@@ -864,8 +831,8 @@ export default function StudentProfile() {
         heightLeft -= pageHeight - margin * 2
       }
 
-      const sanitizedTitle = activeDocumentTemplate.heading.replace(/[^a-z0-9]+/gi, "-").toLowerCase()
-      pdf.save(`${sanitizedTitle || "student-document"}.pdf`)
+      const sanitizedTitle = (selectedDocument.Title || "student-document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()
+      pdf.save(`${sanitizedTitle}.pdf`)
     } catch (error) {
       console.error("Failed to generate PDF", error)
       alert("Unable to generate PDF. Please try again.")
@@ -873,15 +840,20 @@ export default function StudentProfile() {
   }
 
   const renderDocumentModal = () => {
-    if (!activeDocumentTemplate) return null
+    if (!selectedDocument) return null
     const todayDisplay = formatDateValue(new Date().toISOString())
+    
+    // Process document body with placeholders replaced
+    const processedBody = replacePlaceholders(selectedDocument.Body || "")
+    const processedTo = replacePlaceholders(selectedDocument.To || "")
+    const processedFooter = replacePlaceholders(selectedDocument.Footer || "")
 
     return (
-      <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenDocumentId(null)}>
+      <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setSelectedDocument(null)}>
         <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">Create document</h3>
-            <button onClick={() => setOpenDocumentId(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+            <button onClick={() => setSelectedDocument(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
               <span className="text-gray-500">×</span>
             </button>
           </div>
@@ -892,49 +864,44 @@ export default function StudentProfile() {
               style={{ minHeight: "fit-content" }}
             >
               <div className="text-sm text-gray-700">Date: {todayDisplay}</div>
-              {activeDocumentTemplate.recipientLines && (
-                <div className="text-sm text-gray-700 space-y-1">
-                  {activeDocumentTemplate.recipientLines.map((line, idx) => (
-                    <div key={idx}>{line}</div>
-                  ))}
+              
+              {processedTo && (
+                <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                  {processedTo}
                 </div>
               )}
-              {activeDocumentTemplate.subheading && (
-                <p className="text-sm font-medium text-gray-700">{activeDocumentTemplate.subheading}</p>
-              )}
+
               <h2 className="text-center text-lg font-semibold text-gray-900">
-                {activeDocumentTemplate.heading}
+                {selectedDocument.Title || "Document"}
               </h2>
-              <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
-                {activeDocumentTemplate.paragraphs.map((paragraph, idx) => (
-                  <p key={idx}>{paragraph}</p>
-                ))}
+
+              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                {processedBody || "No content available."}
               </div>
 
+              {/* Student Details Table */}
               <div className="border border-gray-300 rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
                   <tbody>
-                    {activeDocumentTemplate.fieldKeys.map((fieldKey) => (
-                      <tr key={fieldKey} className="border-t border-gray-200 first:border-t-0">
-                        <td className="bg-gray-50 font-medium px-4 py-2 w-1/3">{fieldKey}</td>
-                        <td className="px-4 py-2 text-gray-800">{getStudentFieldValue(fieldKey)}</td>
+                    {defaultFieldKeys.map((fieldKey) => (
+                      <tr key={fieldKey} className="border-b border-gray-200 last:border-b-0">
+                        <td className="bg-gray-50 font-medium px-4 py-3 w-1/3 text-gray-700 border-r border-gray-200">
+                          {fieldKey}
+                        </td>
+                        <td className="px-4 py-3 text-gray-900">
+                          {getStudentFieldValue(fieldKey)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              <div className="space-y-3 text-sm text-gray-700 leading-relaxed">
-                {activeDocumentTemplate.closingLines.map((line, idx) => (
-                  <p key={idx}>{line}</p>
-                ))}
-              </div>
-
-              <div className="space-y-1 text-sm text-gray-900">
-                <p>Yours faithfully,</p>
-                <p className="font-semibold">{activeDocumentTemplate.signatureName}</p>
-                <p>{activeDocumentTemplate.signatureRole}</p>
-              </div>
+              {processedFooter && (
+                <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                  {processedFooter}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
@@ -951,7 +918,7 @@ export default function StudentProfile() {
               <Download size={16} /> Print
             </button>
             <button
-              onClick={() => setOpenDocumentId(null)}
+              onClick={() => setSelectedDocument(null)}
               className="h-10 px-4 rounded-lg bg-gray-800 text-white text-sm"
             >
               Close
@@ -1203,17 +1170,18 @@ export default function StudentProfile() {
       case "activity": return renderActivityContent()
       case "classes": return renderClassesContent()
       case "attendance": return renderAttendanceContent()
-      case "fees": return renderFeesContent()
-      case "receipts": return renderReceiptsContent()
-      case "related contacts": return renderRelatedContactsContent()
-      case "notes": return renderNotesContent()
-      case "attachments": return renderAttachmentsContent()
-      case "assignments": return renderAssignmentsContent()
-      case "grades": return renderGradesContent()
       case "create documents": return renderCreateDocumentsContent()
-      case "holidays": return renderHolidaysContent()
       default: return renderProfileContent()
     }
+  }
+
+  // Show loading state if studentdetails is not loaded yet
+  if (!studentdetails) {
+    return (
+      <div className="p-6 text-center text-gray-600">
+        Loading student profile...
+      </div>
+    );
   }
 
   return (
@@ -1223,17 +1191,27 @@ export default function StudentProfile() {
         {/* Header card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
           <div className="flex items-start gap-4">
-            <img src={`https://i.pravatar.cc/96?img=${(Number(id||1)%70)+1}`} className="h-16 w-16 rounded-full object-cover" />
+            {studentdetails?.ProfilePicture ? (
+              <img 
+                src={studentdetails.ProfilePicture} 
+                className="h-16 w-16 rounded-full object-cover" 
+                alt={studentName}
+              />
+            ) : (
+              <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
+                <User className="h-8 w-8 text-gray-400" />
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-xl font-semibold text-gray-900 truncate">{studentName}</h1>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Student</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <div>{studentdetails.Gender || "-"}</div>
+                <div>{studentdetails?.Gender || "-"}</div>
                   <div>{age ? `${age} years old` : "-"}</div>
 
-                  {studentdetails.MobilePhone ? (
+                  {studentdetails?.MobilePhone ? (
                     <div>{studentdetails.MobilePhone}</div>
                   ) : (
                     <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add phone')}>
@@ -1241,8 +1219,8 @@ export default function StudentProfile() {
                     </button>
                   )}
 
-                  <a className="text-blue-700" href={`mailto:${studentdetails.Email}`}>
-                    {studentdetails.Email}
+                  <a className="text-blue-700" href={`mailto:${studentdetails?.Email || ''}`}>
+                    {studentdetails?.Email || ''}
                   </a>
 
                 <div className="inline-flex items-center gap-1 text-emerald-700">

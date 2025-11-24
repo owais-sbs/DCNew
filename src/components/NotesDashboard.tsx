@@ -2,20 +2,16 @@ import { useEffect, useState } from "react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { NotebookPen, Users2, CalendarDays, Repeat2 } from "lucide-react"
 import ClassesScreen from "./ClassesScreen"
-import EventsScreen from "./EventsScreen"
-import AddEventModal from "./AddEventModal"
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", path: "/notes" },
-  { id: "classes", label: "Classes", path: "/notes/classes" },
-  { id: "events", label: "Events", path: "/notes/events" }
+  { id: "classes", label: "Classes", path: "/notes/classes" }
 ]
 
 export default function NotesDashboard() {
   const navigate = useNavigate()
   const location = useLocation()
   const [active, setActive] = useState("dashboard")
-  const [showAddEventModal, setShowAddEventModal] = useState(false)
 
   useEffect(() => {
     const f = tabs.find(t => location.pathname === t.path)
@@ -59,19 +55,6 @@ export default function NotesDashboard() {
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
               )}
             </button>
-            <button 
-              onClick={() => go(tabs[2])} 
-              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
-                active===tabs[2].id
-                  ? "text-blue-700 font-medium"
-                  : "text-gray-700 hover:text-gray-900"
-              }`}
-            >
-              <span>{tabs[2].label}</span>
-              {active === tabs[2].id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
-              )}
-            </button>
           </div>
         </div>
         <ClassesScreen />
@@ -79,63 +62,6 @@ export default function NotesDashboard() {
     );
   }
   
-  if (active === "events") {
-    return (
-      <div>
-        <div className="px-6 py-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">Classes & Events</h1>
-          
-          {/* Tabs */}
-          <div className="flex items-center gap-6 border-b border-gray-200 pb-3 mb-6">
-            <button 
-              onClick={() => go(tabs[0])} 
-              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
-                active===tabs[0].id
-                  ? "text-blue-700 font-medium"
-                  : "text-gray-700 hover:text-gray-900"
-              }`}
-            >
-              <span>{tabs[0].label}</span>
-              {active === tabs[0].id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
-              )}
-            </button>
-            <button 
-              onClick={() => go(tabs[1])} 
-              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
-                active===tabs[1].id
-                  ? "text-blue-700 font-medium"
-                  : "text-gray-700 hover:text-gray-900"
-              }`}
-            >
-              <span>{tabs[1].label}</span>
-              {active === tabs[1].id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
-              )}
-            </button>
-            <button 
-              onClick={() => go(tabs[2])} 
-              className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
-                active===tabs[2].id
-                  ? "text-blue-700 font-medium"
-                  : "text-gray-700 hover:text-gray-900"
-              }`}
-            >
-              <span>{tabs[2].label}</span>
-              {active === tabs[2].id && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
-              )}
-            </button>
-          </div>
-        </div>
-        <EventsScreen onAddEvent={() => setShowAddEventModal(true)} />
-        <AddEventModal 
-          isOpen={showAddEventModal} 
-          onClose={() => setShowAddEventModal(false)} 
-        />
-      </div>
-    );
-  }
 
   return (
     <div>

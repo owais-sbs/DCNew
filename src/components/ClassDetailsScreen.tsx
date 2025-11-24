@@ -27,41 +27,84 @@ import {
   Info,
   X,
   Loader2,
+  Star,
+  Flag,
+  StickyNote,
+  Users2,
 } from "lucide-react";
-
-const classData = {
-  title: "Advanced_AM_DCE1_PART 1",
-  subtitle: "General English with Exam Preparation, C1",
-  classCode: "0355/0005",
-  awardingBody: "ELT",
-  schedule: "Friday (9:00-10:30), Monday (9:00-10:30) and 3 more",
-  repeats: "Repeats weekly from 02-01-2025 to 31-05-2027",
-  price: "No fee",
-  teacher: "Colm Delmar1",
-  classroom: "Limerick",
-  totalLessons: 628,
-  totalLessonsHours: "942:00",
-  totalHoursTaught: "312:00",
-  createdBy: "Asif Omer",
-  createdDate: "02-01-2025 11:35",
-};
 
 const tabs = [
   { id: "lessons", label: "Lessons", icon: BookOpen },
   { id: "students", label: "Students", icon: Users },
-  { id: "fees", label: "Fees", icon: DollarSign },
-  { id: "receipts", label: "Receipts", icon: FileText },
-  { id: "notes", label: "Notes", icon: FileText },
-  { id: "attachments", label: "Attachments", icon: Paperclip },
-  { id: "assignments", label: "Assignments", icon: CheckSquare },
-  { id: "forms", label: "Forms", icon: FormInput },
-  { id: "gradebooks", label: "Gradebooks", icon: Award },
 ];
 
 export default function ClassDetailsScreen() {
   const { id } = useParams(); // id from URL (string)
   const [activeTab, setActiveTab] = useState("lessons");
   const [classInfo, setClassInfo] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+    const fetchClass = async () => {
+      try {
+        setLoading(true);
+        const response = await axiosInstance.get(`/Class/GetClassById`, {
+          params: { classId: Number(id) },
+        });
+        if (response?.data?.IsSuccess) {
+          setClassInfo(response.data.Data);
+        } else {
+          console.error("API returned error", response.data);
+        }
+      } catch (err) {
+        console.error("Error loading class:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClass();
+  }, [id]);
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const formatSchedule = (sessions: any[]) => {
+    if (!sessions || sessions.length === 0) return "No schedule";
+    const scheduleText = sessions
+      .map((s) => {
+        const day = s.DayOfWeek || "";
+        const startTime = s.StartTime
+          ? new Date(s.StartTime).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "";
+        const endTime = s.EndTime
+          ? new Date(s.EndTime).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "";
+        return `${day} (${startTime}-${endTime})`;
+      })
+      .join(", ");
+    return scheduleText;
+  };
+
+  const formatRepeats = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return "";
+    const start = formatDate(startDate);
+    const end = formatDate(endDate);
+    return `Repeats weekly from ${start} to ${end}`;
+  };
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -74,24 +117,26 @@ export default function ClassDetailsScreen() {
         );
       case "students":
         return <StudentsContent />;
-      case "fees":
-        return <FeesContent />;
-      case "receipts":
-        return <ReceiptsContent />;
-      case "notes":
-        return <NotesContent />;
-      case "attachments":
-        return <AttachmentsContent />;
-      case "assignments":
-        return <AssignmentsContent />;
-      case "forms":
-        return <FormsContent />;
-      case "gradebooks":
-        return <GradebooksContent />;
       default:
         return <LessonsContent classId={id!} />;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="px-6 py-6 flex items-center justify-center h-64">
+        <Loader2 className="animate-spin text-blue-500" size={32} />
+      </div>
+    );
+  }
+
+  if (!classInfo) {
+    return (
+      <div className="px-6 py-6 text-center text-gray-600">
+        Class not found
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -100,9 +145,9 @@ export default function ClassDetailsScreen() {
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <div className={`w-3 h-3 rounded-full ${classInfo.IsActive ? "bg-green-500" : "bg-red-500"}`}></div>
               <h1 className="text-2xl font-bold text-gray-800">
-                {classData.title}
+                {classInfo.ClassTitle || "Untitled Class"}
               </h1>
               <Edit className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
             </div>
@@ -125,74 +170,79 @@ export default function ClassDetailsScreen() {
             </div>
           </div>
 
-          <p className="text-gray-600 mb-6">{classData.subtitle}</p>
+          <p className="text-gray-600 mb-6">
+            {classInfo.ClassDescription || `${classInfo.ClassSubject || ""}${classInfo.ClassLevel ? `, ${classInfo.ClassLevel}` : ""}`.trim() || "No description"}
+          </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
             <div className="flex items-center gap-2">
               <BookOpen className="h-4 w-4 text-gray-400" />
               <span className="text-sm text-gray-600">Class code:</span>
-              <span className="text-sm font-medium">{classData.classCode}</span>
+              <span className="text-sm font-medium">{classInfo.ClassId || "N/A"}</span>
             </div>
             <div className="flex items-center gap-2">
               <Award className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Awarding body:</span>
+              <span className="text-sm text-gray-600">Subject:</span>
               <span className="text-sm font-medium">
-                {classData.awardingBody}
+                {classInfo.ClassSubject || "N/A"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-gray-400" />
               <span className="text-sm text-gray-600">Schedule:</span>
-              <span className="text-sm font-medium">{classData.schedule}</span>
+              <span className="text-sm font-medium">
+                {formatSchedule(classInfo.Sessions || [])}
+              </span>
               <Edit className="h-3 w-3 text-gray-400 cursor-pointer hover:text-gray-600" />
             </div>
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-gray-400" />
               <span className="text-sm text-gray-600">Price:</span>
-              <span className="text-sm font-medium">{classData.price}</span>
+              <span className="text-sm font-medium">
+                {classInfo.TeacherHourlyFees ? `€${classInfo.TeacherHourlyFees}/hr` : "No fee"}
+              </span>
               <Edit className="h-3 w-3 text-gray-400 cursor-pointer hover:text-gray-600" />
             </div>
             <div className="flex items-center gap-2">
               <GraduationCap className="h-4 w-4 text-gray-400" />
               <span className="text-sm text-gray-600">Teacher:</span>
               <span className="text-sm font-medium text-blue-600 cursor-pointer">
-                {classData.teacher}
+                Teacher ID: {classInfo.TeacherId || "N/A"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Classroom:</span>
-              <span className="text-sm font-medium">{classData.classroom}</span>
+              <span className="text-sm text-gray-600">Level:</span>
+              <span className="text-sm font-medium">{classInfo.ClassLevel || "N/A"}</span>
             </div>
             <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Total lessons:</span>
+              <Calendar className="h-4 w-4 text-gray-400" />
+              <span className="text-sm text-gray-600">Start date:</span>
               <span className="text-sm font-medium">
-                {classData.totalLessons}
+                {classInfo.StartDate ? formatDate(classInfo.StartDate) : "N/A"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-gray-400" />
+              <span className="text-sm text-gray-600">End date:</span>
+              <span className="text-sm font-medium">
+                {classInfo.EndDate ? formatDate(classInfo.EndDate) : "N/A"}
               </span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">
-                Total lessons hours:
-              </span>
+              <span className="text-sm text-gray-600">Status:</span>
               <span className="text-sm font-medium">
-                {classData.totalLessonsHours}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Total hours taught:</span>
-              <span className="text-sm font-medium">
-                {classData.totalHoursTaught}
+                {classInfo.IsActive ? "Active" : "Inactive"}
               </span>
             </div>
           </div>
 
-          <p className="text-xs text-gray-500">
-            Created by: {classData.createdBy} Created date:{" "}
-            {classData.createdDate}
-          </p>
+          {classInfo.StartDate && classInfo.EndDate && (
+            <p className="text-xs text-gray-500 mb-2">
+              {formatRepeats(classInfo.StartDate, classInfo.EndDate)}
+            </p>
+          )}
         </div>
 
         {/* Tabs - underline style */}
@@ -295,6 +345,65 @@ function LessonsContent({
     });
   };
 
+  const formatTime = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleTimeString(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+      });
+    } catch (e) {
+      return "12:00 AM";
+    }
+  };
+
+  const calculateDuration = (startString: string, endString: string): string => {
+    try {
+      const start = new Date(startString).getTime();
+      const end = new Date(endString).getTime();
+      const diffMs = end - start;
+      if (diffMs <= 0) return "N/A";
+
+      const totalMinutes = Math.floor(diffMs / 60000);
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+
+      if (hours > 0) {
+        return `${hours} hr${hours > 1 ? "s" : ""}${
+          minutes > 0 ? ` ${minutes} min${minutes > 1 ? "s" : ""}` : ""
+        }`;
+      }
+      return `${minutes} min${minutes > 1 ? "s" : ""}`;
+    } catch (e) {
+      return "N/A";
+    }
+  };
+
+  const ProgressBar = ({ green, red, gray }: { green: number; red: number; gray: number }) => {
+    const total = green + red + gray || 1;
+    const g = (green / total) * 100;
+    const r = (red / total) * 100;
+    const gr = 100 - g - r;
+    return (
+      <div className="h-3 w-48 rounded-full bg-gray-200 overflow-hidden flex text-xs relative">
+        {green > 0 && (
+          <div className="h-full flex items-center justify-center text-white font-semibold" style={{ width: `${g}%`, backgroundColor: "#2f9c6a", minWidth: green > 0 ? '20px' : '0' }}>
+            {green}
+          </div>
+        )}
+        {red > 0 && (
+          <div className="h-full flex items-center justify-center text-white font-semibold" style={{ width: `${r}%`, backgroundColor: "#ef5a66", minWidth: red > 0 ? '20px' : '0' }}>
+            {red}
+          </div>
+        )}
+        {gr > 0 && (
+          <div className="h-full bg-gray-300" style={{ width: `${gr}%` }} />
+        )}
+      </div>
+    );
+  };
+
   const fetchLessons = async () => {
     try {
       setLoading(true);
@@ -305,18 +414,16 @@ function LessonsContent({
       if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
         const mapped = res.data.Data.map((s: any) => ({
           scheduleId: s.ScheduleId,
-          date: formatDate(s.ClassStartDate),
-          weekday: s.DayOfWeek,
-          time: `${new Date(s.StartTime).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })} - ${new Date(s.EndTime).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}`,
-          teacher: { name: "-", initials: "-" },
-          room: "-",
-          students: 0,
+          time: formatTime(s.StartTime),
+          duration: calculateDuration(s.StartTime, s.EndTime),
+          className: s.ClassTitle,
+          subject: s.ClassSubject,
+          classroom: s.ClassRoomName || s.DayOfWeek,
+          location: s.ClassRoomName || s.DayOfWeek,
+          teacherNames: s.TeacherNames || [],
+          totalStudents: s.TotalStudents || 0,
+          presentCount: s.PresentCount || 0,
+          absentCount: s.AbsentCount || 0,
         }));
 
         setLessons(mapped);
@@ -344,6 +451,7 @@ function LessonsContent({
           name: s.StudentName,
           status: s.AttendanceStatus,
           classId: s.ClassId,
+          photo: s.Photo,
         }));
 
         setStudentsInSession(mapped);
@@ -452,41 +560,83 @@ function LessonsContent({
         </button>
       </div>
 
-      <div className="space-y-4 max-w-[70%] mx-auto">
+      <div className="space-y-4">
         {lessons.map((l, i) => (
           <article
             key={i}
             onClick={() => setSelectedLessonIdx(i)}
-            className="group cursor-pointer bg-white border-t border-r border-b border-white border-l-4 border-l-red-500 rounded-xl transition-transform duration-150 flex items-center hover:shadow-sm"
+            className="group cursor-pointer bg-white border-t border-r border-b border-white border-l-2 border-l-red-500 rounded-xl transition-transform duration-150 flex items-center hover:shadow-sm"
           >
-            <div className="p-4 grid grid-cols-[200px_1fr_auto] gap-4 items-center w-full">
-              {/* left: date/time */}
+            <div className="py-2 px-3 grid grid-cols-[75px_1fr_auto] gap-3 items-center w-full">
+              {/* Left: Time and Duration */}
               <div>
-                <div className="text-gray-900 font-semibold text-sm">
-                  {l.date}
+                <div className="text-gray-900 font-semibold text-base">{l.time}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{l.duration}</div>
+              </div>
+
+              {/* Middle: Class Details */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 text-gray-900">
+                  <span className="font-semibold text-sm">{l.className}</span>
+                  {l.subject && <span className="text-xs text-gray-500">({l.subject})</span>}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {l.weekday}, {l.time}
+                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
+                  <MapPin size={12} />
+                  <span>{l.classroom}</span>
                 </div>
               </div>
-              {/* middle: location & mini stats */}
-              <div>
-                <div className="flex items-center gap-2 text-gray-900">
-                  <span className="font-medium">{l.room}</span>
-                </div>
-                <div className="mt-2 flex items-center gap-4 text-gray-600 text-sm">
-                  <div className="flex items-center gap-1 text-sm">
-                    <Users className="h-4 w-4 text-gray-400" /> 0
+
+              {/* Right: Icons, Teacher, and Progress Bar */}
+              <div className="flex flex-col items-end gap-1.5">
+                {/* Top row: Stats icons */}
+                <div className="flex items-center gap-2.5 text-gray-600">
+                  <div className="flex items-center gap-1 text-xs">
+                    <Users2 size={14} className="text-gray-500" />
+                    {l.totalStudents}
+                  </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    <Plus size={14} className="text-gray-500" />
+                    0
+                  </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    <Copy size={14} className="text-gray-500" />
+                    0
                   </div>
                 </div>
-              </div>
-              {/* right: teacher */}
-              <div className="justify-self-end flex items-center gap-3">
-                <div className="hidden sm:block text-sm text-gray-700 max-w-[160px] truncate">
-                  {l.teacher.name}
-                </div>
-                <div className="h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold bg-indigo-500">
-                  {l.teacher.initials}
+
+                {/* Middle row: Teacher */}
+                {l.teacherNames.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-gray-700 truncate max-w-[120px]">
+                      {l.teacherNames.join(", ")}
+                    </div>
+                    <div className="h-7 w-7 rounded-full grid place-items-center text-white text-[10px] font-semibold bg-blue-500 flex-shrink-0">
+                      {l.teacherNames[0].split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Bottom row: More Stats and Progress Bar */}
+                <div className="flex items-center gap-2.5 text-gray-600">
+                  <div className="flex items-center gap-1 text-xs">
+                    <Star size={14} className="text-gray-500" />
+                    0
+                  </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    <Flag size={14} className="text-gray-500" />
+                    0
+                  </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    <StickyNote size={14} className="text-gray-500" />
+                    0
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ProgressBar 
+                      green={l.presentCount} 
+                      red={l.absentCount} 
+                      gray={l.totalStudents - l.presentCount - l.absentCount} 
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -495,7 +645,14 @@ function LessonsContent({
       </div>
 
       {showAddLessonModal && (
-        <AddLessonModal onClose={() => setShowAddLessonModal(false)} />
+        <AddLessonModal
+          classId={classId}
+          onClose={() => setShowAddLessonModal(false)}
+          onSuccess={() => {
+            setShowAddLessonModal(false);
+            fetchLessons();
+          }}
+        />
       )}
 
       {selectedLessonIdx !== null && (
@@ -511,12 +668,10 @@ function LessonsContent({
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <div>
                 <div className="text-lg font-semibold text-gray-900">
-                  {lessons[selectedLessonIdx].date} •{" "}
-                  {lessons[selectedLessonIdx].room}
+                  {lessons[selectedLessonIdx].time} - {lessons[selectedLessonIdx].className} ({lessons[selectedLessonIdx].subject})
                 </div>
                 <div className="text-sm text-gray-600">
-                  {lessons[selectedLessonIdx].weekday},{" "}
-                  {lessons[selectedLessonIdx].time}
+                  {lessons[selectedLessonIdx].classroom}
                 </div>
               </div>
               <button
@@ -592,20 +747,26 @@ function LessonsContent({
                   ) : (
                     studentsInSession.map((student, i) => (
                       <div
-                        key={student.studentId}
+                        key={student.id}
                         className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow relative"
                       >
                         <div className="flex items-center gap-3">
-                          <img
-                            src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
-                            alt={student.studentName}
-                            className="h-12 w-12 rounded-full object-cover border border-gray-200"
-                            onError={(e) => {
-                              const target =
-                                e.currentTarget as HTMLImageElement;
-                              target.style.display = "none";
-                            }}
-                          />
+                          {student.photo ? (
+                            <img
+                              src={student.photo}
+                              alt={student.name}
+                              className="h-12 w-12 rounded-full object-cover border border-gray-200"
+                              onError={(e) => {
+                                const target =
+                                  e.currentTarget as HTMLImageElement;
+                                target.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-full bg-indigo-100 border border-gray-200 flex items-center justify-center text-indigo-600 font-semibold text-sm">
+                              {student.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
 
                           <div className="flex-1 min-w-0">
                             {/* ✅ Attendance Pill */}
@@ -736,7 +897,7 @@ function LessonsContent({
                               onClick={() => {
                                 setOpenStudentMenu(null);
                                 navigate(
-                                  `/people/students/${student.studentId}`
+                                  `/people/students/${student.id}`
                                 );
                               }}
                             >
@@ -763,14 +924,7 @@ function LessonsContent({
                     <div className="font-semibold text-gray-800 mb-3">Edit</div>
                     <div className="space-y-2">
                       {[
-                        { label: "Teacher", path: "/people/teachers" },
-                        { label: "Date & time", path: "/calendar" },
-                        { label: "Cancel lesson", path: "/notes/classes" },
-                        { label: "Location", path: "/calendar/classroom" },
-                        {
-                          label: "Class details",
-                          path: "/notes/class-details",
-                        },
+                        { label: "Teacher", path: "/people/teachers" }
                       ].map((item) => (
                         <button
                           key={item.label}
@@ -788,24 +942,7 @@ function LessonsContent({
                     </div>
                     <div className="space-y-2">
                       {[
-                        { label: "Add students", path: null },
-                        {
-                          label: "Add prospects",
-                          path: "/people/prospects/new",
-                        },
-                        {
-                          label: "Add attachment",
-                          path: "/notes/class-details",
-                        },
-                        {
-                          label: "Add assignment",
-                          path: "/notes/class-details",
-                        },
-                        { label: "Invite to portal", path: "/compose" },
-                        {
-                          label: "Print register",
-                          path: "/reports/attendance",
-                        },
+                        { label: "Add students", path: null }
                       ].map((item) => (
                         <button
                           key={item.label}
@@ -1390,7 +1527,120 @@ function GradebooksContent() {
 }
 
 // Modal components (simplified for now)
-function AddLessonModal({ onClose }: { onClose: () => void }) {
+function AddLessonModal({
+  classId,
+  onClose,
+  onSuccess,
+}: {
+  classId: string;
+  onClose: () => void;
+  onSuccess?: () => void;
+}) {
+  const [form, setForm] = useState({
+    dayOfWeek: "Monday",
+    startTime: "",
+    endTime: "",
+    teacherId: "",
+  });
+  const [teachers, setTeachers] = useState<any[]>([]);
+  const [loadingTeachers, setLoadingTeachers] = useState(false);
+  const [teacherError, setTeacherError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchTeachers = async () => {
+      try {
+        setLoadingTeachers(true);
+        setTeacherError(null);
+        const response = await axiosInstance.get("/Teacher/GetAllTeachers", {
+          signal: controller.signal,
+        });
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+          setTeachers(response.data.Data);
+        } else {
+          setTeachers([]);
+          setTeacherError("No teachers available.");
+        }
+      } catch (error: any) {
+        if (controller.signal.aborted) return;
+        console.error("Failed to load teachers", error);
+        setTeacherError("Failed to load teachers. Please try again.");
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingTeachers(false);
+        }
+      }
+    };
+    fetchTeachers();
+    return () => controller.abort();
+  }, []);
+
+  const handleInputChange = (field: string, value: string) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError(null);
+
+    if (!form.dayOfWeek || !form.startTime || !form.endTime) {
+      setSubmitError("Day, start time and end time are required.");
+      return;
+    }
+    if (!form.teacherId) {
+      setSubmitError("Please select a teacher.");
+      return;
+    }
+
+    if (form.startTime >= form.endTime) {
+      setSubmitError("End time must be after start time.");
+      return;
+    }
+
+    const dayKey = form.dayOfWeek;
+    const payload = {
+      ClassId: Number(classId),
+      TeacherId: Number(form.teacherId),
+      Schedule: {
+        [dayKey]: [
+          {
+            StartTime: form.startTime,
+            EndTime: form.endTime,
+          },
+        ],
+      },
+    };
+
+    try {
+      setSubmitting(true);
+      const response = await axiosInstance.post(
+        "/Class/AddSessionsToClass",
+        payload
+      );
+      if (response.data?.IsSuccess) {
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          onClose();
+        }
+      } else {
+        setSubmitError(
+          response.data?.Message || "Failed to add lesson. Please try again."
+        );
+      }
+    } catch (error: any) {
+      console.error("Failed to add lesson", error);
+      setSubmitError(
+        error?.response?.data?.Message ||
+          "Failed to add lesson. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
@@ -1405,29 +1655,52 @@ function AddLessonModal({ onClose }: { onClose: () => void }) {
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="p-6">
-          <p className="text-gray-600 mb-4">
-            Select the lesson days and times, classroom and teacher
+        <form className="p-6 space-y-4" onSubmit={handleSubmit}>
+          <p className="text-gray-600">
+            Select the lesson day, times, and teacher. Only one teacher can be
+            assigned per lesson.
           </p>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date *
-              </label>
-              <input
-                type="text"
-                defaultValue="21-10-2025"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
+          {submitError && (
+            <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 px-3 py-2 text-sm">
+              {submitError}
             </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Day of week *
+            </label>
+            <select
+              value={form.dayOfWeek}
+              onChange={(e) => handleInputChange("dayOfWeek", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              required
+            >
+              {[
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday",
+              ].map((day) => (
+                <option key={day} value={day}>
+                  {day}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Start time *
               </label>
               <input
-                type="text"
-                placeholder="start time..."
+                type="time"
+                value={form.startTime}
+                onChange={(e) => handleInputChange("startTime", e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
               />
             </div>
             <div>
@@ -1435,69 +1708,59 @@ function AddLessonModal({ onClose }: { onClose: () => void }) {
                 End time *
               </label>
               <input
-                type="text"
-                placeholder="end time..."
+                type="time"
+                value={form.endTime}
+                onChange={(e) => handleInputChange("endTime", e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Classroom
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                <option>Limerick</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Online lesson link
-              </label>
-              <input
-                type="text"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Teacher *
-              </label>
-              <select className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                <option>Select Teacher</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Teacher hourly fee (optional)
-              </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                  €
-                </span>
-                <input
-                  type="text"
-                  className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg"
-                />
-              </div>
-            </div>
-            <button className="text-blue-600 text-sm hover:underline">
-              + Add another teacher
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Teacher *
+            </label>
+            <select
+              value={form.teacherId}
+              onChange={(e) => handleInputChange("teacherId", e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              required
+              disabled={loadingTeachers}
+            >
+              <option value="">
+                {loadingTeachers ? "Loading teachers..." : "Select teacher"}
+              </option>
+              {teachers.map((teacher) => (
+                <option key={teacher.Id} value={teacher.Id}>
+                  {[teacher.Name, teacher.Surname].filter(Boolean).join(" ")}
+                </option>
+              ))}
+            </select>
+            {teacherError && (
+              <p className="text-xs text-red-600 mt-1">{teacherError}</p>
+            )}
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              disabled={submitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 inline-flex items-center gap-2 disabled:opacity-70"
+            >
+              {submitting && (
+                <Loader2 className="h-4 w-4 animate-spin text-white" />
+              )}
+              Add lesson
             </button>
           </div>
-        </div>
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Add lesson
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   );
@@ -1510,6 +1773,7 @@ const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false)
    const [allStudents, setAllStudents] = useState<any[]>([])
    const [alreadyEnrolled, setAlreadyEnrolled] = useState<number[]>([])
    const [selectedToEnroll, setSelectedToEnroll] = useState<number[]>([])
+   const [sessionClassId, setSessionClassId] = useState<number | null>(null)
 
 
    const fetchAllStudents = async () => {
@@ -1525,6 +1789,10 @@ const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false)
       if(enrollRes.data?.IsSuccess){
         const ids = enrollRes.data.Data.map((s: any) => s.StudentId)
         setAlreadyEnrolled(ids)
+        // Get classId from the first student in the session (all students in a session belong to the same class)
+        if(enrollRes.data.Data.length > 0 && enrollRes.data.Data[0].ClassId) {
+          setSessionClassId(enrollRes.data.Data[0].ClassId)
+        }
       }
 
 
@@ -1548,11 +1816,10 @@ const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false)
     if(!scheduleId || selectedToEnroll.length === 0)
       return 
     
-    const classId = classId1
     const sessionId = scheduleId 
 
     try{
-      const response = await axiosInstance.post(`/Class/EnrollStudentToClassInBulk`, selectedToEnroll, { params: { classId, sessionId }})
+      const response = await axiosInstance.post(`/Class/EnrollStudentToClassInBulk`, selectedToEnroll, { params: { sessionId }})
       
       if(response.data?.IsSuccess){
         onClose()
