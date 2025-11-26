@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import axiosInstance from './axiosInstance'; 
 import Swal from "sweetalert2";
 import { 
-  ChevronDown, 
   Plus, 
   Info,
   SkipForward,
@@ -15,18 +14,25 @@ import {
 export default function AddClassForm() {
   const [formData, setFormData] = useState({
     title: "",
-    subject: "",
+    subject: "General English With Exam Preparation",
     level: "",
     description: "",
+    classCode: "",
+    year: "",
+    creditHours: "",
+    awardingBody: "",
+    bookCode: "",
+    classType: "",
     classRoomId: "",
     recurrence: "weekly",
     startDate: "",
     endDate: "",
-    days: [{ day: "Monday", startTime: "", endTime: "", teacherIds: [] as string[] }],
+    days: [{ day: "Monday", startTime: "", endTime: "", teacherId: "" }],
     pricingMethod: "skip",
     students: "skip",
     publishDate: ""
   });
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [teachers, setTeachers] = useState<any[]>([])
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false)
   const [teacherError, setTeacherError] = useState<string | null>(null)
@@ -37,7 +43,6 @@ export default function AddClassForm() {
   const [showClassroomModal, setShowClassroomModal] = useState(false)
   const [newClassroomName, setNewClassroomName] = useState("")
   const [savingClassroom, setSavingClassroom] = useState(false)
-  const [openTeacherDropdown, setOpenTeacherDropdown] = useState<number | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -66,17 +71,6 @@ export default function AddClassForm() {
     return () => controller.abort()
   }, [])
 
-  useEffect(() => {
-    if (openTeacherDropdown === null) return
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target as HTMLElement
-      if (!target.closest("[data-teacher-dropdown-root]")) {
-        setOpenTeacherDropdown(null)
-      }
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [openTeacherDropdown])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -120,7 +114,7 @@ export default function AddClassForm() {
   const addDay = () => {
     setFormData(prev => ({
       ...prev,
-      days: [...prev.days, { day: "Monday", startTime: "", endTime: "", teacherIds: [] }]
+      days: [...prev.days, { day: "Monday", startTime: "", endTime: "", teacherId: "" }]
     }));
   };
 
@@ -164,7 +158,7 @@ export default function AddClassForm() {
       WeekDay: day.day,
       StartTime: day.startTime,
       EndTime: day.endTime,
-      TeacherIds: day.teacherIds.map((id) => Number(id)).filter((id) => !Number.isNaN(id)),
+      TeacherIds: day.teacherId ? [Number(day.teacherId)].filter((id) => !Number.isNaN(id)) : [],
     }))
 
     if (scheduleEntries.some((entry) => !entry.StartTime || !entry.EndTime)) {
@@ -172,7 +166,7 @@ export default function AddClassForm() {
     }
 
     if (scheduleEntries.some((entry) => !entry.TeacherIds.length)) {
-      return Swal.fire("Required", "Please select at least one teacher for each schedule day.", "warning")
+      return Swal.fire("Required", "Please select a teacher for each schedule day.", "warning")
     }
 
     // 2. Build the final payload matching the C# model EXACTLY
@@ -183,6 +177,12 @@ export default function AddClassForm() {
       ClassSubject: formData.subject,
       ClassLevel: formData.level,
       ClassDescription: formData.description,
+      ClassCode: formData.classCode || null,
+      Year: formData.year || null,
+      CreditHours: formData.creditHours || null,
+      AwardingBody: formData.awardingBody || null,
+      BookCode: formData.bookCode || null,
+      ClassType: formData.classType || null,
       StartDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
       EndDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
       PublishDate: formData.publishDate ? new Date(formData.publishDate).toISOString() : null,
@@ -227,21 +227,6 @@ export default function AddClassForm() {
     }));
   };
 
-  const toggleTeacherSelection = (dayIndex: number, teacherId: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      days: prev.days.map((day, i) => {
-        if (i !== dayIndex) return day
-        const exists = day.teacherIds.includes(teacherId)
-        return {
-          ...day,
-          teacherIds: exists
-            ? day.teacherIds.filter((id) => id !== teacherId)
-            : [...day.teacherIds, teacherId],
-        }
-      }),
-    }))
-  }
 
   const handleCreateClassroom = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -314,22 +299,52 @@ export default function AddClassForm() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Class subject</label>
                   <input
                     type="text"
-                    value={formData.subject}
-                    onChange={(e) => handleInputChange('subject', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    value="General English With Exam Preparation"
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                     placeholder=""
+                    title="General English With Exam Preparation"
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Class level</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.level}
                     onChange={(e) => handleInputChange('level', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder=""
-                  />
+                  >
+                    <option value="">Select class level</option>
+                    <option value="200525">200525</option>
+                    <option value="a1">a1</option>
+                    <option value="A1">A1</option>
+                    <option value="A1 20 25">A1 20 25</option>
+                    <option value="A1 am">A1 am</option>
+                    <option value="A1(2)">A1(2)</option>
+                    <option value="A1(2) am">A1(2) am</option>
+                    <option value="A1(2) pm">A1(2) pm</option>
+                    <option value="A1(3) pm">A1(3) pm</option>
+                    <option value="a2">a2</option>
+                    <option value="A2">A2</option>
+                    <option value="A2 am">A2 am</option>
+                    <option value="A2 pm">A2 pm</option>
+                    <option value="A2(2) pm">A2(2) pm</option>
+                    <option value="am">am</option>
+                    <option value="B1">B1</option>
+                    <option value="B1 am">B1 am</option>
+                    <option value="B1 new am">B1 new am</option>
+                    <option value="B1 pm">B1 pm</option>
+                    <option value="B2">B2</option>
+                    <option value="b2">b2</option>
+                    <option value="B2 new am">B2 new am</option>
+                    <option value="B2(2) pm">B2(2) pm</option>
+                    <option value="C1">C1</option>
+                    <option value="C1 am">C1 am</option>
+                    <option value="C1 pm">C1 pm</option>
+                    <option value="C1(2) pm">C1(2) pm</option>
+                    <option value="p2">p2</option>
+                    <option value="pm">pm</option>
+                  </select>
                 </div>
               </div>
               
@@ -345,7 +360,89 @@ export default function AddClassForm() {
                 />
               </div>
               
-              <button className="text-blue-600 text-sm hover:underline">More details (optional) Show/Hide</button>
+              <button 
+                type="button"
+                onClick={() => setShowMoreDetails(!showMoreDetails)}
+                className="text-blue-600 text-sm hover:underline"
+              >
+                More details (optional) {showMoreDetails ? 'Hide' : 'Show'}
+              </button>
+              
+              {showMoreDetails && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Class code</label>
+                    <input
+                      type="text"
+                      value={formData.classCode}
+                      onChange={(e) => handleInputChange('classCode', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder=""
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
+                    <input
+                      type="text"
+                      value={formData.year}
+                      onChange={(e) => handleInputChange('year', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder=""
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Credit hours</label>
+                    <input
+                      type="text"
+                      value={formData.creditHours}
+                      onChange={(e) => handleInputChange('creditHours', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder=""
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Awarding body</label>
+                    <input
+                      type="text"
+                      value={formData.awardingBody}
+                      onChange={(e) => handleInputChange('awardingBody', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder=""
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Book code</label>
+                    <input
+                      type="text"
+                      value={formData.bookCode}
+                      onChange={(e) => handleInputChange('bookCode', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder=""
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Class type</label>
+                    <select
+                      value={formData.classType}
+                      onChange={(e) => handleInputChange('classType', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select class type</option>
+                      <option value="Regular">Regular</option>
+                      <option value="Intensive">Intensive</option>
+                      <option value="Part-time">Part-time</option>
+                      <option value="Full-time">Full-time</option>
+                      <option value="Online">Online</option>
+                      <option value="Hybrid">Hybrid</option>
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
@@ -480,73 +577,28 @@ export default function AddClassForm() {
                         className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
-                    <div data-teacher-dropdown-root>
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Teachers for this session
+                        Teacher for this session <span className="text-red-500">*</span>
                       </label>
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setOpenTeacherDropdown(
-                              openTeacherDropdown === index ? null : index
-                            )
-                          }
-                          disabled={isLoadingTeachers}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-left focus:ring-2 focus:ring-blue-500 focus:border-blue-500 flex items-center justify-between"
-                        >
-                          <span className="truncate text-sm text-gray-700">
-                            {day.teacherIds.length
-                              ? day.teacherIds
-                                  .map((id) => {
-                                    const teacher = teachers.find((t) => String(t.Id) === id)
-                                    return teacher
-                                      ? `${teacher.Name ?? ""} ${teacher.Surname ?? ""}`.trim()
-                                      : "Unknown"
-                                  })
-                                  .join(", ")
-                              : "Select teachers"}
-                          </span>
-                          <ChevronDown className="h-4 w-4 text-gray-400" />
-                        </button>
-                        {openTeacherDropdown === index && (
-                          <div className="absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                            {teachers.map((teacher) => {
-                              const value = String(teacher.Id)
-                              const checked = day.teacherIds.includes(value)
-                              return (
-                                <label
-                                  key={teacher.Id}
-                                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => toggleTeacherSelection(index, value)}
-                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span className="truncate">
-                                    {teacher.Name} {teacher.Surname}
-                                  </span>
-                                </label>
-                              )
-                            })}
-                            {!teachers.length && (
-                              <div className="px-3 py-2 text-sm text-gray-500">
-                                {isLoadingTeachers
-                                  ? "Loading teachers..."
-                                  : "No teachers available"}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                      <select
+                        value={day.teacherId}
+                        onChange={(e) => updateDay(index, 'teacherId', e.target.value)}
+                        disabled={isLoadingTeachers}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">
+                          {isLoadingTeachers ? "Loading teachers..." : "Select teacher"}
+                        </option>
+                        {teachers.map((teacher) => (
+                          <option key={teacher.Id} value={String(teacher.Id)}>
+                            {teacher.Name} {teacher.Surname}
+                          </option>
+                        ))}
+                      </select>
                       {teacherError && index === 0 && (
                         <p className="text-sm text-red-600 mt-1">{teacherError}</p>
                       )}
-                      <p className="text-xs text-gray-500 mt-1">
-                        Click to open the dropdown then check all teachers who teach this slot.
-                      </p>
                     </div>
                   </div>
                 ))}

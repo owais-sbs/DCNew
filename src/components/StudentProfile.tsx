@@ -217,7 +217,12 @@ export default function StudentProfile() {
   }
 
   const tabs = [
-    "Profile", "Activity", "Classes", "Attendance", "Create documents"
+    "Profile",
+    "Activity",
+    "Classes",
+    "Attendance",
+    "Attachments",
+    "Create documents"
   ]
 
   const renderActivityContent = () => (
@@ -1170,6 +1175,7 @@ export default function StudentProfile() {
       case "activity": return renderActivityContent()
       case "classes": return renderClassesContent()
       case "attendance": return renderAttendanceContent()
+      case "attachments": return renderAttachmentsContent()
       case "create documents": return renderCreateDocumentsContent()
       default: return renderProfileContent()
     }

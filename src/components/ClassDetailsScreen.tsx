@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "./axiosInstance";
 import AddStudentForm from "./AddStudentForm";
+import SessionDetailsModal from "./SessionDetailsModal";
 import {
   Edit,
   MessageSquare,
@@ -290,19 +291,10 @@ function LessonsContent({
   sessionsFromParent?: any[];
 }) {
   const [showAddLessonModal, setShowAddLessonModal] = useState(false);
-  const [selectedLessonIdx, setSelectedLessonIdx] = useState<number | null>(
-    null
-  );
-  const [openStudentMenu, setOpenStudentMenu] = useState<number | null>(null);
-  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [selectedLessonIdx, setSelectedLessonIdx] = useState<number | null>(null);
   const [lessons, setLessons] = useState<any[]>([]);
   const [classInfo, setClassInfo] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-
-  const [studentsInSession, setStudentsInSession] = useState<any[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(false);
-  const [updatingStudent, setUpdatingStudent] = useState<number | null>(null);
-  const [scheduledId, setScheduledId] = useState<number | null>(null);
   const [currentDate, setCurrentDate] = useState<string>(() => {
     const d = new Date();
     return d.toISOString().slice(0, 10); // yyyy-mm-dd
@@ -434,72 +426,6 @@ function LessonsContent({
       console.error("Error fetching lessons:", err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchStudentsForSession = async (scheduleId: number) => {
-    try {
-      setLoadingStudents(true);
-
-      const response = await axiosInstance.get(
-        `/Class/GetStudentsForSession?scheduleId=${scheduleId}&date=${currentDate}`
-      );
-
-      if (response.data?.IsSuccess) {
-        const mapped = response.data.Data.map((s: any) => ({
-          id: s.StudentId,
-          name: s.StudentName,
-          status: s.AttendanceStatus,
-          classId: s.ClassId,
-          photo: s.Photo,
-        }));
-
-        setStudentsInSession(mapped);
-      }
-    } catch (err) {
-      console.log("Error fetching students for sesssion:", err);
-    } finally {
-      setLoadingStudents(false);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedLessonIdx !== null) {
-      const selectedLesson = lessons[selectedLessonIdx];
-      setScheduledId(selectedLesson.scheduleId);
-      if (selectedLesson?.scheduleId) {
-        fetchStudentsForSession(selectedLesson.scheduleId);
-      }
-    }
-  }, [selectedLessonIdx, showEnrollModal!]);
-
-  const markAttendance = async (
-    classId: number,
-    studentId: number,
-    status: "Present" | "Absent" | "Late" | "Excused"
-  ) => {
-    try {
-      setUpdatingStudent(studentId);
-
-      const payload = {
-        classId: classId,
-        scheduleId: scheduledId,
-        studentId,
-        date: currentDate,
-        attendanceStatus: status,
-      };
-
-      const response = await axiosInstance.post("/Class/MarkAttendance", null, {
-        params: payload,
-      });
-      if (response.data.IsSuccess) {
-        fetchStudentsForSession(scheduledId!);
-      }
-    } catch (err) {
-      console.log("Error marking attendance", err);
-      alert("Failed to mark attnedance");
-    } finally {
-      setUpdatingStudent(null);
     }
   };
 
@@ -655,318 +581,25 @@ function LessonsContent({
         />
       )}
 
-      {selectedLessonIdx !== null && (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4"
-          onClick={() => setSelectedLessonIdx(null)}
-        >
-          <div
-            className="w-full max-w-7xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <div>
-                <div className="text-lg font-semibold text-gray-900">
-                  {lessons[selectedLessonIdx].time} - {lessons[selectedLessonIdx].className} ({lessons[selectedLessonIdx].subject})
-                </div>
-                <div className="text-sm text-gray-600">
-                  {lessons[selectedLessonIdx].classroom}
-                </div>
-              </div>
-              <button
-                className="text-gray-500 hover:text-gray-700"
-                onClick={() => setSelectedLessonIdx(null)}
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
-              {/* Main content: Students grid */}
-              <div className="p-6">
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    Students 9
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    {["Attendance", "Behaviour", "Grade", "Message"].map(
-                      (label) => (
-                        <button
-                          key={label}
-                          className="px-3 h-8 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1"
-                        >
-                          {label}
-                          <svg
-                            className="w-4 h-4 text-gray-400"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      )
-                    )}
-                  </div>
-                </div>
-
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-800">
-                    Students {studentsInSession.length}
-                  </h3>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-                  {loadingStudents ? (
-                    <div className="flex items-center justify-center h-40 col-span-full">
-                      <Loader2
-                        className="animate-spin text-blue-500"
-                        size={32}
-                      />
-                    </div>
-                  ) : studentsInSession.length === 0 ? (
-                    <div className="text-center text-gray-500 py-10 col-span-full">
-                      No students enrolled in this session.
-                    </div>
-                  ) : (
-                    studentsInSession.map((student, i) => (
-                      <div
-                        key={student.id}
-                        className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-shadow relative"
-                      >
-                        <div className="flex items-center gap-3">
-                          {student.photo ? (
-                            <img
-                              src={student.photo}
-                              alt={student.name}
-                              className="h-12 w-12 rounded-full object-cover border border-gray-200"
-                              onError={(e) => {
-                                const target =
-                                  e.currentTarget as HTMLImageElement;
-                                target.style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <div className="h-12 w-12 rounded-full bg-indigo-100 border border-gray-200 flex items-center justify-center text-indigo-600 font-semibold text-sm">
-                              {student.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-                            </div>
-                          )}
-
-                          <div className="flex-1 min-w-0">
-                            {/* ✅ Attendance Pill */}
-
-                            <div className="text-[16px] font-semibold text-gray-900 truncate">
-                              {student.name}
-                            </div>
-                            <div className="relative mt-3 group w-[260px]">
-                              {/* Default pill */}
-                              <button
-                                className={`w-full h-12 rounded-full border text-[15px] font-semibold transition-all
-                             ${
-                               student.status === "Present"
-                                 ? "bg-green-100 text-green-700 border-green-300"
-                                 : student.status === "Absent"
-                                 ? "bg-red-100 text-red-700 border-red-300"
-                                 : student.status === "Late"
-                                 ? "bg-yellow-100 text-yellow-700 border-yellow-300"
-                                 : student.status === "Excused"
-                                 ? "bg-gray-200 text-gray-600 border-gray-300 cursor-not-allowed"
-                                 : "bg-white text-gray-700 border-gray-300"
-                             }
-                           `}
-                                disabled={
-                                  student.status === "Excused" ||
-                                  updatingStudent === student.id
-                                }
-                              >
-                                {updatingStudent === student.id ? (
-                                  <Loader2 className="animate-spin w-5 h-5 mx-auto" />
-                                ) : (
-                                  student.status ?? "Take attendance"
-                                )}
-                              </button>
-
-                              {/* Hover actions - hidden if Excused */}
-                              {student.status !== "Excused" && (
-                                <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto">
-                                  <div className="w-full h-12 rounded-full border border-gray-300 bg-white overflow-hidden flex text-[15px] font-medium">
-                                    {/* Present */}
-                                    <button
-                                      className="flex-1 hover:bg-green-50 text-green-700"
-                                      onClick={() =>
-                                        markAttendance(
-                                          student.classId,
-                                          student.id,
-                                          "Present"
-                                        )
-                                      }
-                                    >
-                                      Present
-                                    </button>
-                                    <div className="w-px bg-gray-300" />
-
-                                    {/* Absent */}
-                                    <button
-                                      className="flex-1 hover:bg-red-50 text-red-700"
-                                      onClick={() =>
-                                        markAttendance(
-                                          student.classId,
-                                          student.id,
-                                          "Absent"
-                                        )
-                                      }
-                                    >
-                                      Absent
-                                    </button>
-                                    <div className="w-px bg-gray-300" />
-
-                                    {/* Late */}
-                                    <button
-                                      className="flex-1 hover:bg-yellow-50 text-yellow-700"
-                                      onClick={() =>
-                                        markAttendance(
-                                          student.classId,
-                                          student.id,
-                                          "Late"
-                                        )
-                                      }
-                                    >
-                                      Late
-                                    </button>
-                                    <div className="w-px bg-gray-300" />
-
-                                    {/* Excused */}
-                                    {/* <button
-                    className="flex-1 hover:bg-gray-100 text-gray-700"
-                    onClick={() => markAttendance(student.classId, student.id, "Excused")}
-                  >
-                    Excused
-                  </button> */}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Right side buttons */}
-                          <button
-                            className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
-                            onClick={() =>
-                              setOpenStudentMenu(
-                                openStudentMenu === i ? null : i
-                              )
-                            }
-                          >
-                            ⋯
-                          </button>
-                        </div>
-
-                        {/* Dropdown menu */}
-                        {openStudentMenu === i && (
-                          <div className="absolute right-3 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                              onClick={() => setOpenStudentMenu(null)}
-                            >
-                              Add/Edit note
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                              onClick={() => setOpenStudentMenu(null)}
-                            >
-                              Mark as excused
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                              onClick={() => {
-                                setOpenStudentMenu(null);
-                                navigate(
-                                  `/people/students/${student.id}`
-                                );
-                              }}
-                            >
-                              View profile
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
-                              onClick={() => setOpenStudentMenu(null)}
-                            >
-                              Remove from class
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Right sidebar */}
-              <aside className="border-l border-gray-200 p-6 bg-gray-50">
-                <div className="space-y-6">
-                  <div>
-                    <div className="font-semibold text-gray-800 mb-3">Edit</div>
-                    <div className="space-y-2">
-                      {[
-                        { label: "Teacher", path: "/people/teachers" }
-                      ].map((item) => (
-                        <button
-                          key={item.label}
-                          onClick={() => navigate(item.path)}
-                          className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-800 mb-3">
-                      Actions
-                    </div>
-                    <div className="space-y-2">
-                      {[
-                        { label: "Add students", path: null }
-                      ].map((item) => (
-                        <button
-                          key={item.label}
-                          onClick={() => {
-                            item.path
-                              ? navigate(item.path)
-                              : setShowEnrollModal(true);
-                          }}
-                          className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </aside>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showEnrollModal && (
-        <EnrollStudentsModal scheduleId = {scheduledId ?? 0} classId1 = {id ?? ""} onClose={() => setShowEnrollModal(false)} />
+      {selectedLessonIdx !== null && lessons[selectedLessonIdx] && (
+        <SessionDetailsModal
+          context="class"
+          lesson={{
+            id: String(lessons[selectedLessonIdx].scheduleId),
+            time: lessons[selectedLessonIdx].time,
+            duration: lessons[selectedLessonIdx].duration,
+            className: lessons[selectedLessonIdx].className,
+            subject: lessons[selectedLessonIdx].subject,
+            classroom: lessons[selectedLessonIdx].classroom,
+            teacherNames: lessons[selectedLessonIdx].teacherNames || [],
+            totalStudents: lessons[selectedLessonIdx].totalStudents,
+            presentCount: lessons[selectedLessonIdx].presentCount,
+            absentCount: lessons[selectedLessonIdx].absentCount,
+          }}
+          sessionId={lessons[selectedLessonIdx].scheduleId}
+          currentDate={currentDate}
+          onClose={() => setSelectedLessonIdx(null)}
+        />
       )}
     </>
   );
