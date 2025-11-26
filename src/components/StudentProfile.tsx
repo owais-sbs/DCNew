@@ -67,6 +67,7 @@ export default function StudentProfile() {
   const [activeTab, setActiveTab] = useState("profile")
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [openModal, setOpenModal] = useState<string | null>(null)
+  const [portalInviteOpen, setPortalInviteOpen] = useState(false)
   const [studentdetails, setStudent] = useState<any>(null)
   const [openDocumentId, setOpenDocumentId] = useState<string | null>(null)
   const documentContentRef = useRef<HTMLDivElement | null>(null)
@@ -848,21 +849,22 @@ export default function StudentProfile() {
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
       const margin = 12
-      const printableWidth = pageWidth - margin * 2
-      const printableHeight = (canvas.height * printableWidth) / canvas.width
+      const maxWidth = pageWidth - margin * 2
+      const maxHeight = pageHeight - margin * 2
 
-      let position = margin
-      let heightLeft = printableHeight
+      let renderWidth = maxWidth
+      let renderHeight = (canvas.height * renderWidth) / canvas.width
 
-      pdf.addImage(imgData, "PNG", margin, position, printableWidth, printableHeight)
-      heightLeft -= pageHeight - margin * 2
-
-      while (heightLeft > 0) {
-        pdf.addPage()
-        position = heightLeft - printableHeight + margin
-        pdf.addImage(imgData, "PNG", margin, position, printableWidth, printableHeight)
-        heightLeft -= pageHeight - margin * 2
+      if (renderHeight > maxHeight) {
+        const scale = maxHeight / renderHeight
+        renderHeight = maxHeight
+        renderWidth = renderWidth * scale
       }
+
+      const offsetX = (pageWidth - renderWidth) / 2
+      const offsetY = (pageHeight - renderHeight) / 2
+
+      pdf.addImage(imgData, "PNG", offsetX, offsetY, renderWidth, renderHeight)
 
       const sanitizedTitle = activeDocumentTemplate.heading.replace(/[^a-z0-9]+/gi, "-").toLowerCase()
       pdf.save(`${sanitizedTitle || "student-document"}.pdf`)
@@ -1163,7 +1165,12 @@ export default function StudentProfile() {
             <div>
               <div className="text-sm text-gray-500">Invitation</div>
               <div className="mt-1">
-                <button className="text-sm text-blue-600 hover:text-blue-700">Invite to portal</button>
+                <button
+                  onClick={() => setPortalInviteOpen(true)}
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                  Invite to portal
+                </button>
               </div>
               <div className="text-xs text-gray-500 mt-1">Abdurrakhim has created an account</div>
             </div>
@@ -1698,6 +1705,132 @@ export default function StudentProfile() {
                 <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
                   Enroll
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {portalInviteOpen && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4" onClick={() => setPortalInviteOpen(false)}>
+          <div
+            className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setPortalInviteOpen(false)}
+                  className="h-9 px-4 rounded-full border border-gray-300 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  × Close
+                </button>
+                <button className="h-9 px-4 rounded-full border border-gray-300 text-sm text-gray-700 hover:bg-gray-100">
+                  🖨 Print
+                </button>
+              </div>
+              <button className="h-9 px-4 rounded-full bg-blue-600 text-white text-sm hover:bg-blue-700">
+                ✉️ Send by email
+              </button>
+            </div>
+
+            <div className="p-6 space-y-8 bg-gray-50 overflow-y-auto">
+              <div className="bg-white border border-indigo-200 rounded-2xl shadow-sm p-6">
+                <h2 className="text-2xl font-semibold text-gray-900 text-center mb-4">How to invite people to Teach 'n Go</h2>
+                <p className="text-sm text-gray-700">
+                  Teach 'n Go is great for managing your classes and students. It gets better when teachers, students and related contacts are involved too!
+                </p>
+                <p className="text-sm text-gray-700 mt-2">
+                  You can send email invites or print out invitations to hand out. If an email is available, we recommend emailing the link to your school members for a smoother sign up. Links to download the mobile app are also included in the email.
+                </p>
+
+                <div className="mt-6 border border-indigo-200 rounded-2xl overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-indigo-200">
+                    <div className="p-4">
+                      <h3 className="text-center text-sm font-semibold text-gray-900 mb-3">Send email invitations</h3>
+                      <ol className="list-decimal text-sm text-gray-700 space-y-2 pl-5">
+                        <li>Click the "Send by email" button above.</li>
+                        <li>An email will be sent with instructions.</li>
+                        <li>The recipient will create an account and have access.</li>
+                      </ol>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-center text-sm font-semibold text-gray-900 mb-3">Give printed invitations</h3>
+                      <ol className="list-decimal text-sm text-gray-700 space-y-2 pl-5">
+                        <li>Print out the invitation.</li>
+                        <li>Hand them out to teachers or students and ask them to follow the instructions.</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-center text-xs text-gray-500 mt-3">Print invitations start on the page below</p>
+              </div>
+
+              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">You're invited to our school portal</h3>
+                    <p className="text-sm text-gray-500">Teach 'n Go</p>
+                  </div>
+                  <img src="https://app.teachngo.com/static/media/logo.5ae04983d16bf1c3a4e3.svg" alt="Teach 'n Go" className="h-10" />
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-gray-900 font-medium">Hello {studentName || "Student"},</p>
+                  <p className="text-sm text-gray-600">
+                    DCE English Language School is using Teach 'n Go to keep students updated this year. By joining you will be able to view attendance, lesson notes, homework and even your payments.
+                  </p>
+                  <p className="text-sm text-gray-600 font-semibold">
+                    Please create your account by our next lesson. It's super easy and only takes a minute!
+                  </p>
+                </div>
+
+                <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                  <div className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 text-sm">Join DCE English Language School</div>
+                  <div className="p-4 text-sm text-gray-700 space-y-2">
+                    <ol className="list-decimal space-y-2 pl-5">
+                      <li>Open your browser and go to <a href="https://app.teachngo.com/activate" className="text-blue-600 hover:underline">https://app.teachngo.com/activate</a></li>
+                      <li>Enter your activation code found in the table below</li>
+                      <li>Click on "Activate your code"</li>
+                      <li>Type in a <strong>Username</strong></li>
+                      <li>Type in a <strong>Password</strong></li>
+                      <li>Click on "Create your account"</li>
+                      <li>Done!</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                    <div className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 text-sm">Activation Codes</div>
+                    <div className="p-4 text-sm text-gray-700">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase">Student</div>
+                          <div className="text-sm font-medium text-gray-900">{studentName || "Student"}</div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 uppercase">Code</div>
+                          <div className="text-sm font-medium text-gray-900">{studentdetails?.PortalActivationCode || studentdetails?.IdNumber || "SENHpJN"}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 rounded-2xl p-4 flex gap-3 items-start">
+                  <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xl">💡</div>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div>
+                      <div className="font-semibold text-gray-900">How do I login after I have created my account?</div>
+                      <p>Simply go to <a href="https://app.teachngo.com" className="text-blue-600 hover:underline">https://app.teachngo.com</a> and enter your username and password.</p>
+                    </div>
+                    <div>
+                      <div className="font-semibold text-gray-900">I forgot my password. What do I do?</div>
+                      <p>You can reset your password by going to <a href="https://app.teachngo.com/forgotPassword" className="text-blue-600 hover:underline">https://app.teachngo.com/forgotPassword</a>. If that doesn't work please contact your teacher at DCE English Language School and they can reset the password for you.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
