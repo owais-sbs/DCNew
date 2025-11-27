@@ -252,6 +252,7 @@ function LessonsContent({
   const [studentsInSession, setStudentsInSession] = useState<any[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [updatingStudent, setUpdatingStudent] = useState<number | null>(null);
+  const [menuOpenFor, setMenuOpenFor] = useState<number | null>(null);
   const [scheduledId, setScheduledId] = useState<number | null>(null);
   const [currentDate, setCurrentDate] = useState<string>(() => {
     const d = new Date();
@@ -368,7 +369,7 @@ function LessonsContent({
   const markAttendance = async (
     classId: number,
     studentId: number,
-    status: "Present" | "Absent" | "Late" | "Excused"
+    status: "Present" | "Absent" | "Late" | "Excused" | "None"
   ) => {
     try {
       setUpdatingStudent(studentId);
@@ -637,7 +638,7 @@ function LessonsContent({
                                 {updatingStudent === student.id ? (
                                   <Loader2 className="animate-spin w-5 h-5 mx-auto" />
                                 ) : (
-                                  student.status ?? "Take attendance"
+                                  student.status || "Take attendance"
                                 )}
                               </button>
 
@@ -648,13 +649,11 @@ function LessonsContent({
                                     {/* Present */}
                                     <button
                                       className="flex-1 hover:bg-green-50 text-green-700"
-                                      onClick={() =>
-                                        markAttendance(
-                                          student.classId,
-                                          student.id,
-                                          "Present"
-                                        )
-                                      }
+                                       onClick={() => {
+  const toggle = student.status === "Present" ? "None" : "Present";
+  markAttendance(student.classId, student.id, toggle);
+}}
+
                                     >
                                       Present
                                     </button>
@@ -663,13 +662,10 @@ function LessonsContent({
                                     {/* Absent */}
                                     <button
                                       className="flex-1 hover:bg-red-50 text-red-700"
-                                      onClick={() =>
-                                        markAttendance(
-                                          student.classId,
-                                          student.id,
-                                          "Absent"
-                                        )
-                                      }
+                                         onClick={() => {
+  const toggle = student.status === "Absent" ? "None" : "Absent";
+  markAttendance(student.classId, student.id, toggle);
+}}
                                     >
                                       Absent
                                     </button>
@@ -678,13 +674,10 @@ function LessonsContent({
                                     {/* Late */}
                                     <button
                                       className="flex-1 hover:bg-yellow-50 text-yellow-700"
-                                      onClick={() =>
-                                        markAttendance(
-                                          student.classId,
-                                          student.id,
-                                          "Late"
-                                        )
-                                      }
+                                      onClick={() => {
+  const toggle = student.status === "Late" ? "None" : "Late";
+  markAttendance(student.classId, student.id, toggle);
+}}
                                     >
                                       Late
                                     </button>
@@ -704,52 +697,52 @@ function LessonsContent({
                           </div>
 
                           {/* Right side buttons */}
-                          <button
-                            className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
-                            onClick={() =>
-                              setOpenStudentMenu(
-                                openStudentMenu === i ? null : i
-                              )
-                            }
-                          >
-                            ⋯
-                          </button>
+                         <div className="relative">
+  <button
+    className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
+    onClick={() => setMenuOpenFor(menuOpenFor === student.id ? null : student.id)}
+  >
+    ⋯
+  </button>
+
+  {/* Dropdown */}
+  {menuOpenFor === student.id && (
+    <div className="
+      absolute right-0 mt-2 w-48 bg-white shadow-xl 
+      rounded-xl border border-gray-200 z-50
+      animate-fadeIn
+    ">
+      <button
+        className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left"
+        onClick={() => {
+  const toggle = student.status === "Excused" ? "None" : "Excused";
+  markAttendance(student.classId, student.id, toggle);
+  setMenuOpenFor(null);
+}}
+
+      >
+        <input type="checkbox" checked={student.status === "Excused"} readOnly />
+        <span>Mark as excused</span>
+      </button>
+
+      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left">
+        ✏️ Add / edit note
+      </button>
+
+      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left">
+        👁 View profile
+      </button>
+
+      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-red-50 text-red-600 text-left">
+        🗑 Remove from class
+      </button>
+    </div>
+  )}
+</div>
                         </div>
 
                         {/* Dropdown menu */}
-                        {openStudentMenu === i && (
-                          <div className="absolute right-3 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                              onClick={() => setOpenStudentMenu(null)}
-                            >
-                              Add/Edit note
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                              onClick={() => setOpenStudentMenu(null)}
-                            >
-                              Mark as excused
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                              onClick={() => {
-                                setOpenStudentMenu(null);
-                                navigate(
-                                  `/people/students/${student.studentId}`
-                                );
-                              }}
-                            >
-                              View profile
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
-                              onClick={() => setOpenStudentMenu(null)}
-                            >
-                              Remove from class
-                            </button>
-                          </div>
-                        )}
+                        
                       </div>
                     ))
                   )}

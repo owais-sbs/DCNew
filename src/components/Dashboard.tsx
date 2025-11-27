@@ -196,6 +196,8 @@ export default function Dashboard() {
   const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false)
   const [alreadyEnrolled, setAlreadyEnrolled] = useState<number[]>([])
   const [updatingStudent, setUpdatingStudent] = useState<number | null>(null)
+  const [menuOpenFor, setMenuOpenFor] = useState<number | null>(null);
+
 
 
   const fetchAllStudents = async () => {
@@ -350,7 +352,7 @@ export default function Dashboard() {
     }
   }
 
-  const markAttendance = async (classId: number, studentId: number, status: "Present" | "Absent" | "Late" | "Excused") => {
+  const markAttendance = async (classId: number, studentId: number, status: "Present" | "Absent" | "Late" | "Excused" | "None") => {
     try{
       setUpdatingStudent(studentId)
 
@@ -907,7 +909,7 @@ export default function Dashboard() {
               {updatingStudent === student.id ? (
                 <Loader2 className="animate-spin w-5 h-5 mx-auto" />
               ) : (
-                student.status ?? "Take attendance"
+                student.status || "Take attendance"
               )}
             </button>
 {student.status !== "Excused" && (
@@ -917,7 +919,11 @@ export default function Dashboard() {
                   {/* Present */}
                   <button
                     className="flex-1 hover:bg-green-50 text-green-700"
-                    onClick={() => markAttendance(student.classId, student.id, "Present")}
+                    onClick={() => {
+  const toggle = student.status === "Present" ? "None" : "Present";
+  markAttendance(student.classId, student.id, toggle);
+}}
+
                   >
                     Present
                   </button>
@@ -926,7 +932,11 @@ export default function Dashboard() {
                   {/* Absent */}
                   <button
                     className="flex-1 hover:bg-red-50 text-red-700"
-                    onClick={() => markAttendance(student.classId, student.id, "Absent")}
+                    onClick={() => {
+  const toggle = student.status === "Absent" ? "None" : "Absent";
+  markAttendance(student.classId, student.id, toggle);
+}}
+
                   >
                     Absent
                   </button>
@@ -935,7 +945,11 @@ export default function Dashboard() {
                   {/* Late */}
                   <button
                     className="flex-1 hover:bg-yellow-50 text-yellow-700"
-                    onClick={() => markAttendance(student.classId, student.id, "Late")}
+                    onClick={() => {
+  const toggle = student.status === "Late" ? "None" : "Late";
+  markAttendance(student.classId, student.id, toggle);
+}}
+
                   >
                     Late
                   </button>
@@ -972,9 +986,49 @@ export default function Dashboard() {
                                 />
                               </svg>
                             </button>
-                            <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
-                              ⋯
-                            </button>
+                            <div className="relative">
+  <button
+    className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
+    onClick={() => setMenuOpenFor(menuOpenFor === student.id ? null : student.id)}
+  >
+    ⋯
+  </button>
+
+  {/* Dropdown */}
+  {menuOpenFor === student.id && (
+    <div className="
+      absolute right-0 mt-2 w-48 bg-white shadow-xl 
+      rounded-xl border border-gray-200 z-50
+      animate-fadeIn
+    ">
+      <button
+        className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left"
+        onClick={() => {
+  const toggle = student.status === "Excused" ? "None" : "Excused";
+  markAttendance(student.classId, student.id, toggle);
+  setMenuOpenFor(null);
+}}
+
+      >
+        <input type="checkbox" checked={student.status === "Excused"} readOnly />
+        <span>Mark as excused</span>
+      </button>
+
+      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left">
+        ✏️ Add / edit note
+      </button>
+
+      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left">
+        👁 View profile
+      </button>
+
+      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-red-50 text-red-600 text-left">
+        🗑 Remove from class
+      </button>
+    </div>
+  )}
+</div>
+
                           </div>
                         </div>
                       </div>
