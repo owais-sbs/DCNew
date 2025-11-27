@@ -137,6 +137,14 @@ export default function AddClassForm() {
     // We type the initial value as an empty object that will match the C# model
     }, {} as { [key: string]: { StartTime: string, EndTime: string }[] });
 
+    const scheduleArray = formData.days.map(d => ({
+  WeekDay: d.day,
+  StartTime: d.startTime || "00:00",
+  EndTime: d.endTime || "00:00",
+  TeacherIds: formData.teacherAssignments.map(t => Number(t.teacherId))
+}));
+
+
 
     const teacherEntries = formData.teacherAssignments
       .filter((assignment) => assignment.teacherId)
@@ -164,7 +172,7 @@ export default function AddClassForm() {
       IsActive: true,  // Default value from your model
       CreatedBy: "system", // Or get from auth user
       UpdatedBy: "system", // Or get from auth user
-      Schedule: scheduleObject // The object we just built
+      Schedule: scheduleArray // The object we just built
     };
 
     console.log("Sending payload to API:", JSON.stringify(payload, null, 2));

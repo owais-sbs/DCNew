@@ -102,6 +102,9 @@ export default function PeopleDashboard() {
   const [students, setStudents] = useState<StudentRow[]>([])
   const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false)
   const [studentError, setStudentError] = useState<string | null>(null)
+  const [pageNumber, setPageNumber] = useState(1)
+  const pageSize = 5
+  const [totalCount, setTotalCount] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -110,12 +113,17 @@ export default function PeopleDashboard() {
       setIsLoadingStudents(true)
       setStudentError(null)
       try {
-        const response = await axiosInstance.get("/Student/GetAll", {
+        const response = await axiosInstance.get("/Student/GetAllWithPagination", {
+          params: { pageNumber, pageSize },
           signal: controller.signal
         })
 
-        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
-          setStudents(response.data.Data)
+        console.log(response.data)
+        console.log(response.data.Data.Data)
+        console.log(response.data.Data.TotalCount)
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data.Data)) {
+          setStudents(response.data.Data.Data)
+          setTotalCount(response.data.Data.TotalCount)
         } else {
           setStudents([])
           setStudentError("No student data available.")
@@ -134,7 +142,9 @@ export default function PeopleDashboard() {
     fetchStudents()
 
     return () => controller.abort()
-  }, [])
+  }, [pageNumber])
+
+  
 
   const getStudentName = (student: StudentRow) => {
     const lastName = student.Surname ?? student.LastName
@@ -172,7 +182,7 @@ export default function PeopleDashboard() {
   }
 
   const resolvedTabs = tabs.map((tab) =>
-    tab.id === "students" ? { ...tab, count: students.length } : tab
+    tab.id === "students" ? { ...tab, count: totalCount } : tab
   )
 
   const renderStudentTableBody = () => {
@@ -196,7 +206,7 @@ export default function PeopleDashboard() {
       )
     }
 
-    if (!students.length) {
+    if (!totalCount) {
       return (
         <tr>
           <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
@@ -298,7 +308,7 @@ export default function PeopleDashboard() {
         <div className="mt-6">
           <div className="flex items-center justify-between">
             <div className="text-xl font-semibold text-gray-800">
-              {isLoadingStudents ? "Loading students..." : `${students.length} Students`}
+              {isLoadingStudents ? "Loading students..." : `${totalCount} Students`}
             </div>
             <div className="flex items-center gap-3">
               <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
@@ -348,6 +358,23 @@ export default function PeopleDashboard() {
               {renderStudentTableBody()}
               </tbody>
             </table>
+            <div className="flex items-center justify-between px-4 py-4 bg-white border border-t-0 border-gray-200 rouded-b-xl">
+              <button
+                disabled={pageNumber === 1}
+                onClick={() => setPageNumber(p => p-1)}
+                className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
+              >Previous</button>
+              <div className="text-gray-600 text-sm">
+                Page {pageNumber} of {Math.ceil(totalCount/pageSize)}
+              </div>
+              <button
+                disabled={pageNumber >= Math.ceil(totalCount/pageSize)}
+                onClick={() => setPageNumber(p => p+1)}
+                className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
+              >
+                Next
+              </button>
+            </div>
           </div>
         </div>
       )}

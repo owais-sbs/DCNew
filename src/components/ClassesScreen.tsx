@@ -125,6 +125,10 @@ export default function ClassesScreen() {
   const [classroom, setClassroom] = useState<string>("All");
   const [classType, setClassType] = useState<string>("V"); // Note: API doesn't provide this
   const [status, setStatus] = useState<string>("All");
+  const [pageNumber, setPageNumber] = useState(1);
+  const pageSize = 5;
+  const [totalCount, setTotalCount] = useState(0);
+
 
   // Filter options (still hardcoded, see "Next Steps" below)
   const teacherOptions = useMemo(() => [
@@ -144,11 +148,11 @@ export default function ClassesScreen() {
       setLoading(true);
       setError(null);
       try {
-        const response = await axiosInstance.get('/Class/GetAllClasses');
+        const response = await axiosInstance.get('/Class/GetAllClassesWithPagination');
 
         if (response.data && response.data.IsSuccess) {
           // Map the API data to the component's 'ClassData' structure
-          const mappedData: ClassData[] = response.data.Data.map((apiClass: ApiClass) => {
+          const mappedData: ClassData[] = response.data.Data.Data.map((apiClass: ApiClass) => {
             // Generate dummy student count based on class ID for variety (5-25 students)
             const dummyStudentCount = (apiClass.ClassId % 20) + 5;
             
@@ -168,6 +172,7 @@ export default function ClassesScreen() {
             };
           });
           setClasses(mappedData);
+          setTotalCount(response.data.Data.TotalCount)
         } else {
           setError(response.data.Message || "Failed to fetch data.");
         }
@@ -180,7 +185,7 @@ export default function ClassesScreen() {
     };
 
     fetchClasses();
-  }, []); // Empty dependency array [] means this runs once when the component mounts
+  }, [pageNumber]); // Empty dependency array [] means this runs once when the component mounts
 
   // 6. FILTERING LOGIC
   // This memo recalculates the list only when the data or filters change
@@ -472,7 +477,31 @@ export default function ClassesScreen() {
               </tr>
             ))}
           </tbody>
+      
         </table>
+
+           <div className="flex items-center justify-between px-4 py-4 bg-white border-t border-gray-200">
+  <button
+    disabled={pageNumber === 1}
+    onClick={() => setPageNumber(p => p - 1)}
+    className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
+  >
+    Previous
+  </button>
+
+  <div className="text-gray-600 text-sm">
+    Page {pageNumber} of {Math.ceil(totalCount / pageSize)}
+  </div>
+
+  <button
+    disabled={pageNumber >= Math.ceil(totalCount / pageSize)}
+    onClick={() => setPageNumber(p => p + 1)}
+    className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
+  >
+    Next
+  </button>
+</div>  
+        
       </div>
 
       {/* Student List Tooltip */}
