@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "./contexts/SidebarContext";
 
 import ChatIcon from "./components/ChatIcon";
@@ -43,6 +43,10 @@ import ResetPassword from "./components/ResetPassword";
 import { AuthProvider } from "./components/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PrivateLayout from "./components/PrivateLayout";
+import StudentPortalLayout from "./components/student/StudentPortalLayout";
+import StudentDashboardPage from "./components/student/StudentDashboard";
+import StudentCalendarPage from "./components/student/StudentCalendar";
+import StudentClassesPage from "./components/student/StudentClasses";
 
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -591,6 +595,14 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Student portal (public demo) */}
+              <Route path="/student" element={<StudentPortalLayout />}>
+                <Route index element={<Navigate to="/student/dashboard" replace />} />
+                <Route path="dashboard" element={<StudentDashboardPage />} />
+                <Route path="calendar" element={<StudentCalendarPage />} />
+                <Route path="classes" element={<StudentClassesPage />} />
+              </Route>
 
             </Routes>
           </div>
