@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "./axiosInstance";
+import UnenrollStudentModal from "./UnenrollStudentModal";
 import AddStudentForm from "./AddStudentForm";
 import {
   Edit,
@@ -254,6 +255,8 @@ function LessonsContent({
   const [updatingStudent, setUpdatingStudent] = useState<number | null>(null);
   const [menuOpenFor, setMenuOpenFor] = useState<number | null>(null);
   const [scheduledId, setScheduledId] = useState<number | null>(null);
+  const [showUnenrollModal, setShowUnenrollModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [currentDate, setCurrentDate] = useState<string>(() => {
     const d = new Date();
     return d.toISOString().slice(0, 10); // yyyy-mm-dd
@@ -733,7 +736,11 @@ function LessonsContent({
         👁 View profile
       </button>
 
-      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-red-50 text-red-600 text-left">
+      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-red-50 text-red-600 text-left" onClick={() => {
+    setSelectedStudent(student);
+    setShowUnenrollModal(true);
+    setMenuOpenFor(null);
+  }}>
         🗑 Remove from class
       </button>
     </div>
@@ -820,11 +827,27 @@ function LessonsContent({
           </div>
         </div>
       )}
+      
 
       {showEnrollModal && (
         <EnrollStudentsModal scheduleId = {scheduledId ?? 0} classId1 = {id ?? ""} onClose={() => setShowEnrollModal(false)} />
       )}
+
+        {showUnenrollModal && (
+        <UnenrollStudentModal
+          student={selectedStudent}
+          classId={selectedStudent.classId}
+          onClose={() => setShowUnenrollModal(false)}
+          onSuccess={() => {
+            fetchStudentsForSession(scheduledId)
+          }}
+        />
+      )}
+
+
+      
     </>
+    
   );
 }
 
@@ -996,7 +1019,9 @@ function StudentsContent() {
             ))}
           </tbody>
         </table>
+        
       </div>
+      
 
       {/* {showEnrollModal && (
         <EnrollStudentsModal onClose={() => setShowEnrollModal(false)} />

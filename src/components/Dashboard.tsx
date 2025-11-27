@@ -5,6 +5,9 @@
 
 import React, { useMemo, useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
+import UnenrollStudentModal from "./UnenrollStudentModal"
+
+
 import {
   BookOpen,
   MapPin,
@@ -197,6 +200,9 @@ export default function Dashboard() {
   const [alreadyEnrolled, setAlreadyEnrolled] = useState<number[]>([])
   const [updatingStudent, setUpdatingStudent] = useState<number | null>(null)
   const [menuOpenFor, setMenuOpenFor] = useState<number | null>(null);
+  const [showUnenrollModal, setShowUnenrollModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+
 
 
 
@@ -1022,9 +1028,17 @@ export default function Dashboard() {
         👁 View profile
       </button>
 
-      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-red-50 text-red-600 text-left">
-        🗑 Remove from class
-      </button>
+      <button
+  className="flex items-center gap-2 w-full px-4 py-3 hover:bg-red-50 text-red-600 text-left"
+  onClick={() => {
+    setSelectedStudent(student);
+    setShowUnenrollModal(true);
+    setMenuOpenFor(null);
+  }}
+>
+  🗑 Remove from class
+</button>
+
     </div>
   )}
 </div>
@@ -1302,8 +1316,20 @@ export default function Dashboard() {
           {showAddStudent && (
             <AddStudentForm isOpen={showAddStudent} onClose={() => setShowAddStudent(false)} />
           )}
+       
+
         </>
       )}
+         {showUnenrollModal && (
+  <UnenrollStudentModal
+    student={selectedStudent}
+    classId={selectedStudent.classId}
+    onClose={() => setShowUnenrollModal(false)}
+    onSuccess={() => {
+      fetchStudents()
+    }}
+  />
+)}
     </div>
   )
 }
