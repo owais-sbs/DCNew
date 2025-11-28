@@ -1,27 +1,9 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Calendar, Star, Flag, Bell, MapPin, X, CheckSquare, BarChart, FileText, PenTool, Paperclip } from "lucide-react"
-
-const enrolledClasses = [
-  {
-    id: 1,
-    title: "Advanced_AM_DCE1_PART 1",
-    subject: "General English with Exam Preparation, C1",
-    schedule: "Friday (9:00-10:30), Monday (9:00-10:30) and 3 more"
-  },
-  {
-    id: 2,
-    title: "Advanced_AM_DCE1_PART 2",
-    subject: "General English with Exam Preparation, C1",
-    schedule: "Friday (9:00-10:30), Monday (9:00-10:30) and 3 more"
-  },
-  {
-    id: 3,
-    title: "Advanced_PM_DCE1_PART 1",
-    subject: "General English with Exam Preparation, C1",
-    schedule: "Friday (9:00-10:30), Monday (9:00-10:30) and 3 more"
-  }
-]
+import { useStudentClasses, STUDENT_PORTAL_ID } from "./useStudentClasses"
+import { useStudentUpcomingSession, UpcomingSession } from "./useStudentUpcomingSession"
+import { useStudentCompletedSessions, CompletedSession } from "./useStudentCompletedSessions"
 
 const upcomingLessons = [
   {
@@ -33,57 +15,6 @@ const upcomingLessons = [
     teacher: "Colm Delmar1",
     attendance: "late",
     attendanceText: "Abdul was late for this lesson",
-    goldStars: 0,
-    redFlags: 0,
-    grade: null,
-    lessonNotes: null,
-    personalNotes: null,
-    attachments: 0
-  }
-]
-
-const pastLessons = [
-  {
-    id: 1,
-    date: "27-11-2025",
-    time: "9:00 - 10:30",
-    title: "Advanced_AM_DCE1_PART 1",
-    location: "Limerick",
-    teacher: "Colm Delmar1",
-    attendance: "present",
-    attendanceText: "Abdul was present for this lesson",
-    goldStars: 0,
-    redFlags: 0,
-    grade: null,
-    lessonNotes: null,
-    personalNotes: null,
-    attachments: 0
-  },
-  {
-    id: 2,
-    date: "26-11-2025",
-    time: "9:00 - 10:30",
-    title: "Advanced_AM_DCE1_PART 1",
-    location: "Limerick",
-    teacher: "Colm Delmar1",
-    attendance: "present",
-    attendanceText: "Abdul was present for this lesson",
-    goldStars: 0,
-    redFlags: 0,
-    grade: null,
-    lessonNotes: null,
-    personalNotes: null,
-    attachments: 0
-  },
-  {
-    id: 3,
-    date: "25-11-2025",
-    time: "9:00 - 10:30",
-    title: "Advanced_AM_DCE1_PART 1",
-    location: "Limerick",
-    teacher: "Colm Delmar1",
-    attendance: "present",
-    attendanceText: "Abdul was present for this lesson",
     goldStars: 0,
     redFlags: 0,
     grade: null,
@@ -108,14 +39,36 @@ type Lesson = {
   lessonNotes: string | null
   personalNotes: string | null
   attachments: number
+  classId?: number | null
+  teacherId?: number | null
+  dayOfWeek?: string | null
 }
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
   const [lessonTab, setLessonTab] = useState<"upcoming" | "past">("upcoming")
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
+  const { classes: enrolledClasses, loading: classesLoading, error: classesError } = useStudentClasses(STUDENT_PORTAL_ID)
+  const { session: upcomingSession, loading: sessionLoading, error: sessionError } = useStudentUpcomingSession(STUDENT_PORTAL_ID)
+  const { sessions: completedSessions, loading: completedLoading, error: completedError } = useStudentCompletedSessions(
+    STUDENT_PORTAL_ID
+  )
 
-  const lessons = lessonTab === "upcoming" ? upcomingLessons : pastLessons
+  const { list: upcomingLessonList, message: upcomingMessage } = buildUpcomingLessonList(
+    upcomingSession,
+    sessionLoading,
+    sessionError
+  )
+
+  const lessons =
+    lessonTab === "upcoming"
+      ? upcomingLessonList
+      : buildPastLessonsList(completedSessions, completedLoading, completedError).list
+
+  const lessonsMessage =
+    lessonTab === "upcoming"
+      ? upcomingMessage
+      : buildPastLessonsList(completedSessions, completedLoading, completedError).message
 
   const handleLessonClick = (lesson: Lesson) => {
     setSelectedLesson(lesson)
@@ -341,78 +294,190 @@ export default function StudentDashboard() {
             <button className="text-xs font-medium text-indigo-600 hover:text-indigo-700">View all lessons in calendar</button>
           </div>
           <div className="space-y-4">
-            {lessons.map((lesson, idx) => (
-              <div
-                key={idx}
-                onClick={() => handleLessonClick(lesson)}
-                className="bg-white border border-gray-100 rounded-2xl shadow-sm px-5 py-4 flex items-center justify-between relative cursor-pointer hover:border-indigo-200 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="relative pr-4">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-full bg-rose-400"></div>
-                    <div className="pl-3 text-sm text-gray-600">
-                      <div className="font-semibold text-gray-900">{lesson.date}</div>
-                      <div>{lesson.time}</div>
-                      <div className="flex items-center gap-1 text-xs text-gray-500 mt-2">
-                        <MapPin size={14} className="text-gray-400" />
-                        {lesson.location}
+            {lessons.length === 0 ? (
+              <div className="py-6 text-center text-sm text-gray-500">{lessonsMessage || "No lessons available."}</div>
+            ) : (
+              lessons.map((lesson, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleLessonClick(lesson)}
+                  className="bg-white border border-gray-100 rounded-2xl shadow-sm px-5 py-4 flex items-center justify-between relative cursor-pointer hover:border-indigo-200 transition-colors"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="relative pr-4">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 rounded-full bg-rose-400"></div>
+                      <div className="pl-3 text-sm text-gray-600">
+                        <div className="font-semibold text-gray-900">{lesson.date}</div>
+                        <div>{lesson.time}</div>
+                        <div className="flex items-center gap-1 text-xs text-gray-500 mt-2">
+                          <MapPin size={14} className="text-gray-400" />
+                          {lesson.location}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-gray-900">{lesson.title}</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-gray-500">
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-purple-200 text-purple-700 grid place-items-center text-xs font-semibold">
-                      CD
+                    <div>
+                      <div className="text-sm font-semibold text-gray-900">{lesson.title}</div>
+                      {(lesson.classId !== undefined || lesson.teacherId !== undefined) && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          Class ID: {lesson.classId ?? "—"} • Teacher ID: {lesson.teacherId ?? "—"}
+                        </div>
+                      )}
                     </div>
-                    <span className="text-sm font-medium text-gray-700">{lesson.teacher}</span>
                   </div>
-                  <div className="flex items-center gap-3 text-gray-400 text-sm">
-                    <span className="flex items-center gap-1">
-                      <span className="text-lg">🗒</span>0
-                    </span>
-                    <span className="flex items-center gap-1 text-yellow-500">
-                      <Star size={14} /> 0
-                    </span>
-                    <span className="flex items-center gap-1 text-rose-500">
-                      <Flag size={14} /> 0
-                    </span>
+                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-2">
+                      <div className="h-8 w-8 rounded-full bg-purple-200 text-purple-700 grid place-items-center text-xs font-semibold">
+                        CD
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">{lesson.teacher}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-gray-400 text-sm">
+                      <span className="flex items-center gap-1">
+                        <span className="text-lg">🗒</span>0
+                      </span>
+                      <span className="flex items-center gap-1 text-yellow-500">
+                        <Star size={14} /> 0
+                      </span>
+                      <span className="flex items-center gap-1 text-rose-500">
+                        <Flag size={14} /> 0
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-700">Enrolled classes</h3>
-            <button className="text-xs font-medium text-indigo-600 hover:text-indigo-700">View all</button>
+            <button className="text-xs font-medium text-indigo-600 hover:text-indigo-700" onClick={() => navigate("/student/classes")}>
+              View all
+            </button>
           </div>
-          <div className="divide-y divide-gray-100">
-            {enrolledClasses.map((cls, idx) => (
-              <div 
-                key={idx} 
-                onClick={() => handleClassClick(cls.id)}
-                className="py-3 flex items-start gap-3 cursor-pointer hover:bg-gray-50 transition-colors"
-              >
-                <span className="mt-1 h-2 w-2 rounded-full bg-red-500"></span>
-                <div>
-                  <div className="text-sm font-medium text-indigo-600 hover:text-indigo-700">{cls.title}</div>
-                  <div className="text-xs text-gray-500">{cls.subject}</div>
-                  <div className="text-xs text-gray-500 mt-1">{cls.schedule}</div>
+          {classesLoading ? (
+            <div className="py-6 text-center text-sm text-gray-500">Loading classes...</div>
+          ) : classesError ? (
+            <div className="py-6 text-center text-sm text-red-500">{classesError}</div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {enrolledClasses.map((cls) => (
+                <div
+                  key={cls.id}
+                  onClick={() => handleClassClick(cls.id)}
+                  className="py-3 flex items-start gap-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <span className="mt-1 h-2 w-2 rounded-full bg-red-500"></span>
+                  <div>
+                    <div className="text-sm font-medium text-indigo-600 hover:text-indigo-700">{cls.title || "Untitled class"}</div>
+                    <div className="text-xs text-gray-500">
+                      {cls.code && <span className="mr-2">{cls.code}</span>}
+                      {formatDateRange(cls.startDate, cls.endDate)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1 line-clamp-2">{cls.description || "No description available."}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+              {enrolledClasses.length === 0 && <div className="py-6 text-center text-sm text-gray-500">No classes found.</div>}
+            </div>
+          )}
         </div>
       </div>
 
       {renderLessonModal()}
     </div>
   )
+}
+
+const formatDateValue = (value?: string | null) => {
+  if (!value) return "—"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "—"
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+}
+
+const formatDateRange = (start?: string | null, end?: string | null) => {
+  if (!start && !end) return "Dates TBD"
+  if (start && end) return `${formatDateValue(start)} - ${formatDateValue(end)}`
+  if (start) return `Starts ${formatDateValue(start)}`
+  return `Ends ${formatDateValue(end)}`
+}
+
+const formatTimeRange = (start?: string | null, end?: string | null) => {
+  if (!start) return "—"
+  const startDate = new Date(start)
+  const endDate = end ? new Date(end) : null
+  const startTime = startDate.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+  const endTime = endDate ? endDate.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : null
+  return endTime ? `${startTime} - ${endTime}` : startTime
+}
+
+const buildUpcomingLessonList = (session: UpcomingSession | null, loading: boolean, error: string | null) => {
+  if (loading) {
+    return { list: [], message: "Loading upcoming lesson..." }
+  }
+  if (error) {
+    return { list: [], message: error }
+  }
+  if (!session) {
+    return { list: [], message: "No upcoming lessons scheduled." }
+  }
+
+  const lesson: Lesson = {
+    id: session.id,
+    date: formatDateValue(session.startTime || session.date),
+    time: formatTimeRange(session.startTime, session.endTime),
+    title: `Class ID: ${session.classId ?? "—"}`,
+    location: session.dayOfWeek || "Day not provided",
+    teacher: session.teacherId ? `Teacher ID: ${session.teacherId}` : "Teacher not assigned",
+    attendance: "upcoming",
+    attendanceText: "Upcoming lesson",
+    goldStars: 0,
+    redFlags: 0,
+    grade: null,
+    lessonNotes: null,
+    personalNotes: null,
+    attachments: 0,
+    classId: session.classId,
+    teacherId: session.teacherId,
+    dayOfWeek: session.dayOfWeek
+  }
+
+  return { list: [lesson], message: null }
+}
+
+const buildPastLessonsList = (sessions: CompletedSession[], loading: boolean, error: string | null) => {
+  if (loading) {
+    return { list: [], message: "Loading past lessons..." }
+  }
+  if (error) {
+    return { list: [], message: error }
+  }
+  if (!sessions.length) {
+    return { list: [], message: "No past lessons available." }
+  }
+
+  const list = sessions.map((session) => ({
+    id: session.id,
+    date: formatDateValue(session.startTime || session.date),
+    time: formatTimeRange(session.startTime, session.endTime),
+    title: `Class ID: ${session.classId ?? "—"}`,
+    location: session.dayOfWeek || "Day not provided",
+    teacher: session.teacherId ? `Teacher ID: ${session.teacherId}` : "Teacher not assigned",
+    attendance: "present",
+    attendanceText: "Abdul was present for this lesson",
+    goldStars: 0,
+    redFlags: 0,
+    grade: null,
+    lessonNotes: null,
+    personalNotes: null,
+    attachments: 0,
+    classId: session.classId,
+    teacherId: session.teacherId,
+    dayOfWeek: session.dayOfWeek
+  }))
+
+  return { list, message: null }
 }
 

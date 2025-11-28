@@ -1,43 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-
-const classes = [
-  {
-    id: 1,
-    title: "Advanced_AM_DCE1_PART 1",
-    subject: "General English with Exam Preparation, C1",
-    teacher: "Colm Delmar1",
-    schedule: "Friday (9:00-10:30), Monday (9:00-10:30), and 3 more",
-    status: "Active"
-  },
-  {
-    id: 2,
-    title: "Advanced_AM_DCE1_PART 2",
-    subject: "General English with Exam Preparation, C1",
-    teacher: "Colm Delmar1",
-    schedule: "Friday (9:00-10:30), Monday (9:00-10:30), and 3 more",
-    status: "Unenrolled"
-  },
-  {
-    id: 3,
-    title: "Advanced_PM_DCE1_PART 1",
-    subject: "General English with Exam Preparation, C1",
-    teacher: "Colm Delmar1",
-    schedule: "Friday (9:00-10:30), Monday (9:00-10:30), and 3 more",
-    status: "Unenrolled"
-  }
-]
-
-const lessons = Array.from({ length: 20 }, (_, index) => ({
-  date: `${25 + index}-11-2025`,
-  time: "9:00-10:30",
-  title: "Advanced_AM_DCE1_PART 1",
-  location: "Limerick",
-  attendance: index === 0 ? "Present" : "",
-  behaviour: "",
-  grade: "",
-  notes: ""
-}))
+import { useStudentClasses, STUDENT_PORTAL_ID } from "./useStudentClasses"
+import { useStudentCompletedSessions } from "./useStudentCompletedSessions"
 
 const attendanceSummary = [
   { label: "Present", time: "0", count: 0, percentage: 0, color: "bg-emerald-500" },
@@ -49,6 +13,10 @@ const attendanceSummary = [
 export default function StudentClasses() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<"classes" | "lessons" | "attendance" | "grades" | "assignments">("classes")
+  const { classes: studentClasses, loading: classesLoading, error: classesError } = useStudentClasses(STUDENT_PORTAL_ID)
+  const { sessions: completedSessions, loading: completedLoading, error: completedError } = useStudentCompletedSessions(
+    STUDENT_PORTAL_ID
+  )
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -58,7 +26,9 @@ export default function StudentClasses() {
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold text-gray-700">Classes you have been enrolled in</h3>
-                <p className="text-xs text-gray-500">Showing {classes.length} classes</p>
+                <p className="text-xs text-gray-500">
+                  {classesLoading ? "Loading classes..." : `Showing ${studentClasses.length} classes`}
+                </p>
               </div>
               <label className="flex items-center gap-2 text-xs text-gray-500">
                 <input type="checkbox" className="rounded border-gray-300" defaultChecked />
@@ -66,66 +36,63 @@ export default function StudentClasses() {
               </label>
             </div>
 
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium">Class</th>
-                  <th className="px-4 py-3 text-left font-medium">Teacher</th>
-                  <th className="px-4 py-3 text-left font-medium">Recurring day/time</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-left font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classes.map((cls, idx) => (
-                  <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-red-500"></span>
-                        <div>
+            {classesLoading ? (
+              <div className="py-10 text-center text-sm text-gray-500">Loading classes...</div>
+            ) : classesError ? (
+              <div className="py-10 text-center text-sm text-red-500">{classesError}</div>
+            ) : (
+              <>
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium">Class title</th>
+                      <th className="px-4 py-3 text-left font-medium">Class code</th>
+                      <th className="px-4 py-3 text-left font-medium">Description</th>
+                      <th className="px-4 py-3 text-left font-medium">Start date</th>
+                      <th className="px-4 py-3 text-left font-medium">End date</th>
+                      <th className="px-4 py-3 text-left font-medium">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentClasses.map((cls) => (
+                      <tr key={cls.id} className="border-t border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-3">
                           <button
                             onClick={() => navigate(`/student/classes/${cls.id}`)}
                             className="text-indigo-600 font-medium hover:text-indigo-700 hover:underline text-left"
                           >
-                            {cls.title}
+                            {cls.title || "Untitled class"}
                           </button>
-                          <div className="text-xs text-gray-500">{cls.subject}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">{cls.teacher}</td>
-                    <td className="px-4 py-3 text-gray-700">{cls.schedule}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          cls.status === "Active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-rose-100 text-rose-700"
-                        }`}
-                      >
-                        {cls.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-400">
-                      <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">
-                        📄
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{cls.code || "—"}</td>
+                        <td className="px-4 py-3 text-gray-700">{cls.description || "No description"}</td>
+                        <td className="px-4 py-3 text-gray-700">{formatDateValue(cls.startDate)}</td>
+                        <td className="px-4 py-3 text-gray-700">{formatDateValue(cls.endDate)}</td>
+                        <td className="px-4 py-3 text-gray-400">
+                          <button
+                            onClick={() => navigate(`/student/classes/${cls.id}`)}
+                            className="h-8 px-3 rounded-lg border border-gray-200 hover:bg-gray-100 text-xs"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
 
-            <div className="p-4 flex items-center justify-between text-xs text-gray-500 border-t border-gray-100">
-              <div>
-                Showing 1 - {classes.length} of {classes.length} entries
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">‹</button>
-                <span className="text-gray-900 font-medium">1</span>
-                <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">›</button>
-              </div>
-            </div>
+                <div className="p-4 flex items-center justify-between text-xs text-gray-500 border-t border-gray-100">
+                  <div>
+                    Showing 1 - {studentClasses.length} of {studentClasses.length} entries
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">‹</button>
+                    <span className="text-gray-900 font-medium">1</span>
+                    <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">›</button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )
       case "lessons":
@@ -334,5 +301,12 @@ export default function StudentClasses() {
       {renderTabContent()}
     </div>
   )
+}
+
+const formatDateValue = (value?: string | null) => {
+  if (!value) return "—"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "—"
+  return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
 }
 

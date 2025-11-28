@@ -1,19 +1,7 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { RefreshCw, ChevronLeft } from "lucide-react"
-
-const classDetails = {
-  id: 1,
-  title: "Advanced_AM_DCE1_PART 1",
-  subject: "General English with Exam Preparation, C1",
-  code: "0855/0005",
-  awardingBody: "ELT",
-  schedule: "Friday (9:00-10:30), Monday (9:00-10:30) and 1 more",
-  teacher: "Caim Dermot",
-  classroom: "Limerick",
-  totalLessonHours: "592.50",
-  totalHoursTaught: "04:30"
-}
+import { STUDENT_PORTAL_ID, useStudentClasses } from "./useStudentClasses"
 
 const lessons = Array.from({ length: 25 }, (_, index) => ({
   id: index + 1,
@@ -30,6 +18,10 @@ export default function StudentClassDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<"lessons" | "class-notes" | "attachments" | "assignments" | "gradebook">("lessons")
+  const { classes, loading, error } = useStudentClasses(STUDENT_PORTAL_ID)
+  const numericId = Number(id)
+  const classData = useMemo(() => classes.find((cls) => cls.id === numericId), [classes, numericId])
+  const rawClass = classData?.raw
 
   const getAttendanceButtonClass = (status: string) => {
     switch (status) {
@@ -48,6 +40,32 @@ export default function StudentClassDetail() {
     }
   }
 
+  if (loading) {
+    return <div className="p-6 text-sm text-gray-500">Loading class details...</div>
+  }
+
+  if (error) {
+    return <div className="p-6 text-sm text-red-500">{error}</div>
+  }
+
+  if (!classData) {
+    return (
+      <div className="p-6 text-sm text-gray-500">
+        Class not found.{" "}
+        <button className="text-indigo-600 hover:underline" onClick={() => navigate("/student/classes")}>
+          Go back to classes
+        </button>
+      </div>
+    )
+  }
+
+  const formatDate = (value?: string | null) => {
+    if (!value) return "—"
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return "—"
+    return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
@@ -59,7 +77,7 @@ export default function StudentClassDetail() {
         </button>
         <div>
           <h1 className="text-xl font-semibold text-gray-900">
-            {classDetails.title} ({classDetails.subject})
+            {classData.title || "Class Details"}
           </h1>
         </div>
       </div>
@@ -68,31 +86,35 @@ export default function StudentClassDetail() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 text-sm">
           <div>
             <div className="text-xs text-gray-500 mb-1">Class Code</div>
-            <div className="font-medium text-gray-900">{classDetails.code}</div>
+            <div className="font-medium text-gray-900">{classData.code || "—"}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500 mb-1">Awarding Body</div>
-            <div className="font-medium text-gray-900">{classDetails.awardingBody}</div>
+            <div className="font-medium text-gray-900">{rawClass?.AwardingBody || "—"}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500 mb-1">Schedule</div>
-            <div className="font-medium text-gray-900">{classDetails.schedule}</div>
+            <div className="font-medium text-gray-900">{rawClass?.ClassSubject || "General English"}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500 mb-1">Teacher</div>
-            <div className="font-medium text-gray-900">{classDetails.teacher}</div>
+            <div className="font-medium text-gray-900">{rawClass?.TeacherName || "—"}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500 mb-1">Classroom</div>
-            <div className="font-medium text-gray-900">{classDetails.classroom}</div>
+            <div className="font-medium text-gray-900">{rawClass?.ClassRoom || "—"}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 mb-1">Total Lessons Hours</div>
-            <div className="font-medium text-gray-900">{classDetails.totalLessonHours}</div>
+            <div className="text-xs text-gray-500 mb-1">Description</div>
+            <div className="font-medium text-gray-900">{classData.description || "No description"}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 mb-1">Total Hours Taught</div>
-            <div className="font-medium text-gray-900">{classDetails.totalHoursTaught}</div>
+            <div className="text-xs text-gray-500 mb-1">Start Date</div>
+            <div className="font-medium text-gray-900">{formatDate(classData.startDate)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-1">End Date</div>
+            <div className="font-medium text-gray-900">{formatDate(classData.endDate)}</div>
           </div>
         </div>
       </div>
@@ -162,7 +184,7 @@ export default function StudentClassDetail() {
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm text-gray-600">Your attendance, notes and performance for each lesson of the class.</p>
-              <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-500">01-01-2023 - 01-01-2000</span>
                 <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">
                   <RefreshCw size={16} className="text-gray-600" />
