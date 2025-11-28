@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import axiosInstance from "./axiosInstance";
 import AddStudentForm from "./AddStudentForm";
+import UnenrollStudentModal from "./UnenrollStudentModal";
 
 type SessionTeacherLesson = {
   id: string;
@@ -98,6 +99,8 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
   const [alreadyEnrolled, setAlreadyEnrolled] = useState<number[]>([]);
   const [selectedToEnroll, setSelectedToEnroll] = useState<number[]>([]);
   const [showAddStudent, setShowAddStudent] = useState(false);
+  const [showUnenrollModal, setShowUnenrollModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<StudentInSession | null>(null);
 
   const numericSessionId = useMemo(() => Number(sessionId), [sessionId]);
 
@@ -206,24 +209,10 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
     }
   };
 
-  const removeStudent = async (classId: number, studentId: number) => {
-    try {
-      setUpdatingStudent(studentId);
-      const response = await axiosInstance.delete(`/Class/RemoveStudentFromSession`, {
-        params: { classId, sessionId: numericSessionId, studentId },
-      });
-      if (response.data?.IsSuccess) {
-        fetchSessionStudents();
-        setOpenStudentMenu(null);
-      } else {
-        alert("Failed to remove student");
-      }
-    } catch (err) {
-      console.error("Error removing student", err);
-      alert("Failed to remove student");
-    } finally {
-      setUpdatingStudent(null);
-    }
+  const handleUnenrollClick = (student: StudentInSession) => {
+    setSelectedStudent(student);
+    setShowUnenrollModal(true);
+    setOpenStudentMenu(null);
   };
 
   const enrollStudents = async () => {
@@ -350,11 +339,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                   className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (window.confirm(`Remove ${student.name} from this session?`)) {
-                      removeStudent(student.classId, student.id);
-                    } else {
-                      setOpenStudentMenu(null);
-                    }
+                    handleUnenrollClick(student);
                   }}
                 >
                   Remove
@@ -617,6 +602,21 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
           </div>
           {showAddStudent && <AddStudentForm isOpen={showAddStudent} onClose={() => setShowAddStudent(false)} />}
         </div>
+      )}
+      {showUnenrollModal && selectedStudent && (
+        <UnenrollStudentModal
+          student={selectedStudent}
+          classId={selectedStudent.classId}
+          onClose={() => {
+            setShowUnenrollModal(false);
+            setSelectedStudent(null);
+          }}
+          onSuccess={() => {
+            fetchSessionStudents();
+            setShowUnenrollModal(false);
+            setSelectedStudent(null);
+          }}
+        />
       )}
     </div>
   );

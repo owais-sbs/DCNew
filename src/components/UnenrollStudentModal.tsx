@@ -60,8 +60,18 @@ export default function UnenrollStudentModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 grid place-items-center z-50">
-      <div className="bg-white w-full max-w-lg rounded-xl p-6">
+    <div 
+      className="fixed inset-0 bg-black/40 grid place-items-center z-[60]"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div 
+        className="bg-white w-full max-w-lg rounded-xl p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-start">
           <h2 className="text-xl font-bold">
             Unenroll {student.name}

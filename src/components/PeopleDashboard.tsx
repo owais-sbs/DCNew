@@ -8,7 +8,9 @@ import {
   UserPlus,
   ChevronDown,
   Download,
-  MoreHorizontal
+  MoreHorizontal,
+  Check,
+  Minus
 } from "lucide-react"
 import axiosInstance from "./axiosInstance"
 
@@ -25,6 +27,7 @@ type StudentRow = {
   IdNumber?: string | null
   TuitionFees?: number | string | null
   Photo?: string | null
+  IsActive?: boolean | null
 }
 
 type TeacherRow = {
@@ -103,7 +106,7 @@ export default function PeopleDashboard() {
   const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false)
   const [studentError, setStudentError] = useState<string | null>(null)
   const [pageNumber, setPageNumber] = useState(1)
-  const pageSize = 5
+  const pageSize = 10
   const [totalCount, setTotalCount] = useState(0)
 
   useEffect(() => {
@@ -231,15 +234,31 @@ export default function PeopleDashboard() {
               onClick={() => navigate(`/people/students/${student.Id}`)}
               className="flex items-center gap-3 text-left w-full focus:outline-none"
             >
-              {student.Photo ? (
-                <img src={student.Photo} alt={studentName} className="h-8 w-8 rounded-full object-cover" />
-              ) : (
-                <div
-                  className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}
-                >
-                  {initials}
-                </div>
-              )}
+              <div className="relative">
+                {student.Photo ? (
+                  <img src={student.Photo} alt={studentName} className="h-8 w-8 rounded-full object-cover" />
+                ) : (
+                  <div
+                    className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}
+                  >
+                    {initials}
+                  </div>
+                )}
+                {student.IsActive === true && (
+                  <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-white border-2 border-white flex items-center justify-center">
+                    <div className="h-3 w-3 rounded-full bg-green-500 flex items-center justify-center">
+                      <Check size={8} className="text-white" strokeWidth={3} />
+                    </div>
+                  </div>
+                )}
+                {student.IsActive === false && (
+                  <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-white border-2 border-white flex items-center justify-center">
+                    <div className="h-3 w-3 rounded-full bg-red-500 flex items-center justify-center">
+                      <Minus size={8} className="text-white" strokeWidth={3} />
+                    </div>
+                  </div>
+                )}
+              </div>
               <div>
                 <div className="font-medium text-gray-800">{studentName}</div>
                 <div className="text-xs text-gray-500">{student.IdNumber || "—"}</div>
