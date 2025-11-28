@@ -47,6 +47,7 @@ import StudentPortalLayout from "./components/student/StudentPortalLayout";
 import StudentDashboardPage from "./components/student/StudentDashboard";
 import StudentCalendarPage from "./components/student/StudentCalendar";
 import StudentClassesPage from "./components/student/StudentClasses";
+import StudentClassDetailPage from "./components/student/StudentClassDetail";
 
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -602,6 +603,7 @@ export default function App() {
                 <Route path="dashboard" element={<StudentDashboardPage />} />
                 <Route path="calendar" element={<StudentCalendarPage />} />
                 <Route path="classes" element={<StudentClassesPage />} />
+                <Route path="classes/:id" element={<StudentClassDetailPage />} />
               </Route>
 
             </Routes>

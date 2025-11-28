@@ -1,7 +1,9 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 const classes = [
   {
+    id: 1,
     title: "Advanced_AM_DCE1_PART 1",
     subject: "General English with Exam Preparation, C1",
     teacher: "Colm Delmar1",
@@ -9,6 +11,7 @@ const classes = [
     status: "Active"
   },
   {
+    id: 2,
     title: "Advanced_AM_DCE1_PART 2",
     subject: "General English with Exam Preparation, C1",
     teacher: "Colm Delmar1",
@@ -16,6 +19,7 @@ const classes = [
     status: "Unenrolled"
   },
   {
+    id: 3,
     title: "Advanced_PM_DCE1_PART 1",
     subject: "General English with Exam Preparation, C1",
     teacher: "Colm Delmar1",
@@ -43,6 +47,7 @@ const attendanceSummary = [
 ]
 
 export default function StudentClasses() {
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<"classes" | "lessons" | "attendance" | "grades" | "assignments">("classes")
 
   const renderTabContent = () => {
@@ -73,12 +78,17 @@ export default function StudentClasses() {
               </thead>
               <tbody>
                 {classes.map((cls, idx) => (
-                  <tr key={idx} className="border-t border-gray-100">
+                  <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <span className="h-2 w-2 rounded-full bg-red-500"></span>
                         <div>
-                          <div className="text-indigo-600 font-medium">{cls.title}</div>
+                          <button
+                            onClick={() => navigate(`/student/classes/${cls.id}`)}
+                            className="text-indigo-600 font-medium hover:text-indigo-700 hover:underline text-left"
+                          >
+                            {cls.title}
+                          </button>
                           <div className="text-xs text-gray-500">{cls.subject}</div>
                         </div>
                       </div>
