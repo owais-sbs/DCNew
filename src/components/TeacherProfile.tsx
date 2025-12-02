@@ -1,6 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom"
 import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck } from "lucide-react"
 import { useState, useEffect } from "react"
+import axiosInstance from "./axiosInstance"
+import Swal from "sweetalert2"
 
 export default function TeacherProfile() {
   const { id } = useParams()
@@ -8,8 +10,99 @@ export default function TeacherProfile() {
   const [activeTab, setActiveTab] = useState("profile")
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [openModal, setOpenModal] = useState<string | null>(null)
+  const [teacher, setTeacher] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [classes, setClasses] = useState<any[]>([])
+  const [loadingClasses, setLoadingClasses] = useState(false)
+  const [classesError, setClassesError] = useState<string | null>(null)
   
   console.log('TeacherProfile rendered with id:', id)
+
+  // Fetch teacher data
+  useEffect(() => {
+    const fetchTeacher = async () => {
+      if (!id) return
+      try {
+        setLoading(true)
+        const response = await axiosInstance.get(`/Teacher/GetById/${id}`)
+        if (response.data?.IsSuccess) {
+          setTeacher(response.data.Data)
+        } else {
+          // Fallback to default data if API fails
+          setTeacher({
+            id,
+            name: "Unknown Teacher",
+            gender: "",
+            age: 0,
+            email: "",
+            idNumber: "",
+            department: "",
+            position: "Teacher"
+          })
+        }
+      } catch (error: any) {
+        console.error("Error fetching teacher:", error)
+        // Fallback to default data on error
+        setTeacher({
+          id,
+          name: "Unknown Teacher",
+          gender: "",
+          age: 0,
+          email: "",
+          idNumber: "",
+          department: "",
+          position: "Teacher"
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchTeacher()
+  }, [id])
+
+  // Fetch classes when classes tab is active
+  useEffect(() => {
+    if (activeTab.toLowerCase() !== "classes" || !id) return
+
+    const controller = new AbortController()
+
+    const fetchClasses = async () => {
+      setLoadingClasses(true)
+      setClassesError(null)
+      try {
+        const response = await axiosInstance.get("/Class/GetClassesByTeacher", {
+          params: { teacherId: parseInt(id) },
+          signal: controller.signal
+        })
+
+        console.log("Teacher classes response:", response.data)
+        if (response.data?.IsSuccess) {
+          const classesData = response.data.Data || []
+          if (Array.isArray(classesData)) {
+            setClasses(classesData)
+          } else {
+            setClasses([])
+            setClassesError("Invalid classes data format.")
+          }
+        } else {
+          setClasses([])
+          setClassesError(response.data?.Message || "No classes data available.")
+        }
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return
+        console.error("Failed to load teacher classes", error)
+        setClassesError("Failed to load classes. Please try again.")
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingClasses(false)
+        }
+      }
+    }
+
+    fetchClasses()
+
+    return () => controller.abort()
+  }, [activeTab, id])
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -22,14 +115,52 @@ export default function TeacherProfile() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [openDropdown])
 
-  const teacher = {
+  const handleSendInviteEmail = async () => {
+    if (!id) {
+      Swal.fire("Error", "Teacher ID is missing", "error")
+      return
+    }
+
+    try {
+      const response = await axiosInstance.post("/Account/InviteUser", {
+        UserId: parseInt(id),
+        UserType: "teacher",
+      })
+
+      if (response.data?.IsSuccess) {
+        Swal.fire({
+          icon: "success",
+          title: "Invitation Sent",
+          text: "The teacher has been invited to the portal successfully.",
+          confirmButtonColor: "#2563eb",
+        })
+        // Refresh teacher data to get updated activation code
+        const refreshResponse = await axiosInstance.get(`/Teacher/GetById/${id}`)
+        if (refreshResponse.data?.IsSuccess) {
+          setTeacher(refreshResponse.data.Data)
+        }
+      } else {
+        Swal.fire("Error", response.data?.Message || "Failed to invite teacher", "error")
+      }
+    } catch (error: any) {
+      console.error("Error inviting teacher:", error)
+      Swal.fire(
+        "Error",
+        error.response?.data?.Message || "Failed to invite teacher. Please try again.",
+        "error"
+      )
+    }
+  }
+
+  // Default teacher data if not loaded yet
+  const teacherData = teacher || {
     id,
-    name: "Abbey teacher",
-    gender: "Female",
+    name: "Loading...",
+    gender: "",
     age: 0,
-    email: "abbey@example.com",
-    idNumber: "T001",
-    department: "English Department",
+    email: "",
+    idNumber: "",
+    department: "",
     position: "Teacher"
   }
 
@@ -134,9 +265,16 @@ export default function TeacherProfile() {
             <div>
               <div className="text-sm text-gray-500">Invitation</div>
               <div className="mt-1">
-                <button className="text-sm text-blue-600 hover:text-blue-700">Invite to portal</button>
+                <button 
+                  onClick={handleSendInviteEmail}
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                  Invite to portal
+                </button>
               </div>
-              <div className="text-xs text-gray-500 mt-1">Abbey has not signed up yet!</div>
+              <div className="text-xs text-gray-500 mt-1">
+                {teacherData?.name || "Teacher"} has not signed up yet!
+              </div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Password</div>
@@ -165,7 +303,7 @@ export default function TeacherProfile() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Classes taught</h2>
-          <p className="text-gray-600 mt-1">View and manage the classes that {teacher.name} teaches in.</p>
+          <p className="text-gray-600 mt-1">View and manage the classes that {teacherData?.name || "this teacher"} teaches in.</p>
         </div>
         <div className="flex items-center gap-2">
           <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm">Classes</button>
@@ -173,55 +311,88 @@ export default function TeacherProfile() {
         </div>
       </div>
       
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Class name</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Total lessons</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Total lesson hours</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Total teacher fees</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-gray-100">
-              <td className="py-3 px-4">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-red-500" />
-                  <div>
-                    <div className="font-medium text-gray-900">Room12 D7</div>
-                    <div className="text-sm text-gray-500">A2(2) pm</div>
-                  </div>
-                </div>
-              </td>
-              <td className="py-3 px-4 text-gray-700">2952</td>
-              <td className="py-3 px-4 text-gray-700">4428:00</td>
-              <td className="py-3 px-4 text-gray-700">€0.00</td>
-              <td className="py-3 px-4">
-                <span className="px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                  Active
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2">
-          <select className="h-8 px-2 rounded border border-gray-200 text-sm">
-            <option>25 entries per page</option>
-          </select>
+      {loadingClasses ? (
+        <div className="py-12 text-center text-gray-500">
+          Loading classes...
         </div>
-        <div className="flex items-center gap-1">
-          <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">«</button>
-          <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">‹</button>
-          <button className="h-8 w-8 grid place-items-center rounded bg-blue-600 text-white">1</button>
-          <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">›</button>
-          <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">»</button>
+      ) : classesError ? (
+        <div className="py-12 text-center text-red-600">
+          {classesError}
         </div>
-      </div>
+      ) : classes.length === 0 ? (
+        <div className="py-12 text-center text-gray-500">
+          No classes found.
+        </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class name</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Total lessons</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Total lesson hours</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Total teacher fees</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {classes.map((cls: any, idx: number) => {
+                  const formatDate = (dateString?: string | null) => {
+                    if (!dateString) return "—"
+                    const date = new Date(dateString)
+                    if (Number.isNaN(date.getTime())) return "—"
+                    return date.toLocaleDateString("en-GB")
+                  }
+                  
+                  return (
+                    <tr 
+                      key={cls.ClassId || idx} 
+                      className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => navigate(`/notes/class-details/${cls.ClassId}`)}
+                    >
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-red-500" />
+                          <div>
+                            <div className="font-medium text-gray-900">{cls.ClassTitle || "Unnamed Class"}</div>
+                            <div className="text-sm text-gray-500">{cls.ClassLevel || cls.ClassSubject || ""}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-gray-700">—</td>
+                      <td className="py-3 px-4 text-gray-700">—</td>
+                      <td className="py-3 px-4 text-gray-700">€0.00</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          cls.IsActive !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                        }`}>
+                          {cls.IsActive !== false ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-2">
+              <select className="h-8 px-2 rounded border border-gray-200 text-sm">
+                <option>25 entries per page</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-1">
+              <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">«</button>
+              <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">‹</button>
+              <button className="h-8 w-8 grid place-items-center rounded bg-blue-600 text-white">1</button>
+              <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">›</button>
+              <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">»</button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 
@@ -292,7 +463,7 @@ export default function TeacherProfile() {
             <DollarSign size={32} className="text-blue-600" />
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Class fees</h3>
-          <p className="text-gray-600 mb-4">Teacher fees for classes that {teacher.name} teaches will show here.</p>
+          <p className="text-gray-600 mb-4">Teacher fees for classes that {teacherData?.name || "this teacher"} teaches will show here.</p>
         </div>
         
         {/* Additional fees */}
@@ -322,8 +493,8 @@ export default function TeacherProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Receipt size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {teacher.name}'s first payslip</h3>
-        <p className="text-gray-600 mb-4">{teacher.name}'s payslips will appear here once they have been added.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {teacherData?.name || "this teacher"}'s first payslip</h3>
+        <p className="text-gray-600 mb-4">{teacherData?.name || "This teacher"}'s payslips will appear here once they have been added.</p>
         <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> New payslip
         </button>
@@ -346,8 +517,8 @@ export default function TeacherProfile() {
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <StickyNote size={32} className="text-blue-600" />
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add notes about {teacher.name}</h3>
-        <p className="text-gray-600 mb-4">Notes concerning {teacher.name} will appear here.</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add notes about {teacherData?.name || "this teacher"}</h3>
+        <p className="text-gray-600 mb-4">Notes concerning {teacherData?.name || "this teacher"} will appear here.</p>
         <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> New note
         </button>
@@ -379,8 +550,8 @@ export default function TeacherProfile() {
   const renderPermissionsContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
       <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Choose what {teacher.name} can view or do in the portal</h2>
-        <p className="text-gray-600">These permissions will only apply to {teacher.name} and will not affect anyone else.</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Choose what {teacherData?.name || "this teacher"} can view or do in the portal</h2>
+        <p className="text-gray-600">These permissions will only apply to {teacherData?.name || "this teacher"} and will not affect anyone else.</p>
       </div>
       
       <div className="space-y-6">
@@ -635,12 +806,12 @@ export default function TeacherProfile() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-semibold text-gray-900 truncate">{teacher.name}</h1>
+                <h1 className="text-xl font-semibold text-gray-900 truncate">{teacherData?.name || "Loading..."}</h1>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Teacher</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <div>Female</div>
-                <div>0 years old</div>
+                <div>{teacherData?.gender || "—"}</div>
+                <div>{teacherData?.age || 0} years old</div>
                 <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add phone')}>+ add phone</button>
                 <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add email')}>+ add email</button>
                 <div className="inline-flex items-center gap-1 text-emerald-700">
@@ -724,7 +895,10 @@ export default function TeacherProfile() {
                     <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
                       <Sun size={16} /> Set holiday
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+                      onClick={handleSendInviteEmail}
+                    >
                       <User size={16} /> Invite to portal
                     </div>
                     <div className="border-t border-gray-200 my-1"></div>

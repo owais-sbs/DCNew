@@ -4,37 +4,64 @@ import { useNavigate, Link } from 'react-router-dom';
 import axiosInstance from './axiosInstance'; // Assuming this path is correct
 import { useAuth } from './AuthContext'; // Assuming this path is correct
 
+// Helper function to get dashboard route based on role
+const getDashboardRoute = (role: string): string => {
+  switch (role) {
+    case 'Student':
+      return '/student/dashboard';
+    case 'Teacher':
+      return '/dashboard'; // Teachers use the main dashboard
+    case 'Admin':
+      return '/dashboard'; // Admins use the main dashboard
+    default:
+      return '/dashboard';
+  }
+}
+
 // Interface for the expected API response
 interface LoginResponse {
-  IsSuccess?: boolean;
-  Success?: boolean;
-  success?: boolean;
-  Data?: {
-    Token?: string;
-    token?: string;
-    UserId?: number;
-    Email?: string;
-    Name?: string;
-    Role?: string;
-    RoleId?: number;
-    roleId?: number;
-  };
-  Token?: string;
-  token?: string;
-  UserId?: number;
-  userId?: number;
-  Id?: number;
-  id?: number;
-  Email?: string;
-  email?: string;
-  Name?: string;
-  name?: string;
-  Role?: string;
-  role?: string;
-  RoleId?: number;
-  roleId?: number;
-  Message?: string;
-  message?: string;
+  IsSuccess?: boolean;
+  Success?: boolean;
+  success?: boolean;
+  Data?: {
+    Token?: string;
+    token?: string;
+    UserId?: number;
+    Email?: string;
+    Name?: string;
+    Role?: string;
+    RoleId?: number;
+    roleId?: number;
+    roles?: string[];
+    account?: {
+      Id?: number;
+      id?: number;
+      Name?: string;
+      name?: string;
+      Email?: string;
+      email?: string;
+      Mobile?: string;
+      mobile?: string;
+    };
+    studentId?: number;
+    teacherId?: number;
+  };
+  Token?: string;
+  token?: string;
+  UserId?: number;
+  userId?: number;
+  Id?: number;
+  id?: number;
+  Email?: string;
+  email?: string;
+  Name?: string;
+  name?: string;
+  Role?: string;
+  role?: string;
+  RoleId?: number;
+  roleId?: number;
+  Message?: string;
+  message?: string;
 }
 
 // Assuming your useAuth hook returns the user object
@@ -60,8 +87,9 @@ export default function Login() {
   useEffect(() => {
     // If the user is already authenticated (user object exists), redirect them.
     if (user) {
-      console.log('User is already authenticated, redirecting to /dashboard');
-      navigate('/dashboard');
+      console.log('User is already authenticated, redirecting based on role:', user.role);
+      const dashboardRoute = getDashboardRoute(user.role);
+      navigate(dashboardRoute);
     }
   }, [user, navigate]); // Dependencies for the effect
 
@@ -87,59 +115,68 @@ export default function Login() {
       console.log('Full API response:', response);
       const data = response.data;
       
-      // Structure 1: IsSuccess with Data object
-      if (data.IsSuccess && data.Data) {
-        // Check if Data contains token (your API structure)
-        if ((data.Data as any).token || data.Data.Token) {
-          const token = (data.Data as any).token || data.Data.Token;
-          
-          localStorage.setItem('token', token);
-          
-          // Extract user details from JWT token
-          try {
-            const tokenParts = token.split('.');
-            if (tokenParts.length === 3) {
-              const payload = JSON.parse(atob(tokenParts[1]));
-              console.log('JWT payload:', payload);
-              
-              const userId = payload.UserId || payload.userId || payload.sub || '1';
-              const branchId = payload.BranchId;
-              const userEmail = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || email;
-              const userRole = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || 'User';
-              const userName = userEmail.split('@')[0] || 'User';
-              
-              const roleId = payload.RoleId || payload.roleId || 
-                           (userRole === 'Admin' ? 1 : 2) || 1;
-              
-              localStorage.setItem('userID', userId.toString());
-              if (branchId) {
-                localStorage.setItem('branchId', branchId);
-              }
-              localStorage.setItem('roleId', roleId.toString());
+      // Structure 1: IsSuccess with Data object
+      if (data.IsSuccess && data.Data) {
+        // Check if Data contains token (your API structure)
+        if ((data.Data as any).token || data.Data.Token) {
+          const token = (data.Data as any).token || data.Data.Token;
+          const roles = (data.Data as any).roles || [];
+          const account = (data.Data as any).account || {};
+          const studentId = (data.Data as any).studentId || null;
+          const teacherId = (data.Data as any).teacherId || null;
+          
+          localStorage.setItem('token', token);
+          
+          // Extract role from roles array (first role is primary)
+          const primaryRole = roles && roles.length > 0 ? roles[0] : 'User';
+          
+          // Get user details from account object
+          const userId = account.Id || account.id;
+          const userName = account.Name || account.name || email.split('@')[0];
+          const userEmail = account.Email || account.email || email;
+          const userMobile = account.Mobile || account.mobile || null;
+          
+          // Map role to roleId
+          const roleIdMap: Record<string, number> = {
+            'Admin': 1,
+            'Teacher': 2,
+            'Student': 3
+          };
+          const roleId = roleIdMap[primaryRole] || 1;
+          
+          localStorage.setItem('userID', userId?.toString() || '');
+          localStorage.setItem('roleId', roleId.toString());
+          
+          // Store studentId and teacherId if available
+          if (studentId) {
+            localStorage.setItem('studentId', studentId.toString());
+          }
+          if (teacherId) {
+            localStorage.setItem('teacherId', teacherId.toString());
+          }
 
-              const userData = {
-                id: parseInt(userId),
-                name: userName,
-                email: userEmail,
-                role: userRole,
-                roleId: parseInt(roleId),
-                branchId: branchId,
-                isActive: true 
-              };
-              
-              localStorage.setItem('userInfo', JSON.stringify(userData));
-              console.log('User logged in successfully (JWT extracted):', userData);
-              
-              login(userData);
-              navigate('/dashboard');
-            } else {
-              throw new Error('Invalid JWT token format');
-            }
-             } catch (jwtError) {
-            console.error('Error parsing JWT token:', jwtError);
-            setError('Error processing authentication token');
-          }
-        } else {
+          const userData = {
+            id: userId || 0,
+            name: userName,
+            email: userEmail,
+            role: primaryRole,
+            roleId: roleId,
+            mobile: userMobile,
+            studentId: studentId || null,
+            teacherId: teacherId || null,
+            isActive: true 
+          };
+          
+          localStorage.setItem('userInfo', JSON.stringify(userData));
+          localStorage.setItem('userRoles', JSON.stringify(roles));
+          console.log('User logged in successfully:', userData);
+          
+          login(userData);
+          
+          // Route based on role
+          const dashboardRoute = getDashboardRoute(primaryRole);
+          navigate(dashboardRoute);
+        } else {
           // Original structure with full user data
           const { Token, UserId, Email, Name, Role, RoleId } = data.Data;
           
@@ -158,14 +195,17 @@ export default function Login() {
             isActive: true
           };
           
-          localStorage.setItem('userInfo', JSON.stringify(userData));
-          console.log('User logged in successfully:', userData);
-          
-          login(userData);
-          navigate('/'); // Navigate to dashboard/home
-        }
-      }
-      // Structure 2: Direct data object
+          localStorage.setItem('userInfo', JSON.stringify(userData));
+          console.log('User logged in successfully:', userData);
+          
+          login(userData);
+          
+          // Route based on role
+          const dashboardRoute = getDashboardRoute(userData.role);
+          navigate(dashboardRoute);
+        }
+      }
+      // Structure 2: Direct data object
       else if (data.Token || data.token) {
         const token = data.Token || data.token;
         const userId = data.UserId || data.userId || data.Id || data.id;
@@ -193,13 +233,16 @@ export default function Login() {
           isActive: true
         };
         
-        localStorage.setItem('userInfo', JSON.stringify(userData));
-        console.log('User logged in successfully (structure 2):', userData);
-        
-        login(userData);
-        navigate('/'); // Navigate to dashboard/home
-      }
-      // Structure 3: Success boolean
+        localStorage.setItem('userInfo', JSON.stringify(userData));
+        console.log('User logged in successfully (structure 2):', userData);
+        
+        login(userData);
+        
+        // Route based on role
+        const dashboardRoute = getDashboardRoute(userData.role);
+        navigate(dashboardRoute);
+      }
+      // Structure 3: Success boolean
       else if (data.success || data.Success) {
         const token = data.Token || data.token;
         const userId = data.UserId || data.userId || data.Id || data.id;
@@ -227,12 +270,15 @@ export default function Login() {
           isActive: true
         };
         
-        localStorage.setItem('userInfo', JSON.stringify(userData));
-        console.log('User logged in successfully (structure 3):', userData);
-        
-        login(userData);
-        navigate('/'); // Navigate to dashboard/home
-     }
+        localStorage.setItem('userInfo', JSON.stringify(userData));
+        console.log('User logged in successfully (structure 3):', userData);
+        
+        login(userData);
+        
+        // Route based on role
+        const dashboardRoute = getDashboardRoute(userData.role);
+        navigate(dashboardRoute);
+     }
       else {
         console.error('Unexpected response structure:', data);
         setError(data.Message || data.message || 'Login failed. Unexpected response format.');

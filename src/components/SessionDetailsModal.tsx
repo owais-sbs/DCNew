@@ -13,6 +13,7 @@ import {
   Download,
   FilePlus,
   Mail,
+  Trash2,
 } from "lucide-react";
 import axiosInstance from "./axiosInstance";
 import AddStudentForm from "./AddStudentForm";
@@ -101,6 +102,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [showUnenrollModal, setShowUnenrollModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentInSession | null>(null);
+  const [dropdownPositions, setDropdownPositions] = useState<Record<number, { top: number; left: number }>>({});
 
   const numericSessionId = useMemo(() => Number(sessionId), [sessionId]);
 
@@ -186,7 +188,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
   const markAttendance = async (
     classId: number,
     studentId: number,
-    status: "Present" | "Absent" | "Late" | "Excused"
+    status: "Present" | "Absent" | "Late" | "Excused" | "None"
   ) => {
     try {
       setUpdatingStudent(studentId);
@@ -250,7 +252,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
     }
 
     return sessionStudents.map((student) => (
-      <div key={student.id} className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-sm transition-shadow">
+      <div key={student.id} className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-sm transition-shadow overflow-visible">
         <div className="flex items-center gap-3">
           {student.photo ? (
             <img
@@ -328,22 +330,22 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
               className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
               onClick={(e) => {
                 e.stopPropagation();
+                const button = e.currentTarget;
+                const rect = button.getBoundingClientRect();
+                setDropdownPositions(prev => ({
+                  ...prev,
+                  [student.id]: { top: rect.bottom + 4, left: rect.right - 192 }
+                }));
                 setOpenStudentMenu(openStudentMenu === student.id ? null : student.id);
               }}
             >
               <MoreVertical className="w-4 h-4 text-indigo-600" />
             </button>
-            {openStudentMenu === student.id && (
-              <div className="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 text-red-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleUnenrollClick(student);
-                  }}
-                >
-                  Remove
-                </button>
+            {openStudentMenu === student.id && dropdownPositions[student.id] && (
+              <div 
+                className="fixed w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-[100]"
+                style={{ top: `${dropdownPositions[student.id].top}px`, left: `${dropdownPositions[student.id].left}px` }}
+              >
                 <button
                   className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                   onClick={(e) => {
@@ -353,6 +355,28 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                   }}
                 >
                   View profile
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const toggle = student.status === "Excused" ? "None" : "Excused";
+                    markAttendance(student.classId, student.id, toggle);
+                    setOpenStudentMenu(null);
+                  }}
+                >
+                  <input type="checkbox" checked={student.status === "Excused"} readOnly className="pointer-events-none" />
+                  <span>Mark as excused</span>
+                </button>
+                <button
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUnenrollClick(student);
+                  }}
+                >
+                  <Trash2 size={16} className="text-red-600" />
+                  <span>Remove</span>
                 </button>
               </div>
             )}
@@ -402,8 +426,8 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
-          <div className="p-6">
-            <div className="mb-6">
+          <div className="p-6 overflow-visible relative">
+            <div className="mb-6 overflow-visible">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">Students {sessionStudents.length}</h3>
                 <div className="flex items-center gap-2">
@@ -430,7 +454,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">{renderStudents()}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-visible">{renderStudents()}</div>
             </div>
           </div>
 

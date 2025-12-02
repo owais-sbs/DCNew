@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { RefreshCw, ChevronLeft } from "lucide-react"
-import { STUDENT_PORTAL_ID, useStudentClasses } from "./useStudentClasses"
+import { getStudentId, useStudentClasses } from "./useStudentClasses"
+import { useAuth } from "../AuthContext"
 
 const lessons = Array.from({ length: 25 }, (_, index) => ({
   id: index + 1,
@@ -17,8 +18,13 @@ const lessons = Array.from({ length: 25 }, (_, index) => ({
 export default function StudentClassDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<"lessons" | "class-notes" | "attachments" | "assignments" | "gradebook">("lessons")
-  const { classes, loading, error } = useStudentClasses(STUDENT_PORTAL_ID)
+  
+  // Get studentId from user context or localStorage
+  const studentId = user?.studentId || getStudentId()
+  
+  const { classes, loading, error } = useStudentClasses(studentId || 0)
   const numericId = Number(id)
   const classData = useMemo(() => classes.find((cls) => cls.id === numericId), [classes, numericId])
   const rawClass = classData?.raw

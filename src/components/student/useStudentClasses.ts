@@ -1,7 +1,27 @@
 import { useEffect, useState, useCallback } from "react"
 import axiosInstance from "../axiosInstance"
 
-export const STUDENT_PORTAL_ID = 7
+// Get studentId from localStorage or return null
+export const getStudentId = (): number | null => {
+  const studentId = localStorage.getItem('studentId')
+  if (studentId) {
+    return parseInt(studentId)
+  }
+  // Fallback: try to get from userInfo
+  try {
+    const userInfo = localStorage.getItem('userInfo')
+    if (userInfo) {
+      const user = JSON.parse(userInfo)
+      return user.studentId || null
+    }
+  } catch (e) {
+    console.error('Error parsing userInfo:', e)
+  }
+  return null
+}
+
+// Keep for backward compatibility, but prefer using getStudentId()
+export const STUDENT_PORTAL_ID = getStudentId() || 7
 
 export type StudentClass = {
   id: number

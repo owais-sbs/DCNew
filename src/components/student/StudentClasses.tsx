@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useStudentClasses, STUDENT_PORTAL_ID } from "./useStudentClasses"
+import { useStudentClasses, getStudentId } from "./useStudentClasses"
+import { useAuth } from "../AuthContext"
 import { useStudentCompletedSessions } from "./useStudentCompletedSessions"
 
 const attendanceSummary = [
@@ -12,10 +13,15 @@ const attendanceSummary = [
 
 export default function StudentClasses() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<"classes" | "lessons" | "attendance" | "grades" | "assignments">("classes")
-  const { classes: studentClasses, loading: classesLoading, error: classesError } = useStudentClasses(STUDENT_PORTAL_ID)
+  
+  // Get studentId from user context or localStorage
+  const studentId = user?.studentId || getStudentId()
+  
+  const { classes: studentClasses, loading: classesLoading, error: classesError } = useStudentClasses(studentId || 0)
   const { sessions: completedSessions, loading: completedLoading, error: completedError } = useStudentCompletedSessions(
-    STUDENT_PORTAL_ID
+    studentId || 0
   )
 
   const renderTabContent = () => {

@@ -1,7 +1,8 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Calendar, Star, Flag, Bell, MapPin, X, CheckSquare, BarChart, FileText, PenTool, Paperclip } from "lucide-react"
-import { useStudentClasses, STUDENT_PORTAL_ID } from "./useStudentClasses"
+import { useStudentClasses, getStudentId } from "./useStudentClasses"
+import { useAuth } from "../AuthContext"
 import { useStudentUpcomingSession, UpcomingSession } from "./useStudentUpcomingSession"
 import { useStudentCompletedSessions, CompletedSession } from "./useStudentCompletedSessions"
 
@@ -46,12 +47,17 @@ type Lesson = {
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [lessonTab, setLessonTab] = useState<"upcoming" | "past">("upcoming")
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
-  const { classes: enrolledClasses, loading: classesLoading, error: classesError } = useStudentClasses(STUDENT_PORTAL_ID)
-  const { session: upcomingSession, loading: sessionLoading, error: sessionError } = useStudentUpcomingSession(STUDENT_PORTAL_ID)
+  
+  // Get studentId from user context or localStorage
+  const studentId = user?.studentId || getStudentId()
+  
+  const { classes: enrolledClasses, loading: classesLoading, error: classesError } = useStudentClasses(studentId || 0)
+  const { session: upcomingSession, loading: sessionLoading, error: sessionError } = useStudentUpcomingSession(studentId || 0)
   const { sessions: completedSessions, loading: completedLoading, error: completedError } = useStudentCompletedSessions(
-    STUDENT_PORTAL_ID
+    studentId || 0
   )
 
   const { list: upcomingLessonList, message: upcomingMessage } = buildUpcomingLessonList(

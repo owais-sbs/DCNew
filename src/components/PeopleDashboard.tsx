@@ -31,9 +31,13 @@ type StudentRow = {
 }
 
 type TeacherRow = {
-  name: string
-  phone: string
-  email: string
+  Id: number
+  Name?: string | null
+  Surname?: string | null
+  Mobile?: string | null
+  Email?: string | null
+  Photo?: string | null
+  IsActive?: boolean | null
 }
 
 type StaffRow = {
@@ -73,13 +77,6 @@ const studentFilters = [
   { label: "Status", value: "Live" }
 ]
 
-const teacherRows: TeacherRow[] = [
-  { name: "Abbey teacher", phone: "0858330601", email: "elisabethsmiddy@hotmail.com" },
-  { name: "Adao Lopes Teacher", phone: "0831495753", email: "didina7@gmail.com" },
-  { name: "Anne Smiddy Elisabeth", phone: "0852014537", email: "dmytroolginxbocx_yns@indeedemail.com" },
-  { name: "Colm Delmar1", phone: "353", email: "ale201019@hotmail.com" },
-  { name: "Daiana Teacher", phone: "0852014537", email: "daiana.teacher@example.com" }
-]
 
 const staffRows: StaffRow[] = [
   { name: "Lia Reception", email: "liasantosmarketing@gmail.com" },
@@ -108,6 +105,15 @@ export default function PeopleDashboard() {
   const [pageNumber, setPageNumber] = useState(1)
   const pageSize = 10
   const [totalCount, setTotalCount] = useState(0)
+
+  // Teachers state
+  const [teachers, setTeachers] = useState<TeacherRow[]>([])
+  const [isLoadingTeachers, setIsLoadingTeachers] = useState<boolean>(false)
+  const [teacherError, setTeacherError] = useState<string | null>(null)
+  const [teacherPageNumber, setTeacherPageNumber] = useState(1)
+  const [teacherTotalCount, setTeacherTotalCount] = useState(0)
+  const [teacherSearch, setTeacherSearch] = useState("")
+  const [teacherSearchDebounced, setTeacherSearchDebounced] = useState("")
 
   useEffect(() => {
     const controller = new AbortController()
@@ -147,6 +153,68 @@ export default function PeopleDashboard() {
     return () => controller.abort()
   }, [pageNumber])
 
+  // Debounce teacher search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTeacherSearchDebounced(teacherSearch)
+      setTeacherPageNumber(1) // Reset to first page on search
+    }, 500) // 500ms delay
+
+    return () => clearTimeout(timer)
+  }, [teacherSearch])
+
+  // Fetch teachers when teachers tab is active
+  useEffect(() => {
+    if (activeTab !== "teachers") return
+
+    const controller = new AbortController()
+
+    const fetchTeachers = async () => {
+      setIsLoadingTeachers(true)
+      setTeacherError(null)
+      try {
+        const response = await axiosInstance.get("/Teacher/GetAllTeachers", {
+          params: { 
+            pageNumber: teacherPageNumber, 
+            pageSize: pageSize,
+            search: teacherSearchDebounced || ""
+          },
+          signal: controller.signal
+        })
+
+        console.log("Teachers response:", response.data)
+        if (response.data?.IsSuccess) {
+          // API returns: { data: [...], pagination: { totalCount, ... } }
+          const teachersData = response.data.Data?.data || []
+          const total = response.data.Data?.pagination?.totalCount || 0
+          
+          if (Array.isArray(teachersData)) {
+            setTeachers(teachersData)
+            setTeacherTotalCount(total)
+          } else {
+            setTeachers([])
+            setTeacherError("Invalid teacher data format.")
+          }
+        } else {
+          setTeachers([])
+          setTeacherError("No teacher data available.")
+        }
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return
+        console.error("Failed to load teachers", error)
+        setTeacherError("Failed to load teachers. Please try again.")
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingTeachers(false)
+        }
+      }
+    }
+
+    fetchTeachers()
+
+    return () => controller.abort()
+  }, [activeTab, teacherPageNumber, teacherSearchDebounced])
+
   
 
   const getStudentName = (student: StudentRow) => {
@@ -184,9 +252,11 @@ export default function PeopleDashboard() {
     return `€${numericValue.toFixed(2)}`
   }
 
-  const resolvedTabs = tabs.map((tab) =>
-    tab.id === "students" ? { ...tab, count: totalCount } : tab
-  )
+  const resolvedTabs = tabs.map((tab) => {
+    if (tab.id === "students") return { ...tab, count: totalCount }
+    if (tab.id === "teachers") return { ...tab, count: teacherTotalCount }
+    return tab
+  })
 
   const renderStudentTableBody = () => {
     if (isLoadingStudents) {
@@ -401,7 +471,9 @@ export default function PeopleDashboard() {
       {activeTab === "teachers" && (
         <div className="mt-6">
           <div className="flex items-center justify-between">
-            <div className="text-xl font-semibold text-gray-800">41 Teachers</div>
+            <div className="text-xl font-semibold text-gray-800">
+              {isLoadingTeachers ? "Loading teachers..." : `${teacherTotalCount} Teachers`}
+            </div>
             <div className="flex items-center gap-3">
               <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
                 <Download size={16} /> Export
@@ -409,6 +481,21 @@ export default function PeopleDashboard() {
               <button onClick={() => navigate('/people/teachers/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm">
                 + Add teacher
               </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center gap-3">
+            <div className="relative w-64">
+              <input
+                placeholder="Search teachers"
+                value={teacherSearch}
+                onChange={(e) => setTeacherSearch(e.target.value)}
+                className="w-full h-10 pl-4 pr-3 rounded-xl border border-gray-200 bg-white text-sm placeholder:text-gray-400"
+              />
+            </div>
+            <div className="flex items-center gap-2 ml-auto">
+              <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">⟳</button>
+              <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">⋯</button>
             </div>
           </div>
 
@@ -422,25 +509,118 @@ export default function PeopleDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {teacherRows.map((teacher, idx) => (
-                  <tr key={teacher.name} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3"><input type="checkbox" /></td>
-                    <td className="px-4 py-3 text-indigo-700 flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}>
-                        {teacher.name.split(" ").map(w=>w[0]).slice(0,2).join("")}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-800">{teacher.name}</div>
-                        <div className="text-xs text-gray-500">Teacher</div>
-                      </div>
+                {isLoadingTeachers ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                      Loading teachers...
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{teacher.phone}</td>
-                    <td className="px-4 py-3 text-blue-600">{teacher.email}</td>
-                    <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"><MoreHorizontal size={18} /></button></td>
                   </tr>
-                ))}
+                ) : teacherError ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-red-600">
+                      {teacherError}
+                    </td>
+                  </tr>
+                ) : !teacherTotalCount ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                      No teachers found.
+                    </td>
+                  </tr>
+                ) : (
+                  teachers.map((teacher, idx) => {
+                    const teacherName = [teacher.Name, teacher.Surname].filter(Boolean).join(" ") || "Unnamed teacher"
+                    const initials = teacherName
+                      .split(" ")
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((part) => part[0]?.toUpperCase() ?? "")
+                      .join("") || "NA"
+
+                    return (
+                      <tr key={teacher.Id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <input type="checkbox" aria-label={`Select ${teacherName}`} />
+                        </td>
+                        <td className="px-4 py-3 text-indigo-700">
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/people/teachers/${teacher.Id}`)}
+                            className="flex items-center gap-3 text-left w-full focus:outline-none"
+                          >
+                            <div className="relative">
+                              {teacher.Photo ? (
+                                <img src={teacher.Photo} alt={teacherName} className="h-8 w-8 rounded-full object-cover" />
+                              ) : (
+                                <div
+                                  className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}
+                                >
+                                  {initials}
+                                </div>
+                              )}
+                              {teacher.IsActive === true && (
+                                <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-white border-2 border-white flex items-center justify-center">
+                                  <div className="h-3 w-3 rounded-full bg-green-500 flex items-center justify-center">
+                                    <Check size={8} className="text-white" strokeWidth={3} />
+                                  </div>
+                                </div>
+                              )}
+                              {teacher.IsActive === false && (
+                                <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-white border-2 border-white flex items-center justify-center">
+                                  <div className="h-3 w-3 rounded-full bg-red-500 flex items-center justify-center">
+                                    <Minus size={8} className="text-white" strokeWidth={3} />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                            <div>
+                              <div className="font-medium text-gray-800">{teacherName}</div>
+                              <div className="text-xs text-gray-500">Teacher</div>
+                            </div>
+                          </button>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{teacher.Mobile || "—"}</td>
+                        <td className="px-4 py-3 text-blue-600">
+                          {teacher.Email ? (
+                            <a href={`mailto:${teacher.Email}`} className="hover:underline">
+                              {teacher.Email}
+                            </a>
+                          ) : (
+                            "—"
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" aria-label="More actions">
+                            <MoreHorizontal size={18} />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
               </tbody>
             </table>
+            {teacherTotalCount > 0 && (
+              <div className="flex items-center justify-between px-4 py-4 bg-white border border-t-0 border-gray-200 rouded-b-xl">
+                <button
+                  disabled={teacherPageNumber === 1}
+                  onClick={() => setTeacherPageNumber(p => p-1)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+                <div className="text-gray-600 text-sm">
+                  Page {teacherPageNumber} of {Math.ceil(teacherTotalCount/pageSize)}
+                </div>
+                <button
+                  disabled={teacherPageNumber >= Math.ceil(teacherTotalCount/pageSize)}
+                  onClick={() => setTeacherPageNumber(p => p+1)}
+                  className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

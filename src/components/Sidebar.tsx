@@ -12,20 +12,44 @@ import {
 } from "lucide-react";
   import { useNavigate, useLocation } from "react-router-dom";
 import { useSidebar } from "../contexts/SidebarContext";
+import { useAuth } from "./AuthContext";
   
   const logo = "/src/assets/logo.webp";
   
-  const items = [
+  // Menu items for Admin and Teacher
+  const adminTeacherItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
     { id: "calendar", icon: Calendar, label: "Calendar", path: "/calendar" },
     { id: "people", icon: Users, label: "People", path: "/people" },
     { id: "notes", icon: BookOpen, label: "Classes & Events", path: "/notes" },
   ];
   
+  // Menu items for Student
+  const studentItems = [
+    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/student/dashboard" },
+    { id: "calendar", icon: Calendar, label: "Calendar", path: "/student/calendar" },
+    { id: "classes", icon: BookOpen, label: "Classes", path: "/student/classes" },
+  ];
+  
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isExpanded, setIsExpanded } = useSidebar();
+  const { user } = useAuth();
+  
+  // Get menu items based on user role
+  const getMenuItems = () => {
+    if (!user) return adminTeacherItems; // Default to admin/teacher items
+    
+    if (user.role === 'Student') {
+      return studentItems;
+    }
+    
+    // Admin and Teacher see the same menu
+    return adminTeacherItems;
+  };
+  
+  const items = getMenuItems();
   const active = items.find((i) => location.pathname.startsWith(i.path))?.id ||
                  (location.pathname === "/compose" ? "communication" : "dashboard");
   

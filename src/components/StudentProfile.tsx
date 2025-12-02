@@ -1,9 +1,10 @@
  import { useParams, useNavigate } from "react-router-dom"
-import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck } from "lucide-react"
+import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck, Flag, Star, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import axiosInstance from "./axiosInstance"
 import html2canvas from "html2canvas"
 import { jsPDF } from "jspdf"
+import Swal from "sweetalert2"
 
 type StudentFieldKey =
   | "Name"
@@ -76,9 +77,23 @@ export default function StudentProfile() {
   const [documents, setDocuments] = useState<any[]>([])
   const [loadingDocuments, setLoadingDocuments] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<any | null>(null)
+  const [classes, setClasses] = useState<any[]>([])
+  const [loadingClasses, setLoadingClasses] = useState(false)
+  const [classesError, setClassesError] = useState<string | null>(null)
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
+  const [lessons, setLessons] = useState<any[]>([])
+  const [loadingLessons, setLoadingLessons] = useState(false)
+  const [openClassMenu, setOpenClassMenu] = useState<number | null>(null)
+  const [selectedLesson, setSelectedLesson] = useState<any | null>(null)
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false)
+  const [attachments, setAttachments] = useState<any[]>([])
+  const [loadingAttachments, setLoadingAttachments] = useState(false)
+  const [showAddAttachmentModal, setShowAddAttachmentModal] = useState(false)
+  const [uploadingAttachment, setUploadingAttachment] = useState(false)
 
   // Ref hooks
   const documentContentRef = useRef<HTMLDivElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -128,6 +143,139 @@ export default function StudentProfile() {
     }
   }, [activeTab])
 
+  // Fetch classes when classes tab is active
+  useEffect(() => {
+    if (activeTab.toLowerCase() !== "classes" || !id) return
+
+    const controller = new AbortController()
+
+    const fetchClasses = async () => {
+      setLoadingClasses(true)
+      setClassesError(null)
+      try {
+        const response = await axiosInstance.get("/Class/GetClassesByStudent", {
+          params: { studentId: parseInt(id) },
+          signal: controller.signal
+        })
+
+        console.log("Student classes response:", response.data)
+        if (response.data?.IsSuccess) {
+          const classesData = response.data.Data || []
+          if (Array.isArray(classesData)) {
+            setClasses(classesData)
+          } else {
+            setClasses([])
+            setClassesError("Invalid classes data format.")
+          }
+        } else {
+          setClasses([])
+          setClassesError(response.data?.Message || "No classes data available.")
+        }
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return
+        console.error("Failed to load student classes", error)
+        setClassesError("Failed to load classes. Please try again.")
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingClasses(false)
+        }
+      }
+    }
+
+    fetchClasses()
+
+    return () => controller.abort()
+  }, [activeTab, id])
+
+  // Fetch attachments when attachments tab is active
+  useEffect(() => {
+    if (activeTab.toLowerCase() !== "attachments" || !id) return
+
+    const controller = new AbortController()
+
+    const fetchAttachments = async () => {
+      setLoadingAttachments(true)
+      try {
+        const response = await axiosInstance.get(`/Attachment/GetByStudentId`, {
+          params: { studentid: parseInt(id) },
+          signal: controller.signal
+        })
+        console.log("Attachments response:", response.data)
+        if (response.data?.IsSuccess) {
+          setAttachments(response.data.Data || [])
+        } else {
+          setAttachments([])
+        }
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return
+        console.error("Error fetching attachments:", error)
+        setAttachments([])
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingAttachments(false)
+        }
+      }
+    }
+
+    fetchAttachments()
+
+    return () => controller.abort()
+  }, [activeTab, id])
+
+  // Fetch lessons for selected class
+  const fetchLessons = async (classId: number) => {
+    setSelectedClassId(classId)
+    setLoadingLessons(true)
+    try {
+      const response = await axiosInstance.get("/Class/GetSessionsForClass", {
+        params: { 
+          classId,
+          studentId: id ? Number(id) : undefined
+        }
+      })
+
+      console.log("Lessons response:", response.data)
+      if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+        const mapped = response.data.Data.map((s: any) => ({
+          scheduleId: s.ScheduleId,
+          classId: classId,
+          date: s.Date || s.StartTime,
+          startTime: s.StartTime,
+          endTime: s.EndTime,
+          className: s.ClassTitle || s.ClassName,
+          subject: s.ClassSubject,
+          level: s.ClassLevel,
+          attendance: s.AttendanceStatus || null,
+          behaviour: s.Behaviour || null,
+          grade: s.Grade || null,
+          notes: s.Notes || null,
+        }))
+        setLessons(mapped)
+        setClassesSubTab('lessons')
+      } else {
+        setLessons([])
+        Swal.fire("Error", "Failed to load lessons", "error")
+      }
+    } catch (error: any) {
+      console.error("Error fetching lessons:", error)
+      Swal.fire("Error", "Failed to load lessons. Please try again.", "error")
+      setLessons([])
+    } finally {
+      setLoadingLessons(false)
+    }
+  }
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openClassMenu && !(event.target as Element).closest('.class-menu-container')) {
+        setOpenClassMenu(null)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openClassMenu])
+
   // Don't use early return - render loading state conditionally to ensure hooks are always called
   const studentName = studentdetails ? `${studentdetails.FirstName ?? ""} ${studentdetails.LastName ?? studentdetails.Surname ?? ""}`.trim() : "";
 
@@ -167,6 +315,47 @@ export default function StudentProfile() {
     "Tuition Fees",
     "Course Code"
   ]
+
+  const handleOpenInviteModal = () => {
+    setPortalInviteOpen(true);
+  };
+
+  const handleSendInviteEmail = async () => {
+    if (!studentdetails?.Id) {
+      Swal.fire("Error", "Student ID is missing", "error");
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.post("/Account/InviteUser", {
+        UserId: studentdetails.Id,
+        UserType: "student",
+      });
+
+      if (response.data?.IsSuccess) {
+        Swal.fire({
+          icon: "success",
+          title: "Invitation Sent",
+          text: "The student has been invited to the portal successfully.",
+          confirmButtonColor: "#2563eb",
+        });
+        // Refresh student data to get updated activation code
+        const refreshResponse = await axiosInstance.get(`/Student/GetById/${id}`);
+        if (refreshResponse.data?.IsSuccess) {
+          setStudent(refreshResponse.data.Data);
+        }
+      } else {
+        Swal.fire("Error", response.data?.Message || "Failed to invite student", "error");
+      }
+    } catch (error: any) {
+      console.error("Error inviting student:", error);
+      Swal.fire(
+        "Error",
+        error.response?.data?.Message || "Failed to invite student. Please try again.",
+        "error"
+      );
+    }
+  };
 
   const studentFieldResolvers: Record<StudentFieldKey, () => string> = {
     "Name": () => studentName || "—",
@@ -324,56 +513,195 @@ export default function StudentProfile() {
       </div>
       
       {classesSubTab === 'classes' && (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Teacher</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Date & time</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Enrolled</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Unenrolled</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { class: "PM A2 WALID/DIMITRO", level: "A2", teacher: "2 teachers", schedule: "Monday (15:15-17:00), Tuesday (15:15-17:00) and 6 more", enrolled: "20-10-2025", unenrolled: "", status: "Active", statusColor: "bg-green-100 text-green-800" }
-              ].map((cls, i) => (
-                <tr key={i} className="border-b border-gray-100">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-red-500" />
-                      <div>
-                        <div className="font-medium text-gray-900">{cls.class}</div>
-                        <div className="text-sm text-gray-500">{cls.level}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="py-3 px-4 text-gray-700">{cls.teacher}</td>
-                  <td className="py-3 px-4 text-gray-700">{cls.schedule}</td>
-                  <td className="py-3 px-4 text-gray-700">{cls.enrolled}</td>
-                  <td className="py-3 px-4 text-gray-700">{cls.unenrolled}</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${cls.statusColor}`}>
-                      {cls.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
-                      <MoreHorizontal size={16} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {loadingClasses ? (
+            <div className="py-12 text-center text-gray-500">
+              Loading classes...
+            </div>
+          ) : classesError ? (
+            <div className="py-12 text-center text-red-600">
+              {classesError}
+            </div>
+          ) : classes.length === 0 ? (
+            <div className="py-12 text-center text-gray-500">
+              No classes found.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Teacher</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Date & time</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Enrolled</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Unenrolled</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {classes.map((cls: any, i: number) => {
+                    const formatDate = (dateString?: string | null) => {
+                      if (!dateString) return "—"
+                      const date = new Date(dateString)
+                      if (Number.isNaN(date.getTime())) return "—"
+                      return date.toLocaleDateString("en-GB")
+                    }
+                    
+                    const isUnenrolled = cls.EndDate && new Date(cls.EndDate) < new Date()
+                    
+                    return (
+                      <tr 
+                        key={cls.ClassId || i} 
+                        className="border-b border-gray-100 hover:bg-gray-50"
+                      >
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full bg-red-500" />
+                            <div>
+                              <div className="font-medium text-gray-900">{cls.ClassTitle || "Unnamed Class"}</div>
+                              <div className="text-sm text-gray-500">{cls.ClassLevel || cls.ClassSubject || ""}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-gray-700">—</td>
+                        <td className="py-3 px-4 text-gray-700">
+                          {cls.StartDate && cls.EndDate 
+                            ? `${formatDate(cls.StartDate)} - ${formatDate(cls.EndDate)}`
+                            : "—"}
+                        </td>
+                        <td className="py-3 px-4 text-gray-700">{formatDate(cls.StartDate)}</td>
+                        <td className="py-3 px-4 text-gray-700">{formatDate(cls.EndDate)}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded-full text-xs ${
+                            isUnenrolled ? "bg-red-100 text-red-800" : cls.IsActive !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {isUnenrolled ? "Unenrolled" : cls.IsActive !== false ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="relative class-menu-container">
+                            <button 
+                              className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOpenClassMenu(openClassMenu === cls.ClassId ? null : cls.ClassId)
+                              }}
+                            >
+                              <MoreHorizontal size={16} />
+                            </button>
+                            {openClassMenu === cls.ClassId && (
+                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenClassMenu(null)
+                                    fetchLessons(cls.ClassId)
+                                  }}
+                                >
+                                  <FileText size={16} />
+                                  View lessons
+                                </button>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenClassMenu(null)
+                                    // TODO: Implement view grades
+                                  }}
+                                >
+                                  <Award size={16} />
+                                  View grades
+                                </button>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenClassMenu(null)
+                                    // TODO: Implement print report
+                                  }}
+                                >
+                                  <Download size={16} />
+                                  Print report
+                                </button>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenClassMenu(null)
+                                    // TODO: Implement unenroll
+                                    Swal.fire({
+                                      title: "Unenroll Student",
+                                      text: `Are you sure you want to unenroll ${studentName} from ${cls.ClassTitle}?`,
+                                      icon: "warning",
+                                      showCancelButton: true,
+                                      confirmButtonColor: "#ef4444",
+                                      cancelButtonColor: "#6b7280",
+                                      confirmButtonText: "Yes, unenroll",
+                                    }).then(async (result) => {
+                                      if (result.isConfirmed) {
+                                        try {
+                                          const response = await axiosInstance.post("/Class/UnenrollStudentFromClass", null, {
+                                            params: {
+                                              studentId: parseInt(id!),
+                                              classId: cls.ClassId
+                                            }
+                                          })
+                                          if (response.data?.IsSuccess) {
+                                            Swal.fire("Success", "Student unenrolled successfully", "success")
+                                            // Refresh classes
+                                            const refreshResponse = await axiosInstance.get("/Class/GetClassesByStudent", {
+                                              params: { studentId: parseInt(id!) }
+                                            })
+                                            if (refreshResponse.data?.IsSuccess) {
+                                              setClasses(refreshResponse.data.Data || [])
+                                            }
+                                          } else {
+                                            Swal.fire("Error", response.data?.Message || "Failed to unenroll student", "error")
+                                          }
+                                        } catch (error: any) {
+                                          console.error("Error unenrolling:", error)
+                                          Swal.fire("Error", "Failed to unenroll student. Please try again.", "error")
+                                        }
+                                      }
+                                    })
+                                  }}
+                                >
+                                  <Trash2 size={16} />
+                                  Unenroll
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
       {classesSubTab === 'lessons' && (
         <div>
+          {selectedClassId && (
+            <div className="mb-4 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setClassesSubTab('classes')
+                  setSelectedClassId(null)
+                  setLessons([])
+                }}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                ← Back to classes
+              </button>
+            </div>
+          )}
           <div className="flex items-center gap-4 mb-4">
             <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
               <option>Attendance: All</option>
@@ -393,52 +721,99 @@ export default function StudentProfile() {
               <Clock size={16} className="text-gray-500" />
             </button>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Behaviour</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Grade</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Notes</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { date: "20-10-2025 13:00-15:00", class: "PM A2 WALID/DIMITRO A2", attendance: "Present", attendanceColor: "bg-green-100 text-green-800" },
-                  { date: "21-10-2025 13:00-15:00", class: "PM A2 WALID/DIMITRO A2", attendance: "Present", attendanceColor: "bg-green-100 text-green-800" },
-                  { date: "22-10-2025 13:00-15:00", class: "PM A2 WALID/DIMITRO A2", attendance: "Absent", attendanceColor: "bg-red-100 text-red-800" },
-                  { date: "23-10-2025 13:00-15:00", class: "PM A2 WALID/DIMITRO A2", attendance: "Present", attendanceColor: "bg-green-100 text-green-800" }
-                ].map((lesson, i) => (
-                  <tr key={i} className="border-b border-gray-100">
-                    <td className="py-3 px-4 text-gray-700">{lesson.date}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-red-500" />
-                        <div className="font-medium text-gray-900">{lesson.class}</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs ${lesson.attendanceColor}`}>
-                        {lesson.attendance}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-700">-</td>
-                    <td className="py-3 px-4 text-gray-700">-</td>
-                    <td className="py-3 px-4 text-gray-700">-</td>
-                    <td className="py-3 px-4">
-                      <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
-                        <FileText size={16} />
-                      </button>
-                    </td>
+          {loadingLessons ? (
+            <div className="py-12 text-center text-gray-500">
+              Loading lessons...
+            </div>
+          ) : lessons.length === 0 ? (
+            <div className="py-12 text-center text-gray-500">
+              {selectedClassId ? "No lessons found for this class." : "Select a class and click 'View lessons' to see lessons."}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Behaviour</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Grade</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Notes</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {lessons.map((lesson, i) => {
+                    const formatLessonDate = (dateString?: string) => {
+                      if (!dateString) return "—"
+                      const date = new Date(dateString)
+                      if (Number.isNaN(date.getTime())) return "—"
+                      const dateStr = date.toLocaleDateString("en-GB")
+                      const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+                      return `${dateStr} ${timeStr}`
+                    }
+                    
+                    const getAttendanceColor = (status: string | null) => {
+                      if (!status) return ""
+                      switch (status.toLowerCase()) {
+                        case "present": return "bg-green-100 text-green-800"
+                        case "absent": return "bg-red-100 text-red-800"
+                        case "late": return "bg-orange-100 text-orange-800"
+                        default: return "bg-gray-100 text-gray-800"
+                      }
+                    }
+                    
+                    const lessonDate = formatLessonDate(lesson.date || lesson.startTime)
+                    const lessonTime = lesson.startTime && lesson.endTime 
+                      ? `${new Date(lesson.startTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}-${new Date(lesson.endTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
+                      : ""
+                    
+                    return (
+                      <tr key={lesson.scheduleId || i} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-4 text-gray-700">
+                          <div>{lessonDate}</div>
+                          {lessonTime && <div className="text-xs text-gray-500">{lessonTime}</div>}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full bg-red-500" />
+                            <div>
+                              <div className="font-medium text-gray-900">{lesson.className || "Unnamed Class"}</div>
+                              {lesson.subject && <div className="text-xs text-gray-500">{lesson.subject}</div>}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          {lesson.attendance ? (
+                            <span className={`px-2 py-1 rounded-full text-xs ${getAttendanceColor(lesson.attendance)}`}>
+                              {lesson.attendance}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-gray-700">{lesson.behaviour || "—"}</td>
+                        <td className="py-3 px-4 text-gray-700">{lesson.grade || "—"}</td>
+                        <td className="py-3 px-4 text-gray-700">{lesson.notes || "—"}</td>
+                        <td className="py-3 px-4">
+                          <button 
+                            className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+                            onClick={() => {
+                              setSelectedLesson(lesson)
+                              setShowAttendanceModal(true)
+                            }}
+                          >
+                            <FileText size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
 
@@ -729,18 +1104,113 @@ export default function StudentProfile() {
     </div>
   )
 
+  const handleAddAttachment = async (formData: FormData) => {
+    setUploadingAttachment(true)
+    try {
+      // The API expects [FromForm] List<Attachment>
+      // Endpoint is AddDocuments (plural) and expects a list
+      const response = await axiosInstance.post("/Attachment/AddDocuments", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+
+      if (response.data?.IsSuccess) {
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: "Attachment added successfully",
+          confirmButtonColor: "#2563eb",
+        })
+        setShowAddAttachmentModal(false)
+        // Refresh attachments list
+        if (activeTab.toLowerCase() === "attachments" && id) {
+          const refreshResponse = await axiosInstance.get(`/Attachment/GetByStudentId`, {
+            params: { studentid: parseInt(id) }
+          })
+          if (refreshResponse.data?.IsSuccess) {
+            setAttachments(refreshResponse.data.Data || [])
+          }
+        }
+      } else {
+        Swal.fire("Error", response.data?.Message || "Failed to add attachment", "error")
+      }
+    } catch (error: any) {
+      console.error("Error adding attachment:", error)
+      Swal.fire(
+        "Error",
+        error.response?.data?.Message || "Failed to add attachment. Please try again.",
+        "error"
+      )
+    } finally {
+      setUploadingAttachment(false)
+    }
+  }
+
   const renderAttachmentsContent = () => (
     <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="text-center py-12">
-        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-          <Paperclip size={32} className="text-blue-600" />
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Attachments</h2>
+          <p className="text-gray-600 mt-1">You can add and store relevant documents and files here.</p>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add attachments</h3>
-        <p className="text-gray-600 mb-4">You can add and store relevant documents and files here.</p>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+        <button
+          onClick={() => setShowAddAttachmentModal(true)}
+          className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2 hover:bg-blue-700"
+        >
           <Plus size={16} /> Add attachment
         </button>
       </div>
+
+      {loadingAttachments ? (
+        <div className="py-12 text-center text-gray-500">
+          Loading attachments...
+        </div>
+      ) : attachments.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+            <Paperclip size={32} className="text-blue-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">No attachments yet</h3>
+          <p className="text-gray-600 mb-4">Add your first attachment to get started.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {attachments.map((attachment) => (
+            <div
+              key={attachment.Id}
+              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Paperclip size={20} className="text-gray-500" />
+                  <span className="text-sm font-medium text-gray-900 truncate">
+                    {attachment.FileName || attachment.URL?.split("/").pop() || "Attachment"}
+                  </span>
+                </div>
+                <button className="text-gray-400 hover:text-gray-600">
+                  <MoreHorizontal size={16} />
+                </button>
+              </div>
+              {attachment.CreatedOn && (
+                <div className="text-xs text-gray-500">
+                  {new Date(attachment.CreatedOn).toLocaleDateString("en-GB")}
+                </div>
+              )}
+              {attachment.URL && (
+                <a
+                  href={attachment.URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:underline mt-2 inline-block"
+                >
+                  View file
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 
@@ -1138,7 +1608,7 @@ export default function StudentProfile() {
               <div className="text-sm text-gray-500">Invitation</div>
               <div className="mt-1">
                 <button
-                  onClick={() => setPortalInviteOpen(true)}
+                  onClick={handleOpenInviteModal}
                   className="text-sm text-blue-600 hover:text-blue-700"
                 >
                   Invite to portal
@@ -1351,7 +1821,10 @@ export default function StudentProfile() {
                     <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
                       <Sun size={16} /> Set holiday
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
+                    <div 
+                      onClick={handleOpenInviteModal}
+                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
+                    >
                       <User size={16} /> Invite to portal
                     </div>
                     <div className="border-t border-gray-200 my-1"></div>
@@ -1713,7 +2186,10 @@ export default function StudentProfile() {
                   🖨 Print
                 </button>
               </div>
-              <button className="h-9 px-4 rounded-full bg-blue-600 text-white text-sm hover:bg-blue-700">
+              <button 
+                onClick={handleSendInviteEmail}
+                className="h-9 px-4 rounded-full bg-blue-600 text-white text-sm hover:bg-blue-700"
+              >
                 ✉️ Send by email
               </button>
             </div>
@@ -1822,6 +2298,616 @@ export default function StudentProfile() {
       )}
 
       {renderDocumentModal()}
+
+      {/* Add Attachment Modal */}
+      {showAddAttachmentModal && id && (
+        <AddAttachmentModal
+          studentId={parseInt(id)}
+          studentName={studentName}
+          onClose={() => setShowAddAttachmentModal(false)}
+          onSuccess={handleAddAttachment}
+          uploading={uploadingAttachment}
+        />
+      )}
+
+      {/* Student Attendance and Behaviour Modal */}
+      {showAttendanceModal && selectedLesson && (
+        <StudentAttendanceModal
+          studentId={parseInt(id!)}
+          studentName={studentName}
+          lesson={selectedLesson}
+          onClose={() => {
+            setShowAttendanceModal(false)
+            setSelectedLesson(null)
+          }}
+          onSuccess={() => {
+            // Refresh lessons after updating attendance
+            if (selectedClassId) {
+              fetchLessons(selectedClassId)
+            }
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// Student Attendance and Behaviour Modal Component
+function StudentAttendanceModal({
+  studentId,
+  studentName,
+  lesson,
+  onClose,
+  onSuccess
+}: {
+  studentId: number
+  studentName: string
+  lesson: any
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [attendanceStatus, setAttendanceStatus] = useState<"Present" | "Absent" | "Late" | "Excused" | null>(
+    lesson.attendance || null
+  )
+  const [isExcused, setIsExcused] = useState(lesson.attendance === "Excused")
+  const [behaviourTab, setBehaviourTab] = useState<"gold" | "red">("gold")
+  const [selectedGoldStars, setSelectedGoldStars] = useState<string[]>([])
+  const [selectedRedFlags, setSelectedRedFlags] = useState<string[]>([])
+  const [grade, setGrade] = useState<string>(lesson.grade || "")
+  const [notes, setNotes] = useState<string>(lesson.notes || "")
+  const [loading, setLoading] = useState(false)
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "—"
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return "—"
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    })
+  }
+
+  const formatTime = (dateString?: string) => {
+    if (!dateString) return "—"
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return "—"
+    return date.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit"
+    })
+  }
+
+  const lessonDate = formatDate(lesson.date || lesson.startTime)
+  const lessonTime = lesson.startTime && lesson.endTime
+    ? `${formatTime(lesson.startTime)}-${formatTime(lesson.endTime)}`
+    : "—"
+
+  const handleMarkAttendance = async (status: "Present" | "Absent" | "Late") => {
+    if (isExcused) return
+    
+    setLoading(true)
+    try {
+      const payload = {
+        classId: lesson.classId,
+        scheduleId: lesson.scheduleId,
+        studentId: studentId,
+        date: lesson.date || lesson.startTime,
+        attendanceStatus: status,
+      }
+      const response = await axiosInstance.post("/Class/MarkAttendance", null, { params: payload })
+      if (response.data?.IsSuccess) {
+        setAttendanceStatus(status)
+        Swal.fire("Success", "Attendance marked successfully", "success")
+        onSuccess()
+      } else {
+        Swal.fire("Error", response.data?.Message || "Failed to mark attendance", "error")
+      }
+    } catch (error: any) {
+      console.error("Error marking attendance:", error)
+      Swal.fire("Error", "Failed to mark attendance. Please try again.", "error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleToggleExcused = async () => {
+    const newExcused = !isExcused
+    setLoading(true)
+    try {
+      const payload = {
+        classId: lesson.classId,
+        scheduleId: lesson.scheduleId,
+        studentId: studentId,
+        date: lesson.date || lesson.startTime,
+        attendanceStatus: newExcused ? "Excused" : "None",
+      }
+      const response = await axiosInstance.post("/Class/MarkAttendance", null, { params: payload })
+      if (response.data?.IsSuccess) {
+        setIsExcused(newExcused)
+        if (newExcused) {
+          setAttendanceStatus("Excused")
+        } else {
+          setAttendanceStatus(null)
+        }
+        Swal.fire("Success", newExcused ? "Marked as excused" : "Removed excused status", "success")
+        onSuccess()
+      } else {
+        Swal.fire("Error", response.data?.Message || "Failed to update attendance", "error")
+      }
+    } catch (error: any) {
+      console.error("Error updating attendance:", error)
+      Swal.fire("Error", "Failed to update attendance. Please try again.", "error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const goldStarOptions = [
+    "Being on Task",
+    "Participating",
+    "Working Hard",
+    "Helping others",
+    "On task",
+    "Persistence",
+    "Teamwork"
+  ]
+
+  const redFlagOptions = [
+    "Disruptive",
+    "Not paying attention",
+    "Late arrival",
+    "Missing homework",
+    "Inappropriate behavior"
+  ]
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 grid place-items-center z-[60] px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-2xl rounded-xl shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Student attendance and behaviour</h2>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 text-gray-500"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 space-y-6">
+          {/* Student and Lesson Info */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-sm">
+              <User size={16} className="text-gray-500" />
+              <span className="text-gray-600">Student:</span>
+              <span className="font-medium text-gray-900">{studentName}</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <BookOpen size={16} className="text-gray-500" />
+              <span className="text-gray-600">Class:</span>
+              <span className="font-medium text-gray-900">{lesson.className || "—"}</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <Calendar size={16} className="text-gray-500" />
+              <span className="text-gray-600">Lesson date and time:</span>
+              <span className="font-medium text-gray-900">{lessonDate}, {lessonTime}</span>
+            </div>
+          </div>
+
+          {/* Attendance Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <CheckCircle size={18} className="text-gray-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Attendance</h3>
+            </div>
+            <div className="flex items-center gap-4 mb-4">
+              <button
+                onClick={() => handleMarkAttendance("Present")}
+                disabled={isExcused || loading}
+                className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
+                  attendanceStatus === "Present"
+                    ? "bg-green-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-green-50"
+                } ${isExcused ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <CheckCircle size={20} />
+              </button>
+              <span className="text-sm font-medium text-gray-700">Present</span>
+
+              <button
+                onClick={() => handleMarkAttendance("Absent")}
+                disabled={isExcused || loading}
+                className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
+                  attendanceStatus === "Absent"
+                    ? "bg-red-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-red-50"
+                } ${isExcused ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <X size={20} />
+              </button>
+              <span className="text-sm font-medium text-gray-700">Absent</span>
+
+              <button
+                onClick={() => handleMarkAttendance("Late")}
+                disabled={isExcused || loading}
+                className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
+                  attendanceStatus === "Late"
+                    ? "bg-orange-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-orange-50"
+                } ${isExcused ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
+                <Clock size={20} />
+              </button>
+              <span className="text-sm font-medium text-gray-700">Late</span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isExcused}
+                onChange={handleToggleExcused}
+                disabled={loading}
+                className="w-4 h-4 text-blue-600 rounded border-gray-300"
+              />
+              <span className="text-sm text-gray-700">Mark as excused</span>
+            </label>
+          </div>
+
+          {/* Behaviour Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <Star size={18} className="text-gray-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Behaviour</h3>
+            </div>
+            <div className="flex gap-2 mb-4 border-b border-gray-200">
+              <button
+                onClick={() => setBehaviourTab("gold")}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  behaviourTab === "gold"
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Gold star
+              </button>
+              <button
+                onClick={() => setBehaviourTab("red")}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  behaviourTab === "red"
+                    ? "border-blue-600 text-blue-600"
+                    : "border-transparent text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Red flag
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {behaviourTab === "gold"
+                ? goldStarOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setSelectedGoldStars((prev) =>
+                          prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
+                        )
+                      }}
+                      className={`p-3 rounded-lg border-2 transition-colors ${
+                        selectedGoldStars.includes(option)
+                          ? "border-yellow-400 bg-yellow-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <Star
+                        size={24}
+                        className={`mx-auto mb-1 ${
+                          selectedGoldStars.includes(option) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+                        }`}
+                      />
+                      <div className="text-xs text-center text-gray-700">{option}</div>
+                    </button>
+                  ))
+                : redFlagOptions.map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => {
+                        setSelectedRedFlags((prev) =>
+                          prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
+                        )
+                      }}
+                      className={`p-3 rounded-lg border-2 transition-colors ${
+                        selectedRedFlags.includes(option)
+                          ? "border-red-400 bg-red-50"
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <Flag
+                        size={24}
+                        className={`mx-auto mb-1 ${
+                          selectedRedFlags.includes(option) ? "fill-red-400 text-red-400" : "text-gray-300"
+                        }`}
+                      />
+                      <div className="text-xs text-center text-gray-700">{option}</div>
+                    </button>
+                  ))}
+            </div>
+          </div>
+
+          {/* Lesson Grade Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Award size={18} className="text-gray-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Lesson grade</h3>
+            </div>
+            <input
+              type="text"
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+              placeholder="Enter grade in percentage"
+              className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+            />
+          </div>
+
+          {/* Note Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <StickyNote size={18} className="text-gray-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Note</h3>
+            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Note"
+              rows={4}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm resize-none"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+          <button
+            onClick={onClose}
+            className="h-10 px-4 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              // TODO: Save grade, notes, and behaviour
+              Swal.fire("Success", "Changes saved successfully", "success")
+              onSuccess()
+              onClose()
+            }}
+            className="h-10 px-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Add Attachment Modal Component
+function AddAttachmentModal({
+  studentId,
+  studentName,
+  onClose,
+  onSuccess,
+  uploading
+}: {
+  studentId: number
+  studentName: string
+  onClose: () => void
+  onSuccess: (formData: FormData) => Promise<void>
+  uploading: boolean
+}) {
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [folderName, setFolderName] = useState("")
+  const [folderId, setFolderId] = useState<number | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length > 0) {
+      setSelectedFiles((prev) => [...prev, ...files])
+    }
+  }
+
+  const removeFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (selectedFiles.length === 0) {
+      Swal.fire("Error", "Please select at least one file", "error")
+      return
+    }
+
+    const formData = new FormData()
+    
+    // The API expects [FromForm] List<Attachment>
+    // Format as documents[index].FieldName for array binding in ASP.NET Core
+    selectedFiles.forEach((file, index) => {
+      // Get file type from file extension
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
+      const fileType = fileExtension
+      
+      formData.append(`documents[${index}].Id`, "0")
+      formData.append(`documents[${index}].FileDetails`, file)
+      formData.append(`documents[${index}].FileType`, fileType)
+      formData.append(`documents[${index}].FolderName`, folderName || "")
+      formData.append(`documents[${index}].StudentName`, studentName)
+      formData.append(`documents[${index}].URL`, "") // Will be set by backend
+      formData.append(`documents[${index}].CreatedBy`, "") // Will be set by backend
+      formData.append(`documents[${index}].CreatedOn`, new Date().toISOString())
+      formData.append(`documents[${index}].FolderID`, folderId?.toString() || "0")
+      formData.append(`documents[${index}].StudentID`, studentId.toString())
+      formData.append(`documents[${index}].IsDeleted`, "false")
+    })
+
+    await onSuccess(formData)
+    
+    // Reset form
+    setSelectedFiles([])
+    setFolderName("")
+    setFolderId(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/40 grid place-items-center z-[60] px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-lg rounded-xl shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Add Attachment</h2>
+          <button
+            onClick={onClose}
+            className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 text-gray-500"
+            disabled={uploading}
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
+        <form onSubmit={handleSubmit}>
+          <div className="p-6 space-y-4">
+            {/* Student Info */}
+            <div className="flex items-center gap-3 text-sm p-3 bg-gray-50 rounded-lg">
+              <User size={16} className="text-gray-500" />
+              <span className="text-gray-600">Student:</span>
+              <span className="font-medium text-gray-900">{studentName}</span>
+            </div>
+
+            {/* File Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Files <span className="text-red-500">*</span>
+                {selectedFiles.length > 0 && (
+                  <span className="ml-2 text-xs text-gray-500">({selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected)</span>
+                )}
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  id="file-upload"
+                  disabled={uploading}
+                  multiple
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <Paperclip size={32} className="text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-600 mb-1">
+                    {selectedFiles.length > 0 
+                      ? `Click to add more files (${selectedFiles.length} selected)`
+                      : "Click to upload or drag and drop"}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    PDF, DOC, DOCX, JPG, PNG, etc. (Multiple files supported)
+                  </span>
+                </label>
+              </div>
+              {selectedFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {selectedFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <Paperclip size={16} className="text-gray-400 flex-shrink-0" />
+                        <span className="text-sm text-gray-700 truncate">{file.name}</span>
+                        <span className="text-xs text-gray-500 flex-shrink-0">
+                          ({(file.size / 1024).toFixed(2)} KB)
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="ml-2 text-sm text-red-600 hover:text-red-700 flex-shrink-0"
+                        disabled={uploading}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Folder Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Folder Name (Optional)
+              </label>
+              <input
+                type="text"
+                value={folderName}
+                onChange={(e) => setFolderName(e.target.value)}
+                placeholder="Enter folder name"
+                className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+                disabled={uploading}
+              />
+            </div>
+
+            {/* Folder ID */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Folder ID (Optional)
+              </label>
+              <input
+                type="number"
+                value={folderId || ""}
+                onChange={(e) => setFolderId(e.target.value ? parseInt(e.target.value) : null)}
+                placeholder="Enter folder ID"
+                className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+                disabled={uploading}
+              />
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-10 px-4 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              disabled={uploading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="h-10 px-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={uploading || selectedFiles.length === 0}
+            >
+              {uploading ? "Uploading..." : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}`}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

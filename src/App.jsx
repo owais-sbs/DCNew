@@ -41,6 +41,7 @@ import ClassDetailsScreen from "./components/ClassDetailsScreen";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
 import ResetPassword from "./components/ResetPassword";
+import ActivationPage from "./components/ActivationPage";
 import { AuthProvider } from "./components/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PrivateLayout from "./components/PrivateLayout";
@@ -68,6 +69,7 @@ export default function App() {
               {/* PUBLIC ROUTES */}
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/activate" element={<ActivationPage />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/verify-otp" element={<VerifyOtp />} />
               <Route path="/reset-password" element={<ResetPassword />} />
@@ -609,8 +611,15 @@ export default function App() {
                 }
               />
 
-              {/* Student portal (public demo) */}
-              <Route path="/student" element={<StudentPortalLayout />}>
+              {/* Student portal */}
+              <Route
+                path="/student"
+                element={
+                  <ProtectedRoute>
+                    <StudentPortalLayout />
+                  </ProtectedRoute>
+                }
+              >
                 <Route index element={<Navigate to="/student/dashboard" replace />} />
                 <Route path="dashboard" element={<StudentDashboardPage />} />
                 <Route path="calendar" element={<StudentCalendarPage />} />

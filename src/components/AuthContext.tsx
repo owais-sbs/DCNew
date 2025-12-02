@@ -7,7 +7,9 @@ interface User {
   name: string;
   email: string;
   role: string;
-  roleId: number; // Add this
+  roleId: number;
+  studentId?: number | null;
+  teacherId?: number | null;
   isActive: boolean;
 }
 
@@ -26,7 +28,18 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    // Return a default context instead of throwing error
+    // This allows components to work even if AuthProvider is not available
+    console.warn('useAuth called outside AuthProvider, returning default context');
+    return {
+      user: null,
+      isAuthenticated: false,
+      isLoading: false,
+      login: () => {},
+      logout: () => {},
+      updateUser: () => {},
+      clearAuth: () => {},
+    };
   }
   return context;
 };
@@ -58,6 +71,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             handleLogout();
             setUser(null);
           } else {
+            // Ensure studentId and teacherId are loaded from localStorage if not in userInfo
+            if (!parsedUser.studentId) {
+              const storedStudentId = localStorage.getItem('studentId');
+              if (storedStudentId) {
+                parsedUser.studentId = parseInt(storedStudentId);
+              }
+            }
+            if (!parsedUser.teacherId) {
+              const storedTeacherId = localStorage.getItem('teacherId');
+              if (storedTeacherId) {
+                parsedUser.teacherId = parseInt(storedTeacherId);
+              }
+            }
             // Valid user data
             setUser(parsedUser);
           }
