@@ -199,12 +199,17 @@ export default function Dashboard() {
   const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false)
   const [alreadyEnrolled, setAlreadyEnrolled] = useState<number[]>([])
   const [updatingStudent, setUpdatingStudent] = useState<number | null>(null)
-  const [menuOpenFor, setMenuOpenFor] = useState<number | null>(null);
-  const [showUnenrollModal, setShowUnenrollModal] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<any>(null);
+  const [menuOpenFor, setMenuOpenFor] = useState<number | null>(null)
+  const [showUnenrollModal, setShowUnenrollModal] = useState(false)
+  const [selectedStudent, setSelectedStudent] = useState<any>(null)
 
-
-
+  // personal note modal
+  const [showNoteModal, setShowNoteModal] = useState(false)
+  const [noteStudent, setNoteStudent] = useState<any | null>(null)
+  const [noteVisibility, setNoteVisibility] = useState<"private" | "shared" | "admin">("private")
+  const [noteType, setNoteType] = useState<string>("General note")
+  const [noteContent, setNoteContent] = useState<string>("")
+  const [notifyText, setNotifyText] = useState<string>("")
 
   const fetchAllStudents = async () => {
     try{
@@ -1010,17 +1015,23 @@ export default function Dashboard() {
       <button
         className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left"
         onClick={() => {
-  const toggle = student.status === "Excused" ? "None" : "Excused";
-  markAttendance(student.classId, student.id, toggle);
-  setMenuOpenFor(null);
-}}
-
+          const toggle = student.status === "Excused" ? "None" : "Excused"
+          markAttendance(student.classId, student.id, toggle)
+          setMenuOpenFor(null)
+        }}
       >
         <input type="checkbox" checked={student.status === "Excused"} readOnly />
         <span>Mark as excused</span>
       </button>
 
-      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left">
+      <button
+        className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left"
+        onClick={() => {
+          setNoteStudent(student)
+          setShowNoteModal(true)
+          setMenuOpenFor(null)
+        }}
+      >
         ✏️ Add / edit note
       </button>
 
@@ -1320,7 +1331,146 @@ export default function Dashboard() {
 
         </>
       )}
-         {showUnenrollModal && (
+
+      {showNoteModal && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 px-4"
+          onClick={() => setShowNoteModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-sm font-semibold text-gray-900">
+                  Add personal note for {noteStudent?.firstName || noteStudent?.FirstName || "student"}
+                </h2>
+              </div>
+              <button
+                className="h-8 w-8 grid place-items-center rounded-full hover:bg-gray-100 text-gray-500"
+                onClick={() => setShowNoteModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="px-6 pt-5 pb-6 space-y-5">
+              {/* Rich text toolbar mock */}
+              <div className="flex items-center justify-between border border-gray-200 rounded-xl px-3 py-2 bg-gray-50">
+                <div className="flex items-center gap-2 text-gray-600 text-sm">
+                  <button className="h-8 w-8 rounded-lg hover:bg-white font-semibold">B</button>
+                  <button className="h-8 w-8 rounded-lg hover:bg-white italic">I</button>
+                  <button className="h-8 w-8 rounded-lg hover:bg-white underline">U</button>
+                  <span className="w-px h-6 bg-gray-200 mx-1" />
+                  <button className="h-8 w-8 rounded-lg hover:bg-white">•</button>
+                  <button className="h-8 w-8 rounded-lg hover:bg-white">1.</button>
+                  <span className="w-px h-6 bg-gray-200 mx-1" />
+                  <button className="h-8 px-2 rounded-lg hover:bg-white bg-yellow-200/70 text-xs">A</button>
+                </div>
+                <div className="flex items-center gap-2 text-gray-500 text-xs">
+                  <span className="px-2 py-1 rounded-lg bg-white border border-gray-200">14</span>
+                </div>
+              </div>
+
+              {/* Text area */}
+              <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                <textarea
+                  className="w-full min-h-[140px] px-4 py-3 text-sm text-gray-800 focus:outline-none resize-none"
+                  placeholder="Write your personal note..."
+                  value={noteContent}
+                  onChange={(e) => setNoteContent(e.target.value)}
+                />
+              </div>
+
+              {/* Visibility tabs + note type */}
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1">
+                  {[
+                    { key: "private", label: "Private" },
+                    { key: "shared", label: "Shared" },
+                    { key: "admin", label: "Admin" }
+                  ].map((tab) => (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setNoteVisibility(tab.key as any)}
+                      className={`px-4 py-1.5 text-xs font-medium rounded-lg ${
+                        noteVisibility === tab.key
+                          ? "bg-white text-indigo-600 shadow-sm"
+                          : "text-gray-600 hover:bg-white"
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="ml-auto">
+                  <label className="text-xs font-medium text-gray-500 mr-2">Note type</label>
+                  <select
+                    className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-xs text-gray-700"
+                    value={noteType}
+                    onChange={(e) => setNoteType(e.target.value)}
+                  >
+                    <option>Academic</option>
+                    <option>Training</option>
+                    <option>Disciplinary</option>
+                    <option>Results</option>
+                    <option>Registration</option>
+                    <option>Communication</option>
+                    <option>Payments</option>
+                    <option>Complaints</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Notify */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-gray-700 flex items-center gap-1">
+                  Notify
+                  <span className="text-gray-400 text-[11px]">i</span>
+                </label>
+                <input
+                  className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm"
+                  placeholder="Search people to notify..."
+                  value={notifyText}
+                  onChange={(e) => setNotifyText(e.target.value)}
+                />
+                <div className="text-xs text-gray-500 flex items-center gap-2">
+                  <span>0 people selected</span>
+                  <button type="button" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                    View
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <button
+                type="button"
+                className="px-4 h-9 rounded-xl border border-gray-300 text-sm text-gray-700 hover:bg-white"
+                onClick={() => setShowNoteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-5 h-9 rounded-xl bg-indigo-600 text-sm font-medium text-white hover:bg-indigo-700"
+                onClick={() => {
+                  // TODO: integrate API for saving notes
+                  setShowNoteModal(false)
+                }}
+              >
+                Save changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showUnenrollModal && (
   <UnenrollStudentModal
     student={selectedStudent}
     classId={selectedStudent.classId}

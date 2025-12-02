@@ -261,7 +261,14 @@ function LessonsContent({
     const d = new Date();
     return d.toISOString().slice(0, 10); // yyyy-mm-dd
   });
-  
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteStudent, setNoteStudent] = useState<any | null>(null);
+  const [noteVisibility, setNoteVisibility] = useState<
+    "private" | "shared" | "admin"
+  >("private");
+  const [noteType, setNoteType] = useState<string>("General note");
+  const [noteContent, setNoteContent] = useState<string>("");
+  const [notifyText, setNotifyText] = useState<string>("");
   const { id } = useParams();
 
   console.log(id)
@@ -718,17 +725,23 @@ function LessonsContent({
       <button
         className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left"
         onClick={() => {
-  const toggle = student.status === "Excused" ? "None" : "Excused";
-  markAttendance(student.classId, student.id, toggle);
-  setMenuOpenFor(null);
-}}
-
+          const toggle = student.status === "Excused" ? "None" : "Excused"
+          markAttendance(student.classId, student.id, toggle)
+          setMenuOpenFor(null)
+        }}
       >
         <input type="checkbox" checked={student.status === "Excused"} readOnly />
         <span>Mark as excused</span>
       </button>
 
-      <button className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left">
+      <button
+        className="flex items-center gap-2 w-full px-4 py-3 hover:bg-gray-50 text-left"
+        onClick={() => {
+          setNoteStudent(student)
+          setShowNoteModal(true)
+          setMenuOpenFor(null)
+        }}
+      >
         ✏️ Add / edit note
       </button>
 
@@ -1880,8 +1893,20 @@ function AddNoteModal({ onClose }: { onClose: () => void }) {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-600">Note type:</span>
-              <select className="px-2 py-1 border border-gray-300 rounded text-sm">
-                <option>General</option>
+              <select
+                className="px-2 py-1 border border-gray-300 rounded text-sm"
+                value={noteType}
+                onChange={(e) => setNoteType(e.target.value)}
+              >
+                <option>Academic</option>
+                <option>Training</option>
+                <option>Disciplinary</option>
+                <option>Results</option>
+                <option>Registration</option>
+                <option>Communication</option>
+                <option>Payments</option>
+                <option>Complaints</option>
+                <option>Other</option>
               </select>
             </div>
           </div>
