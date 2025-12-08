@@ -83,6 +83,7 @@ export default function StudentProfile() {
   const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
   const [lessons, setLessons] = useState<any[]>([])
   const [loadingLessons, setLoadingLessons] = useState(false)
+  const [attendanceData, setAttendanceData] = useState<Record<number, any>>({})
   const [openClassMenu, setOpenClassMenu] = useState<number | null>(null)
   const [selectedLesson, setSelectedLesson] = useState<any | null>(null)
   const [showAttendanceModal, setShowAttendanceModal] = useState(false)
@@ -222,36 +223,92 @@ export default function StudentProfile() {
     return () => controller.abort()
   }, [activeTab, id])
 
-  // Fetch lessons for selected class
-  const fetchLessons = async (classId: number) => {
-    setSelectedClassId(classId)
-    setLoadingLessons(true)
+  // Fetch attendance data for student in class
+  const fetchAttendance = async (classId: number) => {
+    if (!id) return
+    
     try {
-      const response = await axiosInstance.get("/Class/GetSessionsForClass", {
+      const response = await axiosInstance.get("/Class/GetAttendanceForStudentInClass", {
         params: { 
           classId,
-          studentId: id ? Number(id) : undefined
+          studentId: Number(id)
         }
       })
 
-      console.log("Lessons response:", response.data)
+      console.log("Attendance response:", response.data)
       if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+        // Create a map of SessionId -> attendance data
+        const attendanceMap: Record<number, any> = {}
+        response.data.Data.forEach((item: any) => {
+          if (item.SessionId) {
+            attendanceMap[item.SessionId] = {
+              attendanceStatus: item.AttendanceStatus,
+              attendanceDate: item.AttendanceDate,
+              sessionDayOfWeek: item.SessionDayOfWeek,
+              sessionStartTime: item.SessionStartTime,
+              sessionEndTime: item.SessionEndTime,
+              classTitle: item.ClassTitle
+            }
+          }
+        })
+        setAttendanceData(attendanceMap)
+      }
+    } catch (error: any) {
+      console.error("Error fetching attendance:", error)
+      // Don't show error to user, just log it
+    }
+  }
+
+  // Fetch lessons for selected class using GetAttendanceForStudentInClass
+  const fetchLessons = async (classId: number) => {
+    setSelectedClassId(classId)
+    setLoadingLessons(true)
+    setAttendanceData({}) // Clear previous attendance data
+    
+    if (!id) {
+      setLoadingLessons(false)
+      return
+    }
+    
+    try {
+      const response = await axiosInstance.get("/Class/GetAttendanceForStudentInClass", {
+        params: { 
+          classId,
+          studentId: Number(id)
+        }
+      })
+
+      console.log("Lessons response from GetAttendanceForStudentInClass:", response.data)
+      if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+        // Map the attendance API response to lessons format
         const mapped = response.data.Data.map((s: any) => ({
-          scheduleId: s.ScheduleId,
+          scheduleId: s.SessionId,
           classId: classId,
-          date: s.Date || s.StartTime,
-          startTime: s.StartTime,
-          endTime: s.EndTime,
-          className: s.ClassTitle || s.ClassName,
-          subject: s.ClassSubject,
-          level: s.ClassLevel,
+          date: s.AttendanceDate || s.SessionStartTime,
+          startTime: s.SessionStartTime,
+          endTime: s.SessionEndTime,
+          className: s.ClassTitle || "—",
+          dayOfWeek: s.SessionDayOfWeek || null,
           attendance: s.AttendanceStatus || null,
-          behaviour: s.Behaviour || null,
-          grade: s.Grade || null,
-          notes: s.Notes || null,
         }))
         setLessons(mapped)
         setClassesSubTab('lessons')
+        
+        // Also create attendance data map for easy lookup (used in modal)
+        const attendanceMap: Record<number, any> = {}
+        response.data.Data.forEach((item: any) => {
+          if (item.SessionId) {
+            attendanceMap[item.SessionId] = {
+              attendanceStatus: item.AttendanceStatus,
+              attendanceDate: item.AttendanceDate,
+              sessionDayOfWeek: item.SessionDayOfWeek,
+              sessionStartTime: item.SessionStartTime,
+              sessionEndTime: item.SessionEndTime,
+              classTitle: item.ClassTitle
+            }
+          }
+        })
+        setAttendanceData(attendanceMap)
       } else {
         setLessons([])
         Swal.fire("Error", "Failed to load lessons", "error")
@@ -707,9 +764,6 @@ export default function StudentProfile() {
               <option>Attendance: All</option>
             </select>
             <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
-              <option>Behaviour: All</option>
-            </select>
-            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
               <option>Class: All</option>
             </select>
             <div className="relative">
@@ -735,11 +789,9 @@ export default function StudentProfile() {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Day</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Behaviour</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Grade</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Notes</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
                   </tr>
                 </thead>
@@ -760,6 +812,8 @@ export default function StudentProfile() {
                         case "present": return "bg-green-100 text-green-800"
                         case "absent": return "bg-red-100 text-red-800"
                         case "late": return "bg-orange-100 text-orange-800"
+                        case "nottaken": return "bg-gray-100 text-gray-500"
+                        case "excused": return "bg-blue-100 text-blue-800"
                         default: return "bg-gray-100 text-gray-800"
                       }
                     }
@@ -769,33 +823,40 @@ export default function StudentProfile() {
                       ? `${new Date(lesson.startTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}-${new Date(lesson.endTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
                       : ""
                     
+                    // Get attendance data from the lesson object (already mapped from API)
+                    const attendanceStatus = lesson.attendance || null
+                    
+                    // Format attendance status for display (exclude "NotTaken")
+                    const displayAttendanceStatus = attendanceStatus && attendanceStatus.toLowerCase() !== "nottaken" 
+                      ? attendanceStatus 
+                      : null
+                    
                     return (
                       <tr key={lesson.scheduleId || i} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-3 px-4 text-gray-700">
                           <div>{lessonDate}</div>
                           {lessonTime && <div className="text-xs text-gray-500">{lessonTime}</div>}
                         </td>
+                        <td className="py-3 px-4 text-gray-700">
+                          {lesson.dayOfWeek || "—"}
+                        </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-2 rounded-full bg-red-500" />
                             <div>
                               <div className="font-medium text-gray-900">{lesson.className || "Unnamed Class"}</div>
-                              {lesson.subject && <div className="text-xs text-gray-500">{lesson.subject}</div>}
                             </div>
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          {lesson.attendance ? (
-                            <span className={`px-2 py-1 rounded-full text-xs ${getAttendanceColor(lesson.attendance)}`}>
-                              {lesson.attendance}
+                          {displayAttendanceStatus ? (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAttendanceColor(displayAttendanceStatus)}`}>
+                              {displayAttendanceStatus}
                             </span>
                           ) : (
                             <span className="text-gray-400">—</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-gray-700">{lesson.behaviour || "—"}</td>
-                        <td className="py-3 px-4 text-gray-700">{lesson.grade || "—"}</td>
-                        <td className="py-3 px-4 text-gray-700">{lesson.notes || "—"}</td>
                         <td className="py-3 px-4">
                           <button 
                             className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
@@ -2356,6 +2417,55 @@ function StudentAttendanceModal({
   const [grade, setGrade] = useState<string>(lesson.grade || "")
   const [notes, setNotes] = useState<string>(lesson.notes || "")
   const [loading, setLoading] = useState(false)
+  const [loadingAttendance, setLoadingAttendance] = useState(true)
+  const [attendanceData, setAttendanceData] = useState<any>(null)
+
+  // Fetch attendance data when modal opens
+  useEffect(() => {
+    const fetchAttendanceData = async () => {
+      if (!lesson.classId || !lesson.scheduleId) {
+        setLoadingAttendance(false)
+        return
+      }
+
+      try {
+        const response = await axiosInstance.get("/Class/GetAttendanceForStudentInClass", {
+          params: { 
+            classId: lesson.classId,
+            studentId: studentId
+          }
+        })
+
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+          // Find the attendance record for this specific session
+          const sessionAttendance = response.data.Data.find(
+            (item: any) => item.SessionId === lesson.scheduleId
+          )
+          
+          if (sessionAttendance) {
+            setAttendanceData(sessionAttendance)
+            // Update attendance status from API
+            const status = sessionAttendance.AttendanceStatus
+            if (status && status !== "NotTaken") {
+              if (status === "Excused") {
+                setAttendanceStatus("Excused")
+                setIsExcused(true)
+              } else {
+                setAttendanceStatus(status as "Present" | "Absent" | "Late")
+                setIsExcused(false)
+              }
+            }
+          }
+        }
+      } catch (error: any) {
+        console.error("Error fetching attendance:", error)
+      } finally {
+        setLoadingAttendance(false)
+      }
+    }
+
+    fetchAttendanceData()
+  }, [lesson.classId, lesson.scheduleId, studentId])
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "—"
@@ -2383,21 +2493,41 @@ function StudentAttendanceModal({
     ? `${formatTime(lesson.startTime)}-${formatTime(lesson.endTime)}`
     : "—"
 
+  // Format date to YYYY-MM-DD format for API
+  const formatDateForAPI = (dateString?: string) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return null
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const handleMarkAttendance = async (status: "Present" | "Absent" | "Late") => {
     if (isExcused) return
     
     setLoading(true)
     try {
+      const dateForAPI = formatDateForAPI(lesson.date || lesson.startTime)
       const payload = {
         classId: lesson.classId,
         scheduleId: lesson.scheduleId,
         studentId: studentId,
-        date: lesson.date || lesson.startTime,
+        date: dateForAPI,
         attendanceStatus: status,
       }
       const response = await axiosInstance.post("/Class/MarkAttendance", null, { params: payload })
       if (response.data?.IsSuccess) {
         setAttendanceStatus(status)
+        // Update attendance data
+        if (attendanceData) {
+          setAttendanceData({
+            ...attendanceData,
+            AttendanceStatus: status,
+            AttendanceDate: new Date().toISOString()
+          })
+        }
         Swal.fire("Success", "Attendance marked successfully", "success")
         onSuccess()
       } else {
@@ -2415,11 +2545,12 @@ function StudentAttendanceModal({
     const newExcused = !isExcused
     setLoading(true)
     try {
+      const dateForAPI = formatDateForAPI(lesson.date || lesson.startTime)
       const payload = {
         classId: lesson.classId,
         scheduleId: lesson.scheduleId,
         studentId: studentId,
-        date: lesson.date || lesson.startTime,
+        date: dateForAPI,
         attendanceStatus: newExcused ? "Excused" : "None",
       }
       const response = await axiosInstance.post("/Class/MarkAttendance", null, { params: payload })
@@ -2427,8 +2558,24 @@ function StudentAttendanceModal({
         setIsExcused(newExcused)
         if (newExcused) {
           setAttendanceStatus("Excused")
+          // Update attendance data
+          if (attendanceData) {
+            setAttendanceData({
+              ...attendanceData,
+              AttendanceStatus: "Excused",
+              AttendanceDate: new Date().toISOString()
+            })
+          }
         } else {
           setAttendanceStatus(null)
+          // Update attendance data
+          if (attendanceData) {
+            setAttendanceData({
+              ...attendanceData,
+              AttendanceStatus: "NotTaken",
+              AttendanceDate: null
+            })
+          }
         }
         Swal.fire("Success", newExcused ? "Marked as excused" : "Removed excused status", "success")
         onSuccess()
@@ -2504,9 +2651,31 @@ function StudentAttendanceModal({
 
           {/* Attendance Section */}
           <div>
-            <div className="flex items-center gap-2 mb-4">
-              <CheckCircle size={18} className="text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Attendance</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle size={18} className="text-gray-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Attendance</h3>
+              </div>
+              {loadingAttendance ? (
+                <span className="text-sm text-gray-500">Loading...</span>
+              ) : attendanceData && attendanceData.AttendanceStatus && attendanceData.AttendanceStatus !== "NotTaken" ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Current status:</span>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    attendanceData.AttendanceStatus === "Present" ? "bg-green-100 text-green-800" :
+                    attendanceData.AttendanceStatus === "Absent" ? "bg-red-100 text-red-800" :
+                    attendanceData.AttendanceStatus === "Late" ? "bg-orange-100 text-orange-800" :
+                    "bg-gray-100 text-gray-800"
+                  }`}>
+                    {attendanceData.AttendanceStatus}
+                  </span>
+                  {attendanceData.AttendanceDate && (
+                    <span className="text-xs text-gray-500">
+                      ({formatDate(attendanceData.AttendanceDate)})
+                    </span>
+                  )}
+                </div>
+              ) : null}
             </div>
             <div className="flex items-center gap-4 mb-4">
               <button

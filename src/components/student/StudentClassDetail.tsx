@@ -1,25 +1,28 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { RefreshCw, ChevronLeft } from "lucide-react"
 import { getStudentId, useStudentClasses } from "./useStudentClasses"
 import { useAuth } from "../AuthContext"
+import axiosInstance from "../axiosInstance"
 
-const lessons = Array.from({ length: 25 }, (_, index) => ({
-  id: index + 1,
-  date: `${25 + index}-11-2023`,
-  time: "9:00-10:30",
-  class: "Advanced_AM_DCE1_PART 1 General English with Exam Preparation, C1",
-  attendance: index < 3 ? ["Present", "Tardy", "Late", "Missed", "Absent"][index] : "",
-  behaviour: "",
-  grade: "",
-  notes: ""
-}))
+type AttendanceEntry = {
+  SessionId: number
+  AttendanceStatus: string
+  AttendanceDate: string
+  SessionDayOfWeek: string
+  SessionStartTime: string
+  SessionEndTime: string
+  ClassTitle: string
+}
 
 export default function StudentClassDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<"lessons" | "class-notes" | "attachments" | "assignments" | "gradebook">("lessons")
+  const [attendanceData, setAttendanceData] = useState<AttendanceEntry[]>([])
+  const [loadingAttendance, setLoadingAttendance] = useState<boolean>(false)
+  const [attendanceError, setAttendanceError] = useState<string | null>(null)
   
   // Get studentId from user context or localStorage
   const studentId = user?.studentId || getStudentId()
@@ -28,6 +31,40 @@ export default function StudentClassDetail() {
   const numericId = Number(id)
   const classData = useMemo(() => classes.find((cls) => cls.id === numericId), [classes, numericId])
   const rawClass = classData?.raw
+
+  // Fetch attendance data when component loads or when classId/studentId changes
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      if (!numericId || !studentId) return
+
+      setLoadingAttendance(true)
+      setAttendanceError(null)
+      try {
+        const response = await axiosInstance.get("/Class/GetAttendanceForStudentInClass", {
+          params: { 
+            classId: numericId,
+            studentId: studentId
+          }
+        })
+
+        console.log("Attendance response:", response.data)
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+          setAttendanceData(response.data.Data)
+        } else {
+          setAttendanceData([])
+          setAttendanceError(response.data?.Message || "No attendance data available.")
+        }
+      } catch (err: any) {
+        console.error("Error fetching attendance:", err)
+        setAttendanceError(err?.message || "Failed to load attendance data.")
+        setAttendanceData([])
+      } finally {
+        setLoadingAttendance(false)
+      }
+    }
+
+    fetchAttendance()
+  }, [numericId, studentId])
 
   const getAttendanceButtonClass = (status: string) => {
     switch (status) {
@@ -41,6 +78,8 @@ export default function StudentClassDetail() {
         return "bg-pink-500 text-white hover:bg-pink-600"
       case "Absent":
         return "bg-rose-500 text-white hover:bg-rose-600"
+      case "Excused":
+        return "bg-gray-300 text-gray-700 hover:bg-gray-400"
       default:
         return "bg-gray-100 text-gray-500 hover:bg-gray-200"
     }
@@ -70,6 +109,20 @@ export default function StudentClassDetail() {
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return "—"
     return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+  }
+
+  const formatTime = (startTime?: string, endTime?: string) => {
+    if (!startTime) return "—"
+    const start = startTime ? new Date(`2000-01-01T${startTime}`).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : ""
+    const end = endTime ? new Date(`2000-01-01T${endTime}`).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false }) : ""
+    return start && end ? `${start}-${end}` : start || "—"
+  }
+
+  const formatDateValue = (dateString?: string) => {
+    if (!dateString) return "—"
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return "—"
+    return date.toLocaleDateString("en-GB", { day: "2-digit", month: "2-digit", year: "numeric" })
   }
 
   return (
@@ -190,99 +243,109 @@ export default function StudentClassDetail() {
           <div className="p-6">
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm text-gray-600">Your attendance, notes and performance for each lesson of the class.</p>
-            <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500">01-01-2023 - 01-01-2000</span>
-                <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">
-                  <RefreshCw size={16} className="text-gray-600" />
+              <div className="flex items-center gap-3">
+                {attendanceData.length > 0 && (
+                  <span className="text-sm text-gray-500">
+                    {formatDateValue(attendanceData[attendanceData.length - 1]?.AttendanceDate)} - {formatDateValue(attendanceData[0]?.AttendanceDate)}
+                  </span>
+                )}
+                <button 
+                  onClick={() => {
+                    if (numericId && studentId) {
+                      setLoadingAttendance(true)
+                      axiosInstance.get("/Class/GetAttendanceForStudentInClass", {
+                        params: { 
+                          classId: numericId,
+                          studentId: studentId
+                        }
+                      }).then((response) => {
+                        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+                          setAttendanceData(response.data.Data)
+                        }
+                      }).catch((err) => {
+                        console.error("Error refreshing attendance:", err)
+                      }).finally(() => {
+                        setLoadingAttendance(false)
+                      })
+                    }
+                  }}
+                  className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200"
+                  disabled={loadingAttendance}
+                >
+                  <RefreshCw size={16} className={`text-gray-600 ${loadingAttendance ? 'animate-spin' : ''}`} />
                 </button>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 text-gray-500">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-medium">Date</th>
-                    <th className="px-4 py-3 text-left font-medium">Class</th>
-                    <th className="px-4 py-3 text-left font-medium">Attendance</th>
-                    <th className="px-4 py-3 text-left font-medium">Behaviour</th>
-                    <th className="px-4 py-3 text-left font-medium">Grade</th>
-                    <th className="px-4 py-3 text-left font-medium">Personal lesson notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {lessons.map((lesson) => (
-                    <tr key={lesson.id} className="border-t border-gray-100 hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <div className="text-gray-900">{lesson.date}</div>
-                        <div className="text-xs text-gray-500">{lesson.time}</div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-red-500"></span>
-                          <span className="text-gray-700">{lesson.class}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {lesson.attendance ? (
-                          <button
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${getAttendanceButtonClass(lesson.attendance)}`}
-                          >
-                            {lesson.attendance}
-                          </button>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-gray-400">—</td>
-                      <td className="px-4 py-3 text-gray-400">—</td>
-                      <td className="px-4 py-3 text-gray-400">—</td>
+            {loadingAttendance && (
+              <div className="text-sm text-gray-500 py-4">Loading attendance data...</div>
+            )}
+
+            {attendanceError && !loadingAttendance && (
+              <div className="text-sm text-red-500 py-4">{attendanceError}</div>
+            )}
+
+            {!loadingAttendance && !attendanceError && attendanceData.length === 0 && (
+              <div className="text-sm text-gray-500 py-4">No attendance records found.</div>
+            )}
+
+            {!loadingAttendance && attendanceData.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-medium">Date</th>
+                      <th className="px-4 py-3 text-left font-medium">Class</th>
+                      <th className="px-4 py-3 text-left font-medium">Attendance</th>
+                      <th className="px-4 py-3 text-left font-medium">Behaviour</th>
+                      <th className="px-4 py-3 text-left font-medium">Grade</th>
+                      <th className="px-4 py-3 text-left font-medium">Personal lesson notes</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {attendanceData.map((entry) => (
+                      <tr key={entry.SessionId} className="border-t border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <div className="text-gray-900">{formatDateValue(entry.AttendanceDate)}</div>
+                          <div className="text-xs text-gray-500">{formatTime(entry.SessionStartTime, entry.SessionEndTime)}</div>
+                          {entry.SessionDayOfWeek && (
+                            <div className="text-xs text-gray-400">{entry.SessionDayOfWeek}</div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                            <span className="text-gray-700">{entry.ClassTitle || classData?.title || "—"}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {entry.AttendanceStatus && entry.AttendanceStatus !== "NotTaken" ? (
+                            <button
+                              className={`px-3 py-1 rounded-full text-xs font-medium ${getAttendanceButtonClass(entry.AttendanceStatus)}`}
+                            >
+                              {entry.AttendanceStatus}
+                            </button>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-gray-400">—</td>
+                        <td className="px-4 py-3 text-gray-400">—</td>
+                        <td className="px-4 py-3 text-gray-400">—</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-            <div className="mt-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">Show</span>
-                <select className="px-3 py-1 border border-gray-300 rounded-lg text-sm">
-                  <option>25</option>
-                  <option>50</option>
-                  <option>100</option>
-                </select>
-                <span className="text-sm text-gray-500">entries</span>
+            {!loadingAttendance && attendanceData.length > 0 && (
+              <div className="mt-4 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">Showing {attendanceData.length} entries</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                  &lt;&lt;
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                  &lt;
-                </button>
-                <button className="px-3 py-1 bg-indigo-600 text-white rounded-lg text-sm font-medium">
-                  1
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                  2
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                  3
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                  4
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                  5
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                  &gt;
-                </button>
-                <button className="px-3 py-1 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-50">
-                  &gt;&gt;
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         )}
 

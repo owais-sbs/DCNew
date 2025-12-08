@@ -1,10 +1,11 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Calendar, Star, Flag, Bell, MapPin, X, CheckSquare, BarChart, FileText, PenTool, Paperclip } from "lucide-react"
 import { useStudentClasses, getStudentId } from "./useStudentClasses"
 import { useAuth } from "../AuthContext"
 import { useStudentUpcomingSession, UpcomingSession } from "./useStudentUpcomingSession"
 import { useStudentCompletedSessions, CompletedSession } from "./useStudentCompletedSessions"
+import axiosInstance from "../axiosInstance"
 
 const upcomingLessons = [
   {
@@ -45,11 +46,16 @@ type Lesson = {
   dayOfWeek?: string | null
 }
 
+// Attendance data is just a percentage number from the API
+
 export default function StudentDashboard() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [lessonTab, setLessonTab] = useState<"upcoming" | "past">("upcoming")
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
+  const [attendancePercentage, setAttendancePercentage] = useState<number | null>(null)
+  const [loadingAttendance, setLoadingAttendance] = useState(false)
+  const [attendanceError, setAttendanceError] = useState<string | null>(null)
   
   // Get studentId from user context or localStorage
   const studentId = user?.studentId || getStudentId()
@@ -59,6 +65,39 @@ export default function StudentDashboard() {
   const { sessions: completedSessions, loading: completedLoading, error: completedError } = useStudentCompletedSessions(
     studentId || 0
   )
+
+  // Fetch attendance data
+  useEffect(() => {
+    const fetchAttendance = async () => {
+      if (!studentId) return
+
+      setLoadingAttendance(true)
+      setAttendanceError(null)
+      try {
+        const response = await axiosInstance.get("/dashboard/GetTotoalAttendaceByStudent", {
+          params: { studentId: studentId }
+        })
+
+        console.log("Attendance response:", response.data)
+        if (response.data?.IsSuccess) {
+          // Data is just a percentage number (e.g., 33.33)
+          const percentage = typeof response.data.Data === 'number' ? response.data.Data : null
+          setAttendancePercentage(percentage)
+        } else {
+          setAttendancePercentage(null)
+          setAttendanceError(response.data?.Message || "No attendance data available.")
+        }
+      } catch (err: any) {
+        console.error("Error fetching attendance:", err)
+        setAttendanceError(err?.message || "Failed to load attendance data.")
+        setAttendancePercentage(null)
+      } finally {
+        setLoadingAttendance(false)
+      }
+    }
+
+    fetchAttendance()
+  }, [studentId])
 
   const { list: upcomingLessonList, message: upcomingMessage } = buildUpcomingLessonList(
     upcomingSession,
@@ -220,21 +259,62 @@ export default function StudentDashboard() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-semibold text-gray-700">Attendance</h3>
               <p className="text-xs text-gray-500">Your attendance this term</p>
             </div>
             <Calendar className="h-5 w-5 text-indigo-600" />
           </div>
-          <div className="mt-4 h-32 w-32 mx-auto border-4 border-gray-200 rounded-full grid place-items-center text-gray-500 text-sm">
-            0%
-          </div>
-          <div className="mt-4 flex items-center justify-around text-xs text-gray-600">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500"></span>Present</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500"></span>Absent</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-yellow-500"></span>Late</span>
-          </div>
+          
+          {loadingAttendance ? (
+            <div className="mt-4 h-32 w-32 mx-auto grid place-items-center text-gray-500 text-sm">
+              Loading...
+            </div>
+          ) : attendanceError ? (
+            <div className="mt-4 text-center text-sm text-red-500">{attendanceError}</div>
+          ) : attendancePercentage !== null ? (
+            <>
+              <div className="mt-4 flex items-center justify-center">
+                <div className="relative h-40 w-40">
+                  <svg className="transform -rotate-90 h-40 w-40">
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="70"
+                      stroke="#e5e7eb"
+                      strokeWidth="12"
+                      fill="none"
+                    />
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="70"
+                      stroke={attendancePercentage >= 80 ? "#10b981" : attendancePercentage >= 60 ? "#f59e0b" : "#ef4444"}
+                      strokeWidth="12"
+                      fill="none"
+                      strokeDasharray={`${2 * Math.PI * 70}`}
+                      strokeDashoffset={`${2 * Math.PI * 70 * (1 - attendancePercentage / 100)}`}
+                      strokeLinecap="round"
+                      className="transition-all duration-500"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-gray-900">
+                        {attendancePercentage.toFixed(1)}%
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">Attendance</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="mt-4 h-32 w-32 mx-auto border-4 border-gray-200 rounded-full grid place-items-center text-gray-500 text-sm">
+              No data
+            </div>
+          )}
         </div>
         <div className="space-y-4">
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 shadow-sm">
@@ -267,6 +347,7 @@ export default function StudentDashboard() {
           <button className="mt-auto text-xs font-medium text-indigo-600 hover:text-indigo-700 text-right">View all</button>
         </div>
       </div>
+
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">

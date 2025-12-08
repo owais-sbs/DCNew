@@ -51,8 +51,15 @@ export default function AddClassForm() {
       setTeacherError(null)
       try {
         const response = await axiosInstance.get("/Teacher/GetAllTeachers", { signal: controller.signal })
-        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
-          setTeachers(response.data.Data)
+        if (response.data?.IsSuccess) {
+          // API returns: { IsSuccess: true, Data: { data: [...] } }
+          const teachersData = response.data.Data?.data || []
+          if (Array.isArray(teachersData)) {
+            setTeachers(teachersData)
+          } else {
+            setTeachers([])
+            setTeacherError("No teachers available.")
+          }
         } else {
           setTeachers([])
           setTeacherError("No teachers available.")

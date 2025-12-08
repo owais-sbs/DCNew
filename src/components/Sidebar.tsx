@@ -29,6 +29,7 @@ import { useAuth } from "./AuthContext";
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/student/dashboard" },
     { id: "calendar", icon: Calendar, label: "Calendar", path: "/student/calendar" },
     { id: "classes", icon: BookOpen, label: "Classes", path: "/student/classes" },
+    { id: "files", icon: FileText, label: "Files", path: "/student/files" },
   ];
   
 export default function Sidebar() {
