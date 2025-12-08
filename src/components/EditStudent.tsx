@@ -25,6 +25,8 @@ type StudentFormState = {
   preferredPaymentMethod: string;
   discount: string;
 
+  registrationDate: string;
+
   // Contact
   email: string;
   mobilePhone: string;
@@ -91,6 +93,7 @@ const emptyForm: StudentFormState = {
   dateOfBirth: "",
   idNumber: "",
   preferredPaymentMethod: "",
+  registrationDate: "",
   discount: "",
 
   email: "",
@@ -184,6 +187,7 @@ export default function EditStudent() {
           lastName: data.Surname ?? data.LastName ?? "", // Handle Surname mapping
           gender: data.Gender ?? "",
           dateOfBirth: toDateInput(data.DateOfBirth),
+          registrationDate: toDateInput(data.RegistrationDate),
           idNumber: data.IdNumber ?? "",
           preferredPaymentMethod: data.PreferredPaymentMethod ?? "",
           discount: data.Discount?.toString() ?? "",
@@ -278,6 +282,7 @@ export default function EditStudent() {
         Surname: form.lastName, // Map back to API expected "Surname"
         Gender: form.gender,
         DateOfBirth: form.dateOfBirth || null,
+        RegistrationDate: form.registrationDate || null,
         IdNumber: form.idNumber || null,
         PreferredPaymentMethod: form.preferredPaymentMethod || null,
         Discount: form.discount ? parseFloat(form.discount) : null,
@@ -431,6 +436,19 @@ export default function EditStudent() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
                     <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
                 </div>
+
+                {/* ✅ REGISTRATION DATE - READ ONLY */}
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Registration Date</label>
+                    <input 
+                        type="date" 
+                        name="registrationDate" 
+                        value={form.registrationDate} 
+                        readOnly // User cannot edit
+                        className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed" // Visual cue
+                    />
+                </div>
+                
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
                     <input name="idNumber" value={form.idNumber} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
