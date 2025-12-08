@@ -57,28 +57,46 @@ export default function DocumentsScreen() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "This document will be deleted.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it!",
-    });
+  // 🔹 Updated handleDelete in DocumentsScreen
 
-    if (result.isConfirmed) {
-      try {
-        // Note: You may need to implement a delete endpoint
-        // For now, we'll just show a message
+const handleDelete = async (id: number) => {
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This document will be deleted.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!",
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await axiosInstance.delete("/Document/Delete", {
+        params: { id },
+      });
+
+      if (response.data?.IsSuccess) {
         Swal.fire("Deleted!", "Document has been deleted.", "success");
         fetchDocuments();
-      } catch (error) {
-        Swal.fire("Error!", "Failed to delete document.", "error");
+      } else {
+        Swal.fire(
+          "Error!",
+          response.data?.Message || "Failed to delete document.",
+          "error"
+        );
       }
+    } catch (error: any) {
+      console.error("Error deleting document:", error);
+      Swal.fire(
+        "Error!",
+        error?.response?.data?.Message || "Failed to delete document.",
+        "error"
+      );
     }
-  };
+  }
+};
+
 
   const filteredDocuments = documents.filter((doc) => {
     const query = searchQuery.toLowerCase();
@@ -291,51 +309,58 @@ function DocumentFormModal({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
+  e.preventDefault();
+  setSubmitting(true);
+  setError(null);
 
-    try {
-      const payload = {
-        Id: formData.Id,
-        To: formData.To || null,
-        Title: formData.Title || null,
-        Body: formData.Body || null,
-        Footer: formData.Footer || null,
-        Note: formData.Note || null,
-      };
+  try {
+    const payload = {
+      Id: formData.Id,
+      To: formData.To || null,
+      Title: formData.Title || null,
+      Body: formData.Body || null,
+      Footer: formData.Footer || null,
+      Note: formData.Note || null,
+    };
 
-      const response = await axiosInstance.post(
-        "/Document/AddOrUpdateDocument",
-        payload
-      );
+    const response = await axiosInstance.post(
+      "/Document/AddOrUpdateDocument",
+      payload
+    );
 
-      if (response.data) {
-        Swal.fire({
-          icon: "success",
-          title: "Success!",
-          text: document?.Id
-            ? "Document updated successfully"
-            : "Document created successfully",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-        onSuccess();
-      } else {
-        setError("Failed to save document");
-      }
-    } catch (err: any) {
-      console.error("Error saving document:", err);
-      setError(err.response?.data?.message || "Failed to save document");
+    if (response.data?.IsSuccess) {
+      Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: formData.Id
+          ? "Document updated successfully"
+          : "Document created successfully",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      onSuccess();
+    } else {
+      const msg = response.data?.Message || "Failed to save document";
+      setError(msg);
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: err.response?.data?.message || "Failed to save document",
+        text: msg,
       });
-    } finally {
-      setSubmitting(false);
     }
-  };
+  } catch (err: any) {
+    console.error("Error saving document:", err);
+    const msg = err.response?.data?.Message || err.response?.data?.message || "Failed to save document";
+    setError(msg);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: msg,
+    });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
