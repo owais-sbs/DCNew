@@ -114,7 +114,7 @@ export default function PeopleDashboard() {
 
 const handleEdit = (id: number) => {
   // go to edit page – adjust route if your app uses a different pattern
-  navigate(`/people/students/${id}/edit`)
+  navigate(`/people/students/edit/${id}`)
 }
 
 const handleDelete = async (id: number) => {

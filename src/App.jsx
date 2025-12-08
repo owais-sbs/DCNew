@@ -11,6 +11,7 @@ import StudentProfile from "./components/StudentProfile";
 import TeacherProfile from "./components/TeacherProfile";
 import StaffProfile from "./components/StaffProfile";
 import StudentCreate from "./components/StudentCreate";
+import EditStudent from "./components/EditStudent";
 import TeacherCreate from "./components/TeacherCreate";
 import StaffCreate from "./components/StaffCreate";
 import RelatedContactCreate from "./components/RelatedContactCreate";
@@ -157,6 +158,17 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <StudentCreate />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/people/students/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditStudent />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }
