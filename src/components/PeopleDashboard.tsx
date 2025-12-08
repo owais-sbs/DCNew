@@ -11,6 +11,8 @@ import {
   MoreHorizontal
 } from "lucide-react"
 import axiosInstance from "./axiosInstance"
+import Swal from "sweetalert2";
+
 
 type TabId = "dashboard" | "students" | "teachers" | "staff" | "related" | "prospects"
 
@@ -105,6 +107,78 @@ export default function PeopleDashboard() {
   const [pageNumber, setPageNumber] = useState(1)
   const pageSize = 5
   const [totalCount, setTotalCount] = useState(0)
+
+
+
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null)
+
+const handleEdit = (id: number) => {
+  // go to edit page – adjust route if your app uses a different pattern
+  navigate(`/people/students/${id}/edit`)
+}
+
+const handleDelete = async (id: number) => {
+  const confirm = await Swal.fire({
+    title: "Are you sure?",
+    text: "Do you really want to delete this student?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    // Add this didOpen block to force the colors
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const cancelBtn = Swal.getCancelButton();
+
+      if (confirmBtn) {
+        confirmBtn.style.setProperty('background-color', '#d33', 'important');
+        confirmBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+      if (cancelBtn) {
+        cancelBtn.style.setProperty('background-color', '#3085d6', 'important');
+        cancelBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+    }
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    // API call → Student/Delete/15
+    const response = await axiosInstance.delete(`/Student/Delete/${id}`);
+
+    if (response.data?.IsSuccess) {
+      Swal.fire({
+        title: "Deleted!",
+        text: "Student has been deleted successfully.",
+        icon: "success",
+      });
+
+      // Remove from UI
+      setStudents(prev => prev.filter(s => s.Id !== id));
+      setTotalCount(prev => Math.max(prev - 1, 0));
+    } else {
+      Swal.fire({
+        title: "Error",
+        text: response.data?.Message || "Unable to delete student.",
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    Swal.fire({
+      title: "Error",
+      text: "Something went wrong while deleting.",
+      icon: "error",
+    });
+  } finally {
+    setOpenDropdown(null);
+  }
+};
+
+
 
   useEffect(() => {
     const controller = new AbortController()
@@ -259,11 +333,45 @@ export default function PeopleDashboard() {
           <td className="px-4 py-3 text-gray-700">{formatDate(student.RegistrationDate)}</td>
           <td className="px-4 py-3 text-gray-700">{student.IdNumber || "—"}</td>
           <td className="px-4 py-3 text-emerald-600">{formatCurrency(student.TuitionFees)}</td>
-          <td className="px-4 py-3">
-            <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" aria-label="More actions">
-              <MoreHorizontal size={18} />
-            </button>
-          </td>
+
+
+          <td className="px-4 py-3 relative">
+  {/* More button */}
+  <button
+    type="button"
+    onClick={() =>
+      setOpenDropdown(openDropdown === student.Id ? null : student.Id)
+    }
+    className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+    aria-label="More actions"
+  >
+    <MoreHorizontal size={18} />
+  </button>
+
+  {/* Dropdown */}
+  {openDropdown === student.Id && (
+    <div className="absolute right-0 mt-2 w-36 rounded-xl border bg-white shadow-md z-50">
+      <button
+        type="button"
+        onClick={() => handleEdit(student.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+      >
+        Edit
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleDelete(student.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+      >
+        Delete
+      </button>
+    </div>
+  )}
+</td>
+
+
+
         </tr>
       )
     })
@@ -349,7 +457,7 @@ export default function PeopleDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  {["", "Name", "Phone", "Email", "Registration date", "ID Number", "Payments", ""].map((heading, idx) => (
+                  {["", "Name", "Phone", "Email", "Registration date", "ID Number", "Payments", "Actions"].map((heading, idx) => (
                     <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
                   ))}
                 </tr>
