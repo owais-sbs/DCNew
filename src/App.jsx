@@ -3,7 +3,7 @@ import { SidebarProvider } from "./contexts/SidebarContext";
 
 import ChatIcon from "./components/ChatIcon";
 import Login from "./components/Login";
-
+import EditStudent from "./components/EditStudent";
 import Dashboard from "./components/Dashboard";
 import Calendar from "./components/Calendar";
 import PeopleDashboard from "./components/PeopleDashboard";
@@ -144,6 +144,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              
 
               <Route
                 path="/people/students"
@@ -151,6 +152,18 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <PeopleDashboard />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+
+              <Route
+                path="/people/students/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditStudent />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }
