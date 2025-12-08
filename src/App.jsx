@@ -38,6 +38,7 @@ import AddInvoice from "./components/AddInvoice";
 import AddPayment from "./components/AddPayment";
 import AddClassForm from "./components/AddClassForm";
 import ClassDetailsScreen from "./components/ClassDetailsScreen";
+import SignaturesScreen from "./components/SignaturesScreen";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
 import ResetPassword from "./components/ResetPassword";
@@ -350,6 +351,17 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <DocumentsScreen />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/signatures"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <SignaturesScreen />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }

@@ -15,6 +15,7 @@ import {
   Star,
   BookOpen,
   FileText,
+  PenTool,
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
 
@@ -142,6 +143,7 @@ export default function Header() {
                       { icon: Users, label: "Teacher", path: "/people/teachers/new" },
                       { icon: Users, label: "Staff", path: "/people/staffs/new" },
                       { icon: Users, label: "Related contact", path: "/people/related/new" },
+                      { icon: PenTool, label: "Signature", path: "/signatures" },
                     ].map((item, i) => (
                       <button
                         key={i}

@@ -9,7 +9,7 @@ const lessons = [
 
 export default function StudentCalendar() {
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 m-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Calendar</h1>
         <div className="flex items-center gap-2">

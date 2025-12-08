@@ -1,4 +1,4 @@
- import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom"
 import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck, Flag, Star, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import axiosInstance from "./axiosInstance"
@@ -91,6 +91,10 @@ export default function StudentProfile() {
   const [loadingAttachments, setLoadingAttachments] = useState(false)
   const [showAddAttachmentModal, setShowAddAttachmentModal] = useState(false)
   const [uploadingAttachment, setUploadingAttachment] = useState(false)
+  const [signatures, setSignatures] = useState<any[]>([])
+  const [loadingSignatures, setLoadingSignatures] = useState(false)
+  const [selectedSignatureId, setSelectedSignatureId] = useState<number | null>(null)
+  const [signatureBase64Map, setSignatureBase64Map] = useState<Record<number, string>>({})
 
   // Ref hooks
   const documentContentRef = useRef<HTMLDivElement | null>(null)
@@ -143,6 +147,111 @@ export default function StudentProfile() {
       fetchDocuments()
     }
   }, [activeTab])
+
+  // Helper function to convert image URL to base64
+  const imageUrlToBase64 = async (url: string): Promise<string | null> => {
+    try {
+      // Use axiosInstance to fetch the image (better CORS handling)
+      const response = await axiosInstance.get(url, {
+        responseType: 'blob',
+        headers: {
+          'Accept': 'image/*'
+        }
+      })
+      
+      const blob = response.data
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          const base64String = reader.result as string
+          // Return full data URL for img src (includes data:image/...;base64, prefix)
+          console.log("Image converted to base64 successfully, length:", base64String.length)
+          resolve(base64String)
+        }
+        reader.onerror = (error) => {
+          console.error("FileReader error:", error)
+          reject(error)
+        }
+        reader.readAsDataURL(blob)
+      })
+    } catch (error) {
+      console.error("Error converting image to base64:", error)
+      // Try fallback with fetch
+      try {
+        const response = await fetch(url, { mode: 'cors' })
+        if (!response.ok) {
+          console.error("Failed to fetch image:", response.statusText)
+          return null
+        }
+        const blob = await response.blob()
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            const base64String = reader.result as string
+            console.log("Image converted to base64 (fallback), length:", base64String.length)
+            resolve(base64String)
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError)
+        return null
+      }
+    }
+  }
+
+  // Fetch signatures when document modal opens
+  useEffect(() => {
+    if (selectedDocument) {
+      const fetchSignatures = async () => {
+        setLoadingSignatures(true)
+        try {
+          const response = await axiosInstance.get("/Attachment/GetDigitalSignatures")
+          if (response.data?.IsSuccess && response.data?.Data?.Data) {
+            const mappedSignatures = response.data.Data.Data.map((item: any) => ({
+              id: item.Id,
+              name: item.Name || "",
+              signatureUrl: item.Signature || "",
+              fileDetails: item.FileDetails,
+              fileType: item.FileType
+            }))
+            setSignatures(mappedSignatures)
+            
+            // Convert all signature images to base64
+            const base64Map: Record<number, string> = {}
+            for (const sig of mappedSignatures) {
+              if (sig.signatureUrl) {
+                const base64 = await imageUrlToBase64(sig.signatureUrl)
+                if (base64) {
+                  base64Map[sig.id] = base64
+                }
+              }
+            }
+            setSignatureBase64Map(base64Map)
+            
+            // Auto-select first signature if available
+            if (mappedSignatures.length > 0 && !selectedSignatureId) {
+              setSelectedSignatureId(mappedSignatures[0].id)
+            }
+          } else {
+            setSignatures([])
+          }
+        } catch (err: any) {
+          console.error("Failed to fetch signatures", err)
+          setSignatures([])
+        } finally {
+          setLoadingSignatures(false)
+        }
+      }
+      fetchSignatures()
+    } else {
+      // Reset when modal closes
+      setSignatures([])
+      setSelectedSignatureId(null)
+      setSignatureBase64Map({})
+    }
+  }, [selectedDocument])
 
   // Fetch classes when classes tab is active
   useEffect(() => {
@@ -337,11 +446,11 @@ export default function StudentProfile() {
   const studentName = studentdetails ? `${studentdetails.FirstName ?? ""} ${studentdetails.LastName ?? studentdetails.Surname ?? ""}`.trim() : "";
 
   const age = studentdetails?.DateOfBirth
-    ? Math.floor(
-        (new Date().getTime() - new Date(studentdetails.DateOfBirth).getTime()) /
-        (365.25 * 24 * 60 * 60 * 1000)
-      )
-    : null;
+  ? Math.floor(
+      (new Date().getTime() - new Date(studentdetails.DateOfBirth).getTime()) /
+      (365.25 * 24 * 60 * 60 * 1000)
+    )
+  : null;
 
   const studentAddress = studentdetails
     ? [
@@ -584,20 +693,20 @@ export default function StudentProfile() {
               No classes found.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Teacher</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Date & time</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Enrolled</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Unenrolled</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Teacher</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Date & time</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Enrolled</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Unenrolled</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+                <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
                   {classes.map((cls: any, i: number) => {
                     const formatDate = (dateString?: string | null) => {
                       if (!dateString) return "—"
@@ -613,15 +722,15 @@ export default function StudentProfile() {
                         key={cls.ClassId || i} 
                         className="border-b border-gray-100 hover:bg-gray-50"
                       >
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-red-500" />
-                            <div>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full bg-red-500" />
+                      <div>
                               <div className="font-medium text-gray-900">{cls.ClassTitle || "Unnamed Class"}</div>
                               <div className="text-sm text-gray-500">{cls.ClassLevel || cls.ClassSubject || ""}</div>
-                            </div>
-                          </div>
-                        </td>
+                      </div>
+                    </div>
+                  </td>
                         <td className="py-3 px-4 text-gray-700">—</td>
                         <td className="py-3 px-4 text-gray-700">
                           {cls.StartDate && cls.EndDate 
@@ -630,14 +739,14 @@ export default function StudentProfile() {
                         </td>
                         <td className="py-3 px-4 text-gray-700">{formatDate(cls.StartDate)}</td>
                         <td className="py-3 px-4 text-gray-700">{formatDate(cls.EndDate)}</td>
-                        <td className="py-3 px-4">
+                  <td className="py-3 px-4">
                           <span className={`px-2 py-1 rounded-full text-xs ${
                             isUnenrolled ? "bg-red-100 text-red-800" : cls.IsActive !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                           }`}>
                             {isUnenrolled ? "Unenrolled" : cls.IsActive !== false ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4">
+                    </span>
+                  </td>
+                  <td className="py-3 px-4">
                           <div className="relative class-menu-container">
                             <button 
                               className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
@@ -646,8 +755,8 @@ export default function StudentProfile() {
                                 setOpenClassMenu(openClassMenu === cls.ClassId ? null : cls.ClassId)
                               }}
                             >
-                              <MoreHorizontal size={16} />
-                            </button>
+                      <MoreHorizontal size={16} />
+                    </button>
                             {openClassMenu === cls.ClassId && (
                               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
                                 <button
@@ -732,13 +841,13 @@ export default function StudentProfile() {
                               </div>
                             )}
                           </div>
-                        </td>
-                      </tr>
+                  </td>
+                </tr>
                     )
                   })}
-                </tbody>
-              </table>
-            </div>
+            </tbody>
+          </table>
+        </div>
           )}
         </>
       )}
@@ -784,18 +893,18 @@ export default function StudentProfile() {
               {selectedClassId ? "No lessons found for this class." : "Select a class and click 'View lessons' to see lessons."}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Day</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
                   {lessons.map((lesson, i) => {
                     const formatLessonDate = (dateString?: string) => {
                       if (!dateString) return "—"
@@ -840,24 +949,24 @@ export default function StudentProfile() {
                         <td className="py-3 px-4 text-gray-700">
                           {lesson.dayOfWeek || "—"}
                         </td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 rounded-full bg-red-500" />
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-red-500" />
                             <div>
                               <div className="font-medium text-gray-900">{lesson.className || "Unnamed Class"}</div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
                           {displayAttendanceStatus ? (
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAttendanceColor(displayAttendanceStatus)}`}>
                               {displayAttendanceStatus}
-                            </span>
+                      </span>
                           ) : (
                             <span className="text-gray-400">—</span>
                           )}
-                        </td>
-                        <td className="py-3 px-4">
+                    </td>
+                    <td className="py-3 px-4">
                           <button 
                             className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
                             onClick={() => {
@@ -865,15 +974,15 @@ export default function StudentProfile() {
                               setShowAttendanceModal(true)
                             }}
                           >
-                            <FileText size={16} />
-                          </button>
-                        </td>
-                      </tr>
+                        <FileText size={16} />
+                      </button>
+                    </td>
+                  </tr>
                     )
                   })}
-                </tbody>
-              </table>
-            </div>
+              </tbody>
+            </table>
+          </div>
           )}
         </div>
       )}
@@ -1228,10 +1337,10 @@ export default function StudentProfile() {
           Loading attachments...
         </div>
       ) : attachments.length === 0 ? (
-        <div className="text-center py-12">
-          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-            <Paperclip size={32} className="text-blue-600" />
-          </div>
+      <div className="text-center py-12">
+        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+          <Paperclip size={32} className="text-blue-600" />
+        </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">No attachments yet</h3>
           <p className="text-gray-600 mb-4">Add your first attachment to get started.</p>
         </div>
@@ -1251,8 +1360,8 @@ export default function StudentProfile() {
                 </div>
                 <button className="text-gray-400 hover:text-gray-600">
                   <MoreHorizontal size={16} />
-                </button>
-              </div>
+        </button>
+      </div>
               {attachment.CreatedOn && (
                 <div className="text-xs text-gray-500">
                   {new Date(attachment.CreatedOn).toLocaleDateString("en-GB")}
@@ -1307,11 +1416,11 @@ export default function StudentProfile() {
   const renderCreateDocumentsContent = () => (
     <div className="space-y-6">
       {/* Documents List */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Create documents</h2>
-        </div>
-        
+    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">Create documents</h2>
+      </div>
+      
         {loadingDocuments ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-gray-500">Loading documents...</div>
@@ -1323,7 +1432,7 @@ export default function StudentProfile() {
             <p className="text-gray-600">Create document templates in the Documents section first.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {documents.map((doc) => (
               <button
                 key={doc.Id}
@@ -1331,8 +1440,8 @@ export default function StudentProfile() {
                 className="h-12 px-3 rounded-lg bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left"
               >
                 {doc.Title || "Untitled Document"}
-              </button>
-            ))}
+          </button>
+        ))}
           </div>
         )}
       </div>
@@ -1343,10 +1452,114 @@ export default function StudentProfile() {
     if (!documentContentRef.current || !selectedDocument) return
 
     try {
+      // Ensure signature image is converted to base64 if not already
+      if (selectedSignatureId && signatures.length > 0) {
+        const selectedSignature = signatures.find((sig) => sig.id === selectedSignatureId)
+        if (selectedSignature && selectedSignature.signatureUrl) {
+          let base64ToUse = signatureBase64Map[selectedSignature.id]
+          
+          // If base64 not in state, convert it now
+          if (!base64ToUse) {
+            console.log("Converting signature image to base64 before PDF generation...")
+            const base64 = await imageUrlToBase64(selectedSignature.signatureUrl)
+            if (base64) {
+              base64ToUse = base64
+              setSignatureBase64Map(prev => ({ ...prev, [selectedSignature.id]: base64 }))
+            }
+          }
+          
+          // Directly update the image src in the DOM to ensure it's set
+          if (base64ToUse && documentContentRef.current) {
+            const signatureImages = documentContentRef.current.querySelectorAll('img')
+            signatureImages.forEach(img => {
+              // Check if this is the signature image (it should have the signature name as alt or be in the signature section)
+              const parentText = img.closest('div')?.textContent || ''
+              if (parentText.includes(selectedSignature.name) || img.alt === selectedSignature.name) {
+                console.log("Updating signature image src directly in DOM")
+                img.src = base64ToUse
+                // Force reload
+                img.style.display = 'none'
+                img.offsetHeight // Trigger reflow
+                img.style.display = 'block'
+              }
+            })
+            // Wait for image to update
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+        }
+      }
+
+      // Preload all images in the document (now using base64, so no CORS issues)
+      const images = documentContentRef.current.querySelectorAll('img')
+      console.log("Found images to preload:", images.length)
+      
+      const imagePromises = Array.from(images).map((img, index) => {
+        return new Promise((resolve) => {
+          // Check if image is already loaded
+          if (img.complete && img.naturalHeight !== 0) {
+            console.log(`Image ${index} already loaded, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
+            resolve(img)
+            return
+          }
+          
+          // Wait for image to load
+          const loadHandler = () => {
+            console.log(`Image ${index} loaded successfully, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
+            resolve(img)
+          }
+          
+          const errorHandler = () => {
+            console.warn(`Image ${index} failed to load:`, img.src.substring(0, 100))
+            resolve(img) // Continue anyway
+          }
+          
+          img.addEventListener('load', loadHandler, { once: true })
+          img.addEventListener('error', errorHandler, { once: true })
+          
+          // Trigger load if src is set but not loading
+          if (img.src && !img.complete) {
+            // Image is loading, wait for events
+          } else if (!img.src) {
+            resolve(img)
+          }
+        })
+      })
+
+      // Wait for all images to load
+      await Promise.all(imagePromises)
+      console.log("All images preloaded")
+
+      // Additional delay to ensure images are fully rendered in the DOM
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Final check: Verify signature image is loaded and visible
+      const signatureImages = documentContentRef.current.querySelectorAll('img')
+      signatureImages.forEach((img, idx) => {
+        if (img.src && img.src.includes('data:image')) {
+          console.log(`Signature image ${idx} src type: base64, loaded: ${img.complete}, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
+          if (!img.complete || img.naturalHeight === 0) {
+            console.warn(`Signature image ${idx} not fully loaded, waiting...`)
+          }
+        }
+      })
+
       const canvas = await html2canvas(documentContentRef.current, {
         scale: 2,
-        useCORS: true
+        useCORS: false, // Not needed since we're using base64 images
+        allowTaint: false, // Not needed since we're using base64 images
+        logging: true, // Enable logging to debug
+        backgroundColor: "#ffffff",
+        imageTimeout: 30000, // 30 second timeout for images
+        removeContainer: false, // Keep container for proper rendering
+        onclone: (clonedDoc) => {
+          // Verify images in cloned document
+          const clonedImages = clonedDoc.querySelectorAll('img')
+          clonedImages.forEach((img, idx) => {
+            console.log(`Cloned image ${idx}: src=${img.src.substring(0, 50)}..., complete=${img.complete}, naturalHeight=${img.naturalHeight}`)
+          })
+        }
       })
+      
       const imgData = canvas.toDataURL("image/png")
       const pdf = new jsPDF("p", "mm", "a4")
       const pageWidth = pdf.internal.pageSize.getWidth()
@@ -1369,11 +1582,16 @@ export default function StudentProfile() {
 
       pdf.addImage(imgData, "PNG", offsetX, offsetY, renderWidth, renderHeight)
 
-      const sanitizedTitle = activeDocumentTemplate.heading.replace(/[^a-z0-9]+/gi, "-").toLowerCase()
-      pdf.save(`${sanitizedTitle || "student-document"}.pdf`)
+      const sanitizedTitle = (selectedDocument.Title || "student-document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()
+      pdf.save(`${sanitizedTitle}.pdf`)
     } catch (error) {
       console.error("Failed to generate PDF", error)
-      alert("Unable to generate PDF. Please try again.")
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error instanceof Error ? error.message : "Unable to generate PDF. Please try again.",
+        confirmButtonColor: "#2563eb"
+      })
     }
   }
 
@@ -1440,7 +1658,103 @@ export default function StudentProfile() {
                   {processedFooter}
                 </div>
               )}
+
+              {/* Selected Signature Display in Document */}
+              {selectedSignatureId && signatures.length > 0 && (() => {
+                const selectedSignature = signatures.find((sig) => sig.id === selectedSignatureId)
+                if (selectedSignature) {
+                  // Use base64 version if available, otherwise fallback to URL
+                  const signatureImageSrc = signatureBase64Map[selectedSignature.id] || selectedSignature.signatureUrl
+                  
+                  if (signatureImageSrc) {
+                    return (
+                      <div className="mt-6 pt-6 border-t border-gray-300">
+                        <div className="flex items-end justify-end gap-4">
+                          <div className="text-right">
+                            <img
+                              src={signatureImageSrc}
+                              alt={selectedSignature.name}
+                              className="max-h-20 object-contain"
+                              style={{ display: "block", maxWidth: "200px" }}
+                              onLoad={(e) => {
+                                console.log("Signature image loaded successfully")
+                              }}
+                              onError={(e) => {
+                                console.error("Signature image failed to load")
+                                const target = e.currentTarget as HTMLImageElement
+                                target.style.display = "none"
+                              }}
+                            />
+                            {selectedSignature.name && (
+                              <div className="text-xs text-gray-600 mt-1 font-medium">{selectedSignature.name}</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                }
+                return null
+              })()}
             </div>
+
+            {/* Signature Selection Section - Outside document content */}
+            {signatures.length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="mb-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-2">Select Signature</h4>
+                  <p className="text-xs text-gray-500">Click on a signature to select it. Only the selected signature will appear in the document.</p>
+                </div>
+                {loadingSignatures ? (
+                  <div className="text-center py-4 text-sm text-gray-500">Loading signatures...</div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    {signatures.map((signature) => {
+                      const isSelected = selectedSignatureId === signature.id
+                      return (
+                        <div
+                          key={signature.id}
+                          onClick={() => setSelectedSignatureId(signature.id)}
+                          className={`relative cursor-pointer border-2 rounded-lg p-3 transition-all ${
+                            isSelected
+                              ? "border-blue-500 bg-blue-50 shadow-md"
+                              : "border-gray-200 bg-white opacity-50 hover:opacity-75"
+                          }`}
+                        >
+                          {isSelected && (
+                            <div className="absolute top-2 right-2 h-5 w-5 bg-blue-500 rounded-full flex items-center justify-center">
+                              <CheckCircle size={14} className="text-white" />
+                            </div>
+                          )}
+                          <div className="text-xs font-medium text-gray-700 mb-2 text-center">
+                            {signature.name}
+                          </div>
+                          <div className="flex items-center justify-center min-h-[80px] bg-gray-50 rounded border border-gray-200 p-2">
+                            {signature.signatureUrl ? (
+                              <img
+                                src={signature.signatureUrl}
+                                alt={signature.name}
+                                className={`max-w-full max-h-16 object-contain transition-all ${
+                                  !isSelected ? "opacity-30 blur-sm" : "opacity-100"
+                                }`}
+                                crossOrigin="anonymous"
+                                loading="lazy"
+                                onError={(e) => {
+                                  const target = e.currentTarget as HTMLImageElement
+                                  target.style.display = "none"
+                                }}
+                              />
+                            ) : (
+                              <span className="text-gray-400 text-xs">No image</span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
             <button className="h-10 px-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2">

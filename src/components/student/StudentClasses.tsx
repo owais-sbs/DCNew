@@ -24,6 +24,39 @@ export default function StudentClasses() {
     studentId || 0
   )
 
+  // Map completed sessions to lessons format for the lessons tab
+  const lessons = completedSessions.map((session) => {
+    const classInfo = studentClasses.find((cls) => cls.id === session.classId)
+    const formatDate = (dateStr: string | null) => {
+      if (!dateStr) return "—"
+      try {
+        const date = new Date(dateStr)
+        return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+      } catch {
+        return "—"
+      }
+    }
+    const formatTime = (timeStr: string | null) => {
+      if (!timeStr) return "—"
+      try {
+        const date = new Date(timeStr)
+        return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+      } catch {
+        return "—"
+      }
+    }
+    return {
+      id: session.id,
+      date: formatDate(session.date),
+      time: formatTime(session.startTime),
+      title: classInfo?.title || "Unknown Class",
+      attendance: "Present", // TODO: Get from API
+      behaviour: "—", // TODO: Get from API
+      grade: "—", // TODO: Get from API
+      notes: "—" // TODO: Get from API
+    }
+  })
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "classes":
@@ -124,49 +157,59 @@ export default function StudentClasses() {
                 />
               </div>
             </div>
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500">
-                <tr>
-                  <th className="px-4 py-3 font-medium text-left">Date</th>
-                  <th className="px-4 py-3 font-medium text-left">Class</th>
-                  <th className="px-4 py-3 font-medium text-left">Attendance</th>
-                  <th className="px-4 py-3 font-medium text-left">Behaviour</th>
-                  <th className="px-4 py-3 font-medium text-left">Grade</th>
-                  <th className="px-4 py-3 font-medium text-left">Personal lesson notes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lessons.map((lesson, idx) => (
-                  <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
-                    <td className="px-4 py-3 text-gray-700">
-                      <div>{lesson.date}</div>
-                      <div className="text-xs text-gray-500">{lesson.time}</div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-red-500"></span>
-                        <div>
-                          <div className="text-indigo-600 font-medium">{lesson.title}</div>
-                          <div className="text-xs text-gray-500">General English with Exam Preparation, C1</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">{lesson.attendance}</td>
-                    <td className="px-4 py-3 text-gray-700">{lesson.behaviour}</td>
-                    <td className="px-4 py-3 text-gray-700">{lesson.grade}</td>
-                    <td className="px-4 py-3 text-gray-700">{lesson.notes || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="p-4 flex items-center justify-between border-t border-gray-100 text-xs text-gray-500">
-              <div>Showing 1 - 25 of {lessons.length} entries</div>
-              <div className="flex items-center gap-2">
-                <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">‹</button>
-                <span className="text-gray-900 font-medium">1</span>
-                <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">›</button>
-              </div>
-            </div>
+            {completedLoading ? (
+              <div className="py-10 text-center text-sm text-gray-500">Loading lessons...</div>
+            ) : completedError ? (
+              <div className="py-10 text-center text-sm text-red-500">{completedError}</div>
+            ) : lessons.length === 0 ? (
+              <div className="py-10 text-center text-sm text-gray-500">No lessons found</div>
+            ) : (
+              <>
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      <th className="px-4 py-3 font-medium text-left">Date</th>
+                      <th className="px-4 py-3 font-medium text-left">Class</th>
+                      <th className="px-4 py-3 font-medium text-left">Attendance</th>
+                      <th className="px-4 py-3 font-medium text-left">Behaviour</th>
+                      <th className="px-4 py-3 font-medium text-left">Grade</th>
+                      <th className="px-4 py-3 font-medium text-left">Personal lesson notes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lessons.map((lesson, idx) => (
+                      <tr key={lesson.id} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                        <td className="px-4 py-3 text-gray-700">
+                          <div>{lesson.date}</div>
+                          <div className="text-xs text-gray-500">{lesson.time}</div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">
+                          <div className="flex items-center gap-2">
+                            <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                            <div>
+                              <div className="text-indigo-600 font-medium">{lesson.title}</div>
+                              <div className="text-xs text-gray-500">General English with Exam Preparation, C1</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700">{lesson.attendance}</td>
+                        <td className="px-4 py-3 text-gray-700">{lesson.behaviour}</td>
+                        <td className="px-4 py-3 text-gray-700">{lesson.grade}</td>
+                        <td className="px-4 py-3 text-gray-700">{lesson.notes || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="p-4 flex items-center justify-between border-t border-gray-100 text-xs text-gray-500">
+                  <div>Showing 1 - {lessons.length} of {lessons.length} entries</div>
+                  <div className="flex items-center gap-2">
+                    <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">‹</button>
+                    <span className="text-gray-900 font-medium">1</span>
+                    <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">›</button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )
       case "attendance":
@@ -278,7 +321,7 @@ export default function StudentClasses() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 m-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-gray-900">Classes</h1>
         <div className="flex flex-wrap items-center gap-2 text-sm">
