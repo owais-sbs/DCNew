@@ -3,6 +3,8 @@ import { SidebarProvider } from "./contexts/SidebarContext";
 
 import ChatIcon from "./components/ChatIcon";
 import Login from "./components/Login";
+import EditTeacher from "./components/EditTeacher";
+import EditStaff from "./components/EditStaff";
 import EditStudent from "./components/EditStudent";
 import Dashboard from "./components/Dashboard";
 import Calendar from "./components/Calendar";
@@ -164,6 +166,41 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <EditStudent />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/people/teachers/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditTeacher />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+
+              <Route
+                path="/people/staffs/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditStaff />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+
+              <Route
+                path="/people/teachers/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditTeacher />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }

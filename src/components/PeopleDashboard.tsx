@@ -43,6 +43,7 @@ type TeacherRow = {
 }
 
 type StaffRow = {
+  Id: number
   name: string
   email: string
 }
@@ -81,8 +82,9 @@ const studentFilters = [
 
 
 const staffRows: StaffRow[] = [
-  { name: "Lia Reception", email: "liasantosmarketing@gmail.com" },
-  { name: "Patrick Admin", email: "patrick.admin@example.com" }
+  { Id: 1, name: "Lia Reception", email: "liasantosmarketing@gmail.com" },
+  { Id: 2, name: "Lia Reception", email: "liasantosmarketing@gmail.com" },
+  { Id: 3, name: "Patrick Admin", email: "patrick.admin@example.com" }
 ]
 
 const relatedRows: RelatedRow[] = [
@@ -286,6 +288,144 @@ const handleDelete = async (id: number) => {
   }
 };
 
+
+
+
+const handleTeacherEdit = (id: number) => {
+  // go to edit page – adjust route if your app uses a different pattern
+  navigate(`/people/teachers/edit/${id}`)
+}
+
+const handleTeacherDelete = async (id: number) => {
+  const confirm = await Swal.fire({
+    title: "Are you sure?",
+    text: "Do you really want to delete this teacher?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    // Add this didOpen block to force the colors
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const cancelBtn = Swal.getCancelButton();
+
+      if (confirmBtn) {
+        confirmBtn.style.setProperty('background-color', '#d33', 'important');
+        confirmBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+      if (cancelBtn) {
+        cancelBtn.style.setProperty('background-color', '#3085d6', 'important');
+        cancelBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+    }
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    // API call → Student/Delete/15
+    const response = await axiosInstance.delete(`/teacher/Delete/${id}`);
+
+    if (response.data?.IsSuccess) {
+      Swal.fire({
+        title: "Deleted!",
+        text: "Student has been deleted successfully.",
+        icon: "success",
+      });
+
+      // Remove from UI
+      setStudents(prev => prev.filter(s => s.Id !== id));
+      setTotalCount(prev => Math.max(prev - 1, 0));
+    } else {
+      Swal.fire({
+        title: "Error",
+        text: response.data?.Message || "Unable to delete student.",
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    Swal.fire({
+      title: "Error",
+      text: "Something went wrong while deleting.",
+      icon: "error",
+    });
+  } finally {
+    setOpenDropdown(null);
+  }
+};
+  
+
+
+
+
+const handleStaffEdit = (id: number) => {
+  // go to edit page – adjust route if your app uses a different pattern
+  navigate(`/people/staff/edit/${id}`)
+}
+
+const handleStaffDelete = async (id: number) => {
+  const confirm = await Swal.fire({
+    title: "Are you sure?",
+    text: "Do you really want to delete this staff member?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    // Add this didOpen block to force the colors
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const cancelBtn = Swal.getCancelButton();
+
+      if (confirmBtn) {
+        confirmBtn.style.setProperty('background-color', '#d33', 'important');
+        confirmBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+      if (cancelBtn) {
+        cancelBtn.style.setProperty('background-color', '#3085d6', 'important');
+        cancelBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+    }
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    // API call → Staff/Delete/15
+    const response = await axiosInstance.delete(`/staff/Delete/${id}`);
+
+    if (response.data?.IsSuccess) {
+      Swal.fire({
+        title: "Deleted!",
+        text: "Staff member has been deleted successfully.",
+        icon: "success",
+      });
+
+      // Remove from UI
+      setStudents(prev => prev.filter(s => s.Id !== id));
+      setTotalCount(prev => Math.max(prev - 1, 0));
+    } else {
+      Swal.fire({
+        title: "Error",
+        text: response.data?.Message || "Unable to delete student.",
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    Swal.fire({
+      title: "Error",
+      text: "Something went wrong while deleting.",
+      icon: "error",
+    });
+  } finally {
+    setOpenDropdown(null);
+  }
+};
   
 
   const getStudentName = (student: StudentRow) => {
@@ -604,7 +744,7 @@ const handleDelete = async (id: number) => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  {["", "Name", "Phone", "Email", ""].map((heading, idx) => (
+                  {["", "Name", "Phone", "Email", "Actions"].map((heading, idx) => (
                     <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
                   ))}
                 </tr>
@@ -690,11 +830,40 @@ const handleDelete = async (id: number) => {
                             "—"
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" aria-label="More actions">
-                            <MoreHorizontal size={18} />
-                          </button>
-                        </td>
+                         <td className="px-4 py-3 relative">
+  {/* More button */}
+  <button
+    type="button"
+    onClick={() =>
+      setOpenDropdown(openDropdown === teacher.Id ? null : teacher.Id)
+    }
+    className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+    aria-label="More actions"
+  >
+    <MoreHorizontal size={18} />
+  </button>
+
+  {/* Dropdown */}
+  {openDropdown === teacher.Id && (
+    <div className="absolute right-0 mt-2 w-36 rounded-xl border bg-white shadow-md z-50">
+      <button
+        type="button"
+        onClick={() => handleTeacherEdit(teacher.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+      >
+        Edit
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleTeacherDelete(teacher.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+      >
+        Delete
+      </button>
+    </div>
+  )}
+</td>
                       </tr>
                     )
                   })
@@ -744,7 +913,7 @@ const handleDelete = async (id: number) => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  {["", "Name", "Email", ""].map((heading, idx) => (
+                  {["", "Name", "Email", "Actions"].map((heading, idx) => (
                     <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
                   ))}
                 </tr>
@@ -763,7 +932,42 @@ const handleDelete = async (id: number) => {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-blue-600">{staff.email}</td>
-                    <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"><MoreHorizontal size={18} /></button></td>
+
+<td className="px-4 py-3 relative">
+  {/* More button */}
+  <button
+    type="button"
+    onClick={() =>
+      setOpenDropdown(openDropdown === staff.Id ? null : staff.Id)
+    }
+    className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+    aria-label="More actions"
+  >
+    <MoreHorizontal size={18} />
+  </button>
+
+  {/* Dropdown */}
+  {openDropdown === staff.Id && (
+    <div className="absolute right-0 mt-2 w-36 rounded-xl border bg-white shadow-md z-50">
+      <button
+        type="button"
+        onClick={() => handleStaffEdit(staff.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+      >
+        Edit
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleStaffDelete(staff.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+      >
+        Delete
+      </button>
+    </div>
+  )}
+</td>
+
                   </tr>
                 ))}
               </tbody>
