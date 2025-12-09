@@ -107,7 +107,7 @@ export default function PeopleDashboard() {
   const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false)
   const [studentError, setStudentError] = useState<string | null>(null)
   const [pageNumber, setPageNumber] = useState(1)
-  const pageSize = 10
+  const [pageSize, setPageSize] = useState<number | "all">(10)
   const [totalCount, setTotalCount] = useState(0)
 
   // Teachers state
@@ -119,6 +119,42 @@ export default function PeopleDashboard() {
   const [teacherSearch, setTeacherSearch] = useState("")
   const [teacherSearchDebounced, setTeacherSearchDebounced] = useState("")
 
+  // derived pagination values
+const studentTotalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(totalCount / (pageSize as number)));
+const teacherTotalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(teacherTotalCount / (pageSize as number)));
+
+
+// helper to build page buttons (1 ... n) — returns array of numbers or "..."
+const makePageButtons = (totalPages: number, current: number) => {
+  const pages: (number | "...")[] = [];
+  const maxButtons = 5;
+  let left = Math.max(1, current - 2);
+  let right = Math.min(totalPages, current + 2);
+
+  if (current <= 3) {
+    left = 1;
+    right = Math.min(totalPages, maxButtons);
+  } else if (current + 2 >= totalPages) {
+    right = totalPages;
+    left = Math.max(1, totalPages - maxButtons + 1);
+  }
+
+  if (left > 1) {
+    pages.push(1);
+    if (left > 2) pages.push("...");
+  }
+
+  for (let i = left; i <= right; i++) pages.push(i);
+
+  if (right < totalPages) {
+    if (right < totalPages - 1) pages.push("...");
+    pages.push(totalPages);
+  }
+
+  return pages;
+};
+
+
   useEffect(() => {
     const controller = new AbortController()
 
@@ -127,7 +163,10 @@ export default function PeopleDashboard() {
       setStudentError(null)
       try {
         const response = await axiosInstance.get("/Student/GetAllWithPagination", {
-          params: { pageNumber, pageSize },
+          params: {
+            pageNumber,
+            pageSize: pageSize === "all" ? (totalCount > 0 ? totalCount : 1000000) : pageSize
+          },
           signal: controller.signal
         })
 
@@ -155,7 +194,7 @@ export default function PeopleDashboard() {
     fetchStudents()
 
     return () => controller.abort()
-  }, [pageNumber])
+  }, [pageNumber, pageSize])
 
   // Debounce teacher search
   useEffect(() => {
@@ -178,13 +217,14 @@ export default function PeopleDashboard() {
       setTeacherError(null)
       try {
         const response = await axiosInstance.get("/Teacher/GetAllTeachers", {
-          params: { 
-            pageNumber: teacherPageNumber, 
-            pageSize: pageSize,
+          params: {
+            pageNumber: teacherPageNumber,
+            pageSize: pageSize === "all" ? (teacherTotalCount > 0 ? teacherTotalCount : 1000000) : pageSize,
             search: teacherSearchDebounced || ""
           },
           signal: controller.signal
         })
+
 
         console.log("Teachers response:", response.data)
         if (response.data?.IsSuccess) {
@@ -217,7 +257,8 @@ export default function PeopleDashboard() {
     fetchTeachers()
 
     return () => controller.abort()
-  }, [activeTab, teacherPageNumber, teacherSearchDebounced])
+  }, [activeTab, teacherPageNumber, teacherSearchDebounced, pageSize])
+
 
 
   const [openDropdown, setOpenDropdown] = useState<number | null>(null)
@@ -689,22 +730,65 @@ const handleStaffDelete = async (id: number) => {
               </tbody>
             </table>
             <div className="flex items-center justify-between px-4 py-4 bg-white border border-t-0 border-gray-200 rouded-b-xl">
-              <button
-                disabled={pageNumber === 1}
-                onClick={() => setPageNumber(p => p-1)}
-                className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-              >Previous</button>
-              <div className="text-gray-600 text-sm">
-                Page {pageNumber} of {Math.ceil(totalCount/pageSize)}
-              </div>
-              <button
-                disabled={pageNumber >= Math.ceil(totalCount/pageSize)}
-                onClick={() => setPageNumber(p => p+1)}
-                className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-              >
-                Next
-              </button>
-            </div>
+  <div className="text-sm text-gray-600">
+Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min(pageNumber * (pageSize as number), totalCount)} of {totalCount}  </div>
+
+
+  <select
+  value={pageSize}
+  onChange={(e) => {
+    const v = e.target.value;
+    setPageSize(v === "all" ? "all" : Number(v));
+    setPageNumber(1);
+  }}
+  className="border px-2 py-1 rounded"
+>
+  {[5, 10, 25, 50, 100].map((s) => (
+    <option key={s} value={s}>
+      {s}
+    </option>
+  ))}
+  <option value="all">All</option>
+</select>
+
+
+  <div className="flex items-center gap-2">
+    <button
+      disabled={pageNumber === 1}
+      onClick={() => setPageNumber(p => Math.max(1, p - 1))}
+      className="px-3 py-1 border rounded disabled:opacity-50"
+    >
+      Previous
+    </button>
+
+    
+
+    <div className="flex items-center gap-1">
+      {makePageButtons(studentTotalPages, pageNumber).map((p, idx) =>
+        p === "..." ? (
+          <span key={`s-ellipsis-${idx}`} className="px-2 text-sm text-gray-500">…</span>
+        ) : (
+          <button
+            key={`s-${p}`}
+            onClick={() => setPageNumber(Number(p))}
+            className={`px-3 h-8 inline-flex items-center justify-center rounded text-sm border ${p === pageNumber ? "bg-blue-600 text-white border-blue-600" : "text-gray-700 border-gray-200 hover:bg-gray-50"}`}
+          >
+            {p}
+          </button>
+        )
+      )}
+    </div>
+
+    <button
+      disabled={pageNumber >= studentTotalPages}
+      onClick={() => setPageNumber(p => Math.min(studentTotalPages, p + 1))}
+      className="px-3 py-1 border rounded disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+</div>
+
           </div>
         </div>
       )}
@@ -871,26 +955,69 @@ const handleStaffDelete = async (id: number) => {
               </tbody>
             </table>
             {teacherTotalCount > 0 && (
-              <div className="flex items-center justify-between px-4 py-4 bg-white border border-t-0 border-gray-200 rouded-b-xl">
-                <button
-                  disabled={teacherPageNumber === 1}
-                  onClick={() => setTeacherPageNumber(p => p-1)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-                >
-                  Previous
-                </button>
-                <div className="text-gray-600 text-sm">
-                  Page {teacherPageNumber} of {Math.ceil(teacherTotalCount/pageSize)}
-                </div>
-                <button
-                  disabled={teacherPageNumber >= Math.ceil(teacherTotalCount/pageSize)}
-                  onClick={() => setTeacherPageNumber(p => p+1)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+  <div className="flex items-center justify-between px-4 py-4 bg-white border border-t-0 border-gray-200 rouded-b-xl">
+    <div className="text-sm text-gray-600">
+      Showing {teacherTotalCount === 0 ? 0 : 1} - {pageSize === "all" ? teacherTotalCount : Math.min(teacherPageNumber * (pageSize as number), teacherTotalCount)} of {teacherTotalCount}
+    </div>
+
+
+    <select
+  value={pageSize}
+  onChange={(e) => {
+    const v = e.target.value;
+    setPageSize(v === "all" ? "all" : Number(v));
+    setTeacherPageNumber(1);
+    setPageNumber(1);
+  }}
+  className="border px-2 py-1 rounded"
+>
+  {[5, 10, 25, 50, 100].map((s) => (
+    <option key={s} value={s}>
+      {s}
+    </option>
+  ))}
+  <option value="all">All</option>
+</select>
+
+
+    <div className="flex items-center gap-2">
+      <button
+        disabled={teacherPageNumber === 1}
+        onClick={() => setTeacherPageNumber(p => Math.max(1, p - 1))}
+        className="px-3 py-1 border rounded disabled:opacity-50"
+      >
+        Previous
+      </button>
+
+      
+
+      <div className="flex items-center gap-1">
+        {makePageButtons(teacherTotalPages, teacherPageNumber).map((p, idx) =>
+          p === "..." ? (
+            <span key={`t-ellipsis-${idx}`} className="px-2 text-sm text-gray-500">…</span>
+          ) : (
+            <button
+              key={`t-${p}`}
+              onClick={() => setTeacherPageNumber(Number(p))}
+              className={`px-3 h-8 inline-flex items-center justify-center rounded text-sm border ${p === teacherPageNumber ? "bg-blue-600 text-white border-blue-600" : "text-gray-700 border-gray-200 hover:bg-gray-50"}`}
+            >
+              {p}
+            </button>
+          )
+        )}
+      </div>
+
+      <button
+        disabled={teacherPageNumber >= teacherTotalPages}
+        onClick={() => setTeacherPageNumber(p => Math.min(teacherTotalPages, p + 1))}
+        className="px-3 py-1 border rounded disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
+
           </div>
         </div>
       )}
