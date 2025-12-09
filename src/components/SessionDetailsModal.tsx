@@ -425,9 +425,9 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
-          <div className="p-6 overflow-visible relative">
-            <div className="mb-6 overflow-visible">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_200px] gap-0">
+          <div className="p-6 overflow-y-auto max-h-[calc(100vh-120px)] relative">
+            <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-gray-800">Students {sessionStudents.length}</h3>
                 <div className="flex items-center gap-2">
@@ -454,15 +454,15 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 overflow-visible">{renderStudents()}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">{renderStudents()}</div>
             </div>
           </div>
 
-          <aside className="border-l border-gray-200 p-6 bg-gray-50">
-            <div className="space-y-6">
+          <aside className="border-l border-gray-200 p-4 bg-gray-50">
+            <div className="space-y-4">
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -470,12 +470,12 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                     />
                   </svg>
-                  <h3 className="text-lg font-semibold text-gray-800">Edit</h3>
+                  <h3 className="text-sm font-semibold text-gray-800">Edit</h3>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <button
                     onClick={() => navigate("/people/teachers")}
-                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full h-8 px-2 rounded-lg border border-gray-200 bg-white text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                   >
                     👩‍🏫 Teacher
                   </button>
@@ -483,8 +483,8 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
               </div>
 
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-2 mb-2">
+                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -493,12 +493,12 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                     />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <h3 className="text-lg font-semibold text-gray-800">Actions</h3>
+                  <h3 className="text-sm font-semibold text-gray-800">Actions</h3>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1">
                   <button
                     onClick={() => setShowEnrollModal(true)}
-                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                    className="w-full h-8 px-2 rounded-lg border border-gray-200 bg-white text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
                   >
                     👥 Add students
                   </button>
