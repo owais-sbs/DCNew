@@ -36,49 +36,137 @@ export default function DocumentsScreen() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
 
+const [pageNumber, setPageNumber] = useState<number>(1);
+// pageSize can be a number or the string "all"
+const [pageSize, setPageSize] = useState<number | "all">(10);
+const [totalCount, setTotalCount] = useState<number>(0);
+const [error, setError] = useState<string | null>(null);
+
+
+const effectivePageSizeForCalculate = pageSize === "all" ? (totalCount || 1) : pageSize;
+const totalPages = Math.max(1, Math.ceil(totalCount / Number(effectivePageSizeForCalculate)));
+const startEntry = totalCount === 0 ? 0 : (pageNumber - 1) * Number(effectivePageSizeForCalculate) + 1;
+const endEntry = Math.min(totalCount, pageNumber * Number(effectivePageSizeForCalculate));
+
   useEffect(() => {
-    fetchDocuments();
-  }, []);
+  fetchDocuments();
+}, [pageNumber, pageSize, searchQuery]);
 
-  const fetchDocuments = async () => {
-    try {
-      setLoading(true);
-      const response = await axiosInstance.get("/Document/GetAllDocument");
-      if (response.data?.IsSuccess) {
-        setDocuments(response.data.Data || []);
-      } else {
-        setDocuments([]);
+
+ const fetchDocuments = async () => {
+  setLoading(true);
+  setError(null);
+
+  try {
+    // If "all" selected, ask server for all items: use totalCount if known, otherwise send a large value (1st load)
+    const effectivePageSize =
+      pageSize === "all" ? (totalCount > 0 ? totalCount : 10000) : pageSize;
+
+    const response = await axiosInstance.get(
+      "/Document/GetAllDocumentsWithPagination",
+      {
+        params: {
+          pageNumber,
+          pageSize: effectivePageSize,
+          search: searchQuery || null,
+        },
       }
-    } catch (error) {
-      console.error("Error fetching documents:", error);
+    );
+
+    if (response.data?.IsSuccess) {
+      const items = response.data.Data?.Data ?? response.data.Data ?? [];
+      const total = Number(response.data.Data?.TotalCount ?? response.data.Total ?? 0);
+
+      setDocuments(Array.isArray(items) ? items : []);
+      setTotalCount(isNaN(total) ? 0 : total);
+    } else {
       setDocuments([]);
-    } finally {
-      setLoading(false);
+      setTotalCount(0);
+      setError(response.data?.Message || "Failed to load documents");
     }
-  };
+  } catch (err: any) {
+    console.error(err);
+    setError(err?.message || "Error fetching documents");
+    setDocuments([]);
+    setTotalCount(0);
+  } finally {
+    setLoading(false);
+  }
+};
 
-  const handleDelete = async (id: number) => {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "This document will be deleted.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it!",
-    });
 
-    if (result.isConfirmed) {
-      try {
-        // Note: You may need to implement a delete endpoint
-        // For now, we'll just show a message
+
+
+
+const pageButtons = () => {
+  const pages: (number | "...")[] = [];
+  const max = 5;
+  let left = Math.max(1, pageNumber - 2);
+  let right = Math.min(totalPages, pageNumber + 2);
+
+  if (pageNumber <= 3) {
+    left = 1;
+    right = Math.min(totalPages, max);
+  } else if (pageNumber + 2 >= totalPages) {
+    right = totalPages;
+    left = Math.max(1, totalPages - max + 1);
+  }
+
+  if (left > 1) {
+    pages.push(1);
+    if (left > 2) pages.push("...");
+  }
+
+  for (let i = left; i <= right; i++) pages.push(i);
+
+  if (right < totalPages) {
+    if (right < totalPages - 1) pages.push("...");
+    pages.push(totalPages);
+  }
+
+  return pages;
+};
+
+  // 🔹 Updated handleDelete in DocumentsScreen
+
+const handleDelete = async (id: number) => {
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This document will be deleted.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!",
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const response = await axiosInstance.delete("/Document/Delete", {
+        params: { id },
+      });
+
+      if (response.data?.IsSuccess) {
         Swal.fire("Deleted!", "Document has been deleted.", "success");
         fetchDocuments();
-      } catch (error) {
-        Swal.fire("Error!", "Failed to delete document.", "error");
+      } else {
+        Swal.fire(
+          "Error!",
+          response.data?.Message || "Failed to delete document.",
+          "error"
+        );
       }
+    } catch (error: any) {
+      console.error("Error deleting document:", error);
+      Swal.fire(
+        "Error!",
+        error?.response?.data?.Message || "Failed to delete document.",
+        "error"
+      );
     }
-  };
+  }
+};
+
 
   const filteredDocuments = documents.filter((doc) => {
     const query = searchQuery.toLowerCase();
@@ -217,6 +305,76 @@ export default function DocumentsScreen() {
               ))}
             </tbody>
           </table>
+
+
+          <div className="flex items-center justify-between px-4 py-4 border-t bg-white">
+  <div className="text-sm text-gray-600">
+    Showing {startEntry} - {endEntry} of {totalCount}
+  
+    
+  </div>
+
+
+<select
+  value={pageSize}
+  onChange={(e) => {
+    const v = e.target.value;
+    if (v === "all") {
+      setPageSize("all");
+      setPageNumber(1);
+    } else {
+      setPageSize(Number(v));
+      setPageNumber(1);
+    }
+  }}
+  className="border px-2 py-1 rounded"
+>
+  {[5, 10, 25, 50, 100].map((s) => (
+    <option key={s} value={s}>
+      {s}
+    </option>
+  ))}
+  <option value="all">All</option>
+</select>
+
+  <div className="flex items-center gap-2">
+    <button
+      disabled={pageNumber === 1}
+      onClick={() => setPageNumber(pageNumber - 1)}
+      className="px-3 py-1 border rounded disabled:opacity-50"
+    >
+      Previous
+    </button>
+
+   
+
+
+    {pageButtons().map((p, idx) =>
+      p === "..." ? (
+        <span key={idx}>...</span>
+      ) : (
+        <button
+          key={p}
+          onClick={() => setPageNumber(p as number)}
+          className={`px-3 py-1 border rounded ${
+            p === pageNumber ? "bg-blue-600 text-white" : ""
+          }`}
+        >
+          {p}
+        </button>
+      )
+    )}
+
+    <button
+      disabled={pageNumber === totalPages}
+      onClick={() => setPageNumber(pageNumber + 1)}
+      className="px-3 py-1 border rounded disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+</div>
+
         </div>
       )}
 
@@ -291,51 +449,58 @@ function DocumentFormModal({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
+  e.preventDefault();
+  setSubmitting(true);
+  setError(null);
 
-    try {
-      const payload = {
-        Id: formData.Id,
-        To: formData.To || null,
-        Title: formData.Title || null,
-        Body: formData.Body || null,
-        Footer: formData.Footer || null,
-        Note: formData.Note || null,
-      };
+  try {
+    const payload = {
+      Id: formData.Id,
+      To: formData.To || null,
+      Title: formData.Title || null,
+      Body: formData.Body || null,
+      Footer: formData.Footer || null,
+      Note: formData.Note || null,
+    };
 
-      const response = await axiosInstance.post(
-        "/Document/AddOrUpdateDocument",
-        payload
-      );
+    const response = await axiosInstance.post(
+      "/Document/AddOrUpdateDocument",
+      payload
+    );
 
-      if (response.data) {
-        Swal.fire({
-          icon: "success",
-          title: "Success!",
-          text: document?.Id
-            ? "Document updated successfully"
-            : "Document created successfully",
-          timer: 2000,
-          showConfirmButton: false,
-        });
-        onSuccess();
-      } else {
-        setError("Failed to save document");
-      }
-    } catch (err: any) {
-      console.error("Error saving document:", err);
-      setError(err.response?.data?.message || "Failed to save document");
+    if (response.data?.IsSuccess) {
+      Swal.fire({
+        icon: "success",
+        title: "Success!",
+        text: formData.Id
+          ? "Document updated successfully"
+          : "Document created successfully",
+        timer: 2000,
+        showConfirmButton: false,
+      });
+      onSuccess();
+    } else {
+      const msg = response.data?.Message || "Failed to save document";
+      setError(msg);
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: err.response?.data?.message || "Failed to save document",
+        text: msg,
       });
-    } finally {
-      setSubmitting(false);
     }
-  };
+  } catch (err: any) {
+    console.error("Error saving document:", err);
+    const msg = err.response?.data?.Message || err.response?.data?.message || "Failed to save document";
+    setError(msg);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: msg,
+    });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">

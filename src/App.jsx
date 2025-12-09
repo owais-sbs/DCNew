@@ -1,9 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "./contexts/SidebarContext";
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 import ChatIcon from "./components/ChatIcon";
 import Login from "./components/Login";
-
+import EditClass from "./components/EditClass";
+import EditTeacher from "./components/EditTeacher";
+import EditStaff from "./components/EditStaff";
+import EditStudent from "./components/EditStudent";
 import Dashboard from "./components/Dashboard";
 import Calendar from "./components/Calendar";
 import PeopleDashboard from "./components/PeopleDashboard";
@@ -38,6 +42,7 @@ import AddInvoice from "./components/AddInvoice";
 import AddPayment from "./components/AddPayment";
 import AddClassForm from "./components/AddClassForm";
 import ClassDetailsScreen from "./components/ClassDetailsScreen";
+import SignaturesScreen from "./components/SignaturesScreen";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
 import ResetPassword from "./components/ResetPassword";
@@ -143,6 +148,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              
 
               <Route
                 path="/people/students"
@@ -150,6 +156,53 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <PeopleDashboard />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+
+              <Route
+                path="/people/students/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditStudent />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/people/teachers/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditTeacher />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+
+              <Route
+                path="/people/staffs/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditStaff />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+
+              <Route
+                path="/people/teachers/edit/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditTeacher />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }
@@ -311,6 +364,18 @@ export default function App() {
                 }
               />
 
+
+              <Route
+                path="/notes/edit-class/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditClass />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
               <Route
                 path="/notes/events"
                 element={
@@ -350,6 +415,17 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <DocumentsScreen />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/signatures"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <SignaturesScreen />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }

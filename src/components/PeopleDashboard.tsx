@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
+import Swal from "sweetalert2";
+
 import {
   LayoutDashboard,
   Users,
@@ -41,6 +43,7 @@ type TeacherRow = {
 }
 
 type StaffRow = {
+  Id: number
   name: string
   email: string
 }
@@ -79,8 +82,9 @@ const studentFilters = [
 
 
 const staffRows: StaffRow[] = [
-  { name: "Lia Reception", email: "liasantosmarketing@gmail.com" },
-  { name: "Patrick Admin", email: "patrick.admin@example.com" }
+  { Id: 1, name: "Lia Reception", email: "liasantosmarketing@gmail.com" },
+  { Id: 2, name: "Lia Reception", email: "liasantosmarketing@gmail.com" },
+  { Id: 3, name: "Patrick Admin", email: "patrick.admin@example.com" }
 ]
 
 const relatedRows: RelatedRow[] = [
@@ -103,7 +107,7 @@ export default function PeopleDashboard() {
   const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false)
   const [studentError, setStudentError] = useState<string | null>(null)
   const [pageNumber, setPageNumber] = useState(1)
-  const pageSize = 10
+  const [pageSize, setPageSize] = useState<number | "all">(10)
   const [totalCount, setTotalCount] = useState(0)
 
   // Teachers state
@@ -115,6 +119,42 @@ export default function PeopleDashboard() {
   const [teacherSearch, setTeacherSearch] = useState("")
   const [teacherSearchDebounced, setTeacherSearchDebounced] = useState("")
 
+  // derived pagination values
+const studentTotalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(totalCount / (pageSize as number)));
+const teacherTotalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(teacherTotalCount / (pageSize as number)));
+
+
+// helper to build page buttons (1 ... n) — returns array of numbers or "..."
+const makePageButtons = (totalPages: number, current: number) => {
+  const pages: (number | "...")[] = [];
+  const maxButtons = 5;
+  let left = Math.max(1, current - 2);
+  let right = Math.min(totalPages, current + 2);
+
+  if (current <= 3) {
+    left = 1;
+    right = Math.min(totalPages, maxButtons);
+  } else if (current + 2 >= totalPages) {
+    right = totalPages;
+    left = Math.max(1, totalPages - maxButtons + 1);
+  }
+
+  if (left > 1) {
+    pages.push(1);
+    if (left > 2) pages.push("...");
+  }
+
+  for (let i = left; i <= right; i++) pages.push(i);
+
+  if (right < totalPages) {
+    if (right < totalPages - 1) pages.push("...");
+    pages.push(totalPages);
+  }
+
+  return pages;
+};
+
+
   useEffect(() => {
     const controller = new AbortController()
 
@@ -123,7 +163,10 @@ export default function PeopleDashboard() {
       setStudentError(null)
       try {
         const response = await axiosInstance.get("/Student/GetAllWithPagination", {
-          params: { pageNumber, pageSize },
+          params: {
+            pageNumber,
+            pageSize: pageSize === "all" ? (totalCount > 0 ? totalCount : 1000000) : pageSize
+          },
           signal: controller.signal
         })
 
@@ -151,7 +194,7 @@ export default function PeopleDashboard() {
     fetchStudents()
 
     return () => controller.abort()
-  }, [pageNumber])
+  }, [pageNumber, pageSize])
 
   // Debounce teacher search
   useEffect(() => {
@@ -174,13 +217,14 @@ export default function PeopleDashboard() {
       setTeacherError(null)
       try {
         const response = await axiosInstance.get("/Teacher/GetAllTeachers", {
-          params: { 
-            pageNumber: teacherPageNumber, 
-            pageSize: pageSize,
+          params: {
+            pageNumber: teacherPageNumber,
+            pageSize: pageSize === "all" ? (teacherTotalCount > 0 ? teacherTotalCount : 1000000) : pageSize,
             search: teacherSearchDebounced || ""
           },
           signal: controller.signal
         })
+
 
         console.log("Teachers response:", response.data)
         if (response.data?.IsSuccess) {
@@ -213,8 +257,216 @@ export default function PeopleDashboard() {
     fetchTeachers()
 
     return () => controller.abort()
-  }, [activeTab, teacherPageNumber, teacherSearchDebounced])
+  }, [activeTab, teacherPageNumber, teacherSearchDebounced, pageSize])
 
+
+
+  const [openDropdown, setOpenDropdown] = useState<number | null>(null)
+
+const handleEdit = (id: number) => {
+  // go to edit page – adjust route if your app uses a different pattern
+  navigate(`/people/students/edit/${id}`)
+}
+
+const handleDelete = async (id: number) => {
+  const confirm = await Swal.fire({
+    title: "Are you sure?",
+    text: "Do you really want to delete this student?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    // Add this didOpen block to force the colors
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const cancelBtn = Swal.getCancelButton();
+
+      if (confirmBtn) {
+        confirmBtn.style.setProperty('background-color', '#d33', 'important');
+        confirmBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+      if (cancelBtn) {
+        cancelBtn.style.setProperty('background-color', '#3085d6', 'important');
+        cancelBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+    }
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    // API call → Student/Delete/15
+    const response = await axiosInstance.delete(`/Student/Delete/${id}`);
+
+    if (response.data?.IsSuccess) {
+      Swal.fire({
+        title: "Deleted!",
+        text: "Student has been deleted successfully.",
+        icon: "success",
+      });
+
+      // Remove from UI
+      setStudents(prev => prev.filter(s => s.Id !== id));
+      setTotalCount(prev => Math.max(prev - 1, 0));
+    } else {
+      Swal.fire({
+        title: "Error",
+        text: response.data?.Message || "Unable to delete student.",
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    Swal.fire({
+      title: "Error",
+      text: "Something went wrong while deleting.",
+      icon: "error",
+    });
+  } finally {
+    setOpenDropdown(null);
+  }
+};
+
+
+
+
+const handleTeacherEdit = (id: number) => {
+  // go to edit page – adjust route if your app uses a different pattern
+  navigate(`/people/teachers/edit/${id}`)
+}
+
+const handleTeacherDelete = async (id: number) => {
+  const confirm = await Swal.fire({
+    title: "Are you sure?",
+    text: "Do you really want to delete this teacher?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    // Add this didOpen block to force the colors
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const cancelBtn = Swal.getCancelButton();
+
+      if (confirmBtn) {
+        confirmBtn.style.setProperty('background-color', '#d33', 'important');
+        confirmBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+      if (cancelBtn) {
+        cancelBtn.style.setProperty('background-color', '#3085d6', 'important');
+        cancelBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+    }
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    // API call → Student/Delete/15
+    const response = await axiosInstance.delete(`/teacher/Delete/${id}`);
+
+    if (response.data?.IsSuccess) {
+      Swal.fire({
+        title: "Deleted!",
+        text: "Student has been deleted successfully.",
+        icon: "success",
+      });
+
+      // Remove from UI
+      setStudents(prev => prev.filter(s => s.Id !== id));
+      setTotalCount(prev => Math.max(prev - 1, 0));
+    } else {
+      Swal.fire({
+        title: "Error",
+        text: response.data?.Message || "Unable to delete student.",
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    Swal.fire({
+      title: "Error",
+      text: "Something went wrong while deleting.",
+      icon: "error",
+    });
+  } finally {
+    setOpenDropdown(null);
+  }
+};
+  
+
+
+
+
+const handleStaffEdit = (id: number) => {
+  // go to edit page – adjust route if your app uses a different pattern
+  navigate(`/people/staff/edit/${id}`)
+}
+
+const handleStaffDelete = async (id: number) => {
+  const confirm = await Swal.fire({
+    title: "Are you sure?",
+    text: "Do you really want to delete this staff member?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    // Add this didOpen block to force the colors
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const cancelBtn = Swal.getCancelButton();
+
+      if (confirmBtn) {
+        confirmBtn.style.setProperty('background-color', '#d33', 'important');
+        confirmBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+      if (cancelBtn) {
+        cancelBtn.style.setProperty('background-color', '#3085d6', 'important');
+        cancelBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+    }
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    // API call → Staff/Delete/15
+    const response = await axiosInstance.delete(`/staff/Delete/${id}`);
+
+    if (response.data?.IsSuccess) {
+      Swal.fire({
+        title: "Deleted!",
+        text: "Staff member has been deleted successfully.",
+        icon: "success",
+      });
+
+      // Remove from UI
+      setStudents(prev => prev.filter(s => s.Id !== id));
+      setTotalCount(prev => Math.max(prev - 1, 0));
+    } else {
+      Swal.fire({
+        title: "Error",
+        text: response.data?.Message || "Unable to delete student.",
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    Swal.fire({
+      title: "Error",
+      text: "Something went wrong while deleting.",
+      icon: "error",
+    });
+  } finally {
+    setOpenDropdown(null);
+  }
+};
   
 
   const getStudentName = (student: StudentRow) => {
@@ -348,11 +600,41 @@ export default function PeopleDashboard() {
           <td className="px-4 py-3 text-gray-700">{formatDate(student.RegistrationDate)}</td>
           <td className="px-4 py-3 text-gray-700">{student.IdNumber || "—"}</td>
           <td className="px-4 py-3 text-emerald-600">{formatCurrency(student.TuitionFees)}</td>
-          <td className="px-4 py-3">
-            <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" aria-label="More actions">
-              <MoreHorizontal size={18} />
-            </button>
-          </td>
+           <td className="px-4 py-3 relative">
+  {/* More button */}
+  <button
+    type="button"
+    onClick={() =>
+      setOpenDropdown(openDropdown === student.Id ? null : student.Id)
+    }
+    className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+    aria-label="More actions"
+  >
+    <MoreHorizontal size={18} />
+  </button>
+
+  {/* Dropdown */}
+  {openDropdown === student.Id && (
+    <div className="absolute right-0 mt-2 w-36 rounded-xl border bg-white shadow-md z-50">
+      <button
+        type="button"
+        onClick={() => handleEdit(student.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+      >
+        Edit
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleDelete(student.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+      >
+        Delete
+      </button>
+    </div>
+  )}
+</td>
+
         </tr>
       )
     })
@@ -438,7 +720,7 @@ export default function PeopleDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  {["", "Name", "Phone", "Email", "Registration date", "ID Number", "Payments", ""].map((heading, idx) => (
+                  {["", "Name", "Phone", "Email", "Registration date", "ID Number", "Payments", "Actions"].map((heading, idx) => (
                     <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
                   ))}
                 </tr>
@@ -448,22 +730,65 @@ export default function PeopleDashboard() {
               </tbody>
             </table>
             <div className="flex items-center justify-between px-4 py-4 bg-white border border-t-0 border-gray-200 rouded-b-xl">
-              <button
-                disabled={pageNumber === 1}
-                onClick={() => setPageNumber(p => p-1)}
-                className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-              >Previous</button>
-              <div className="text-gray-600 text-sm">
-                Page {pageNumber} of {Math.ceil(totalCount/pageSize)}
-              </div>
-              <button
-                disabled={pageNumber >= Math.ceil(totalCount/pageSize)}
-                onClick={() => setPageNumber(p => p+1)}
-                className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-              >
-                Next
-              </button>
-            </div>
+  <div className="text-sm text-gray-600">
+Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min(pageNumber * (pageSize as number), totalCount)} of {totalCount}  </div>
+
+
+  <select
+  value={pageSize}
+  onChange={(e) => {
+    const v = e.target.value;
+    setPageSize(v === "all" ? "all" : Number(v));
+    setPageNumber(1);
+  }}
+  className="border px-2 py-1 rounded"
+>
+  {[5, 10, 25, 50, 100].map((s) => (
+    <option key={s} value={s}>
+      {s}
+    </option>
+  ))}
+  <option value="all">All</option>
+</select>
+
+
+  <div className="flex items-center gap-2">
+    <button
+      disabled={pageNumber === 1}
+      onClick={() => setPageNumber(p => Math.max(1, p - 1))}
+      className="px-3 py-1 border rounded disabled:opacity-50"
+    >
+      Previous
+    </button>
+
+    
+
+    <div className="flex items-center gap-1">
+      {makePageButtons(studentTotalPages, pageNumber).map((p, idx) =>
+        p === "..." ? (
+          <span key={`s-ellipsis-${idx}`} className="px-2 text-sm text-gray-500">…</span>
+        ) : (
+          <button
+            key={`s-${p}`}
+            onClick={() => setPageNumber(Number(p))}
+            className={`px-3 h-8 inline-flex items-center justify-center rounded text-sm border ${p === pageNumber ? "bg-blue-600 text-white border-blue-600" : "text-gray-700 border-gray-200 hover:bg-gray-50"}`}
+          >
+            {p}
+          </button>
+        )
+      )}
+    </div>
+
+    <button
+      disabled={pageNumber >= studentTotalPages}
+      onClick={() => setPageNumber(p => Math.min(studentTotalPages, p + 1))}
+      className="px-3 py-1 border rounded disabled:opacity-50"
+    >
+      Next
+    </button>
+  </div>
+</div>
+
           </div>
         </div>
       )}
@@ -503,7 +828,7 @@ export default function PeopleDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  {["", "Name", "Phone", "Email", ""].map((heading, idx) => (
+                  {["", "Name", "Phone", "Email", "Actions"].map((heading, idx) => (
                     <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
                   ))}
                 </tr>
@@ -589,11 +914,40 @@ export default function PeopleDashboard() {
                             "—"
                           )}
                         </td>
-                        <td className="px-4 py-3">
-                          <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" aria-label="More actions">
-                            <MoreHorizontal size={18} />
-                          </button>
-                        </td>
+                         <td className="px-4 py-3 relative">
+  {/* More button */}
+  <button
+    type="button"
+    onClick={() =>
+      setOpenDropdown(openDropdown === teacher.Id ? null : teacher.Id)
+    }
+    className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+    aria-label="More actions"
+  >
+    <MoreHorizontal size={18} />
+  </button>
+
+  {/* Dropdown */}
+  {openDropdown === teacher.Id && (
+    <div className="absolute right-0 mt-2 w-36 rounded-xl border bg-white shadow-md z-50">
+      <button
+        type="button"
+        onClick={() => handleTeacherEdit(teacher.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+      >
+        Edit
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleTeacherDelete(teacher.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+      >
+        Delete
+      </button>
+    </div>
+  )}
+</td>
                       </tr>
                     )
                   })
@@ -601,26 +955,69 @@ export default function PeopleDashboard() {
               </tbody>
             </table>
             {teacherTotalCount > 0 && (
-              <div className="flex items-center justify-between px-4 py-4 bg-white border border-t-0 border-gray-200 rouded-b-xl">
-                <button
-                  disabled={teacherPageNumber === 1}
-                  onClick={() => setTeacherPageNumber(p => p-1)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-                >
-                  Previous
-                </button>
-                <div className="text-gray-600 text-sm">
-                  Page {teacherPageNumber} of {Math.ceil(teacherTotalCount/pageSize)}
-                </div>
-                <button
-                  disabled={teacherPageNumber >= Math.ceil(teacherTotalCount/pageSize)}
-                  onClick={() => setTeacherPageNumber(p => p+1)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-                >
-                  Next
-                </button>
-              </div>
-            )}
+  <div className="flex items-center justify-between px-4 py-4 bg-white border border-t-0 border-gray-200 rouded-b-xl">
+    <div className="text-sm text-gray-600">
+      Showing {teacherTotalCount === 0 ? 0 : 1} - {pageSize === "all" ? teacherTotalCount : Math.min(teacherPageNumber * (pageSize as number), teacherTotalCount)} of {teacherTotalCount}
+    </div>
+
+
+    <select
+  value={pageSize}
+  onChange={(e) => {
+    const v = e.target.value;
+    setPageSize(v === "all" ? "all" : Number(v));
+    setTeacherPageNumber(1);
+    setPageNumber(1);
+  }}
+  className="border px-2 py-1 rounded"
+>
+  {[5, 10, 25, 50, 100].map((s) => (
+    <option key={s} value={s}>
+      {s}
+    </option>
+  ))}
+  <option value="all">All</option>
+</select>
+
+
+    <div className="flex items-center gap-2">
+      <button
+        disabled={teacherPageNumber === 1}
+        onClick={() => setTeacherPageNumber(p => Math.max(1, p - 1))}
+        className="px-3 py-1 border rounded disabled:opacity-50"
+      >
+        Previous
+      </button>
+
+      
+
+      <div className="flex items-center gap-1">
+        {makePageButtons(teacherTotalPages, teacherPageNumber).map((p, idx) =>
+          p === "..." ? (
+            <span key={`t-ellipsis-${idx}`} className="px-2 text-sm text-gray-500">…</span>
+          ) : (
+            <button
+              key={`t-${p}`}
+              onClick={() => setTeacherPageNumber(Number(p))}
+              className={`px-3 h-8 inline-flex items-center justify-center rounded text-sm border ${p === teacherPageNumber ? "bg-blue-600 text-white border-blue-600" : "text-gray-700 border-gray-200 hover:bg-gray-50"}`}
+            >
+              {p}
+            </button>
+          )
+        )}
+      </div>
+
+      <button
+        disabled={teacherPageNumber >= teacherTotalPages}
+        onClick={() => setTeacherPageNumber(p => Math.min(teacherTotalPages, p + 1))}
+        className="px-3 py-1 border rounded disabled:opacity-50"
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
+
           </div>
         </div>
       )}
@@ -643,7 +1040,7 @@ export default function PeopleDashboard() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500">
                 <tr>
-                  {["", "Name", "Email", ""].map((heading, idx) => (
+                  {["", "Name", "Email", "Actions"].map((heading, idx) => (
                     <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
                   ))}
                 </tr>
@@ -662,7 +1059,42 @@ export default function PeopleDashboard() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-blue-600">{staff.email}</td>
-                    <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"><MoreHorizontal size={18} /></button></td>
+
+<td className="px-4 py-3 relative">
+  {/* More button */}
+  <button
+    type="button"
+    onClick={() =>
+      setOpenDropdown(openDropdown === staff.Id ? null : staff.Id)
+    }
+    className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+    aria-label="More actions"
+  >
+    <MoreHorizontal size={18} />
+  </button>
+
+  {/* Dropdown */}
+  {openDropdown === staff.Id && (
+    <div className="absolute right-0 mt-2 w-36 rounded-xl border bg-white shadow-md z-50">
+      <button
+        type="button"
+        onClick={() => handleStaffEdit(staff.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+      >
+        Edit
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleStaffDelete(staff.Id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+      >
+        Delete
+      </button>
+    </div>
+  )}
+</td>
+
                   </tr>
                 ))}
               </tbody>

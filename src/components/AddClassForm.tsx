@@ -8,7 +8,10 @@ import {
   Clock,
   RotateCcw,
   Calendar,
-  Users
+  Users,
+  X,
+  FileText,
+  Upload
 } from "lucide-react";
 
 export default function AddClassForm() {
@@ -43,6 +46,22 @@ export default function AddClassForm() {
   const [showClassroomModal, setShowClassroomModal] = useState(false)
   const [newClassroomName, setNewClassroomName] = useState("")
   const [savingClassroom, setSavingClassroom] = useState(false)
+  const [syllabusFiles, setSyllabusFiles] = useState<File[]>([])
+
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        // Remove data:image/png;base64, or data:application/pdf;base64, prefix
+        const base64 = result.includes(",") ? result.split(",")[1] : result
+        resolve(base64)
+      }
+      reader.onerror = (error) => reject(error)
+      reader.readAsDataURL(file)
+    })
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -50,7 +69,13 @@ export default function AddClassForm() {
       setIsLoadingTeachers(true)
       setTeacherError(null)
       try {
-        const response = await axiosInstance.get("/Teacher/GetAllTeachers", { signal: controller.signal })
+        const response = await axiosInstance.get("/Teacher/GetAllTeachers", {
+          params: {
+            pageNumber: 1,
+            pageSize: 10
+          },
+          signal: controller.signal
+        })
         if (response.data?.IsSuccess) {
           // API returns: { IsSuccess: true, Data: { data: [...] } }
           const teachersData = response.data.Data?.data || []
@@ -176,35 +201,57 @@ export default function AddClassForm() {
       return Swal.fire("Required", "Please select a teacher for each schedule day.", "warning")
     }
 
-    // 2. Build the final payload matching the C# model EXACTLY
-    const payload = {
-      Id: 0,
-      ClassTitle: formData.title,
-      ClassRooomId: Number(formData.classRoomId),
-      ClassSubject: formData.subject,
-      ClassLevel: formData.level,
-      ClassDescription: formData.description,
-      ClassCode: formData.classCode || null,
-      Year: formData.year || null,
-      CreditHours: formData.creditHours || null,
-      AwardingBody: formData.awardingBody || null,
-      BookCode: formData.bookCode || null,
-      ClassType: formData.classType || null,
-      StartDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
-      EndDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
-      PublishDate: formData.publishDate ? new Date(formData.publishDate).toISOString() : null,
-      IsDeleted: false,
-      IsActive: true,
-      CreatedOn: new Date().toISOString(),
-      UpdatedOn: new Date().toISOString(),
-      CreatedBy: "system",
-      UpdatedBy: "system",
-      Schedule: scheduleEntries,
-    };
-
-    console.log("Sending payload to API:", JSON.stringify(payload, null, 2));
+    // Convert files to base64
+    const convertFilesToBase64 = async () => {
+      const attachments = await Promise.all(
+        syllabusFiles.map(async (file) => {
+          const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
+          const base64 = await fileToBase64(file)
+          return {
+            Id: 0,
+            FileDetails: base64, // Base64 string of the file
+            FileType: fileExtension,
+            URL: "", // Will be set by backend after file upload
+            ClassID: 0 // Will be set by backend after class creation
+          }
+        })
+      )
+      return attachments
+    }
 
     try {
+      // Convert files to base64 before building payload
+      const attachments = await convertFilesToBase64()
+
+      // 2. Build the final payload matching the C# model EXACTLY
+      const payload = {
+        Id: 0,
+        ClassTitle: formData.title,
+        ClassRooomId: Number(formData.classRoomId),
+        ClassSubject: formData.subject,
+        ClassLevel: formData.level,
+        ClassDescription: formData.description,
+        ClassCode: formData.classCode || null,
+        Year: formData.year || null,
+        CreditHours: formData.creditHours || null,
+        AwardingBody: formData.awardingBody || null,
+        BookCode: formData.bookCode || null,
+        ClassType: formData.classType || null,
+        StartDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
+        EndDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
+        PublishDate: formData.publishDate ? new Date(formData.publishDate).toISOString() : null,
+        IsDeleted: false,
+        IsActive: true,
+        CreatedOn: new Date().toISOString(),
+        UpdatedOn: new Date().toISOString(),
+        CreatedBy: "system",
+        UpdatedBy: "system",
+        Schedule: scheduleEntries,
+        Attachments: attachments,
+      };
+
+      console.log("Sending payload to API:", JSON.stringify(payload, null, 2));
+
       const response = await axiosInstance.post("/Class/AddOrUpdateClass", payload);
       Swal.fire({
         icon: "success",
@@ -611,6 +658,74 @@ export default function AddClassForm() {
                 ))}
                 <button onClick={addDay} className="text-blue-600 text-sm hover:underline">+ Add another day</button>
               </div>
+            </div>
+          </div>
+
+          {/* Syllabus */}
+          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+            <h3 className="text-lg font-semibold text-gray-800 mb-4">Syllabus</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload syllabus files
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
+                  <div className="text-center">
+                    <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                    <label className="cursor-pointer">
+                      <span className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        Click to upload
+                      </span>
+                      <span className="text-sm text-gray-500"> or drag and drop</span>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || [])
+                          setSyllabusFiles((prev) => [...prev, ...files])
+                        }}
+                        className="hidden"
+                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                      />
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2">PDF, DOC, DOCX, TXT, JPG, PNG up to 10MB each</p>
+                  </div>
+                </div>
+              </div>
+
+              {syllabusFiles.length > 0 && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-gray-700">Uploaded files:</div>
+                  {syllabusFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {file.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setSyllabusFiles((prev) => prev.filter((_, i) => i !== index))
+                        }}
+                        className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors flex-shrink-0"
+                        title="Remove file"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           
