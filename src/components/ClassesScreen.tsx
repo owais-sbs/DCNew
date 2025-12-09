@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from './axiosInstance';
+import Swal from "sweetalert2";
 
 import {
   Search,
@@ -233,6 +234,75 @@ export default function ClassesScreen() {
     }
   };
 
+
+
+   const [openDropdown, setOpenDropdown] = useState<number | null>(null)
+
+const handleEdit = (id: number) => {
+  // go to edit page – adjust route if your app uses a different pattern
+  navigate(`/notes/edit-class/${id}`)
+}
+
+const handleDelete = async (id: number) => {
+  const confirm = await Swal.fire({
+    title: "Are you sure?",
+    text: "Do you really want to delete this student?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    cancelButtonText: "Cancel",
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    // Add this didOpen block to force the colors
+    didOpen: () => {
+      const confirmBtn = Swal.getConfirmButton();
+      const cancelBtn = Swal.getCancelButton();
+
+      if (confirmBtn) {
+        confirmBtn.style.setProperty('background-color', '#d33', 'important');
+        confirmBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+      if (cancelBtn) {
+        cancelBtn.style.setProperty('background-color', '#3085d6', 'important');
+        cancelBtn.style.setProperty('color', '#ffffff', 'important');
+      }
+    }
+  });
+
+  if (!confirm.isConfirmed) return;
+
+  try {
+    // API call → Class/Delete/15
+    const response = await axiosInstance.delete(`/class/Delete?id=${id}`);
+
+    if (response.data?.IsSuccess) {
+      Swal.fire({
+        title: "Deleted!",
+        text: "Student has been deleted successfully.",
+        icon: "success",
+      });
+
+      
+    } else {
+      Swal.fire({
+        title: "Error",
+        text: response.data?.Message || "Unable to delete student.",
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    Swal.fire({
+      title: "Error",
+      text: "Something went wrong while deleting.",
+      icon: "error",
+    });
+  } finally {
+    setOpenDropdown(null);
+  }
+};
+
+
   return (
     <div className="px-6 py-6">
       {/* Header with title */}
@@ -380,7 +450,7 @@ export default function ClassesScreen() {
               <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Recurring Day/Time</th>
               <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Payment Frequency</th>
               <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Payment Fees</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200"></th>
+              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -461,19 +531,40 @@ export default function ClassesScreen() {
                 <td className="px-4 py-3 text-gray-700">{cls.recurringDayTime}</td>
                 <td className="px-4 py-3 text-gray-700">{cls.paymentFrequency}</td>
                 <td className="px-4 py-3 text-gray-700">{cls.paymentFees}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => navigate(`/notes/class-details/${cls.id}`)}
-                      className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 text-gray-600"
-                    >
-                      <Eye size={16} />
-                    </button>
-                    <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 text-gray-600">
-                      <MoreHorizontal size={18} />
-                    </button>
-                  </div>
-                </td>
+                <td className="px-4 py-3 relative">
+  {/* More button */}
+  <button
+    type="button"
+    onClick={() =>
+      setOpenDropdown(openDropdown === cls.id ? null : cls.id)
+    }
+    className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+    aria-label="More actions"
+  >
+    <MoreHorizontal size={18} />
+  </button>
+
+  {/* Dropdown */}
+  {openDropdown === cls.id && (
+    <div className="absolute right-0 mt-2 w-36 rounded-xl border bg-white shadow-md z-50">
+      <button
+        type="button"
+        onClick={() => handleEdit(cls.id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+      >
+        Edit
+      </button>
+
+      <button
+        type="button"
+        onClick={() => handleDelete(cls.id)}
+        className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
+      >
+        Delete
+      </button>
+    </div>
+  )}
+</td>
               </tr>
             ))}
           </tbody>
