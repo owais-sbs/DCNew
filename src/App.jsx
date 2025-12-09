@@ -3,6 +3,7 @@ import { SidebarProvider } from "./contexts/SidebarContext";
 
 import ChatIcon from "./components/ChatIcon";
 import Login from "./components/Login";
+import EditClass from "./components/EditClass";
 import EditTeacher from "./components/EditTeacher";
 import EditStaff from "./components/EditStaff";
 import EditStudent from "./components/EditStudent";
@@ -357,6 +358,18 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <NotesDashboard />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+
+              <Route
+                path="/notes/edit-class/:id"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <EditClass />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }
