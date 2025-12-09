@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "./contexts/SidebarContext";
+import 'sweetalert2/dist/sweetalert2.min.css';
 
 import ChatIcon from "./components/ChatIcon";
 import Login from "./components/Login";

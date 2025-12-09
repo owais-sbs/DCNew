@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react"
-import { Plus, X, PenTool, Trash2, ExternalLink } from "lucide-react"
+import { Plus, X, PenTool, Trash2, ExternalLink, Edit2 } from "lucide-react"
 import axiosInstance from "./axiosInstance"
+// import 'sweetalert2/dist/sweetalert2.min.css';
+import Swal from "sweetalert2"
+
 
 type Signature = {
   id: number
@@ -19,12 +22,22 @@ export default function SignaturesScreen() {
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editingsignature, setEditingSignature] = useState<Signature | null>(null)
+
+  const isEdit=!!editingsignature
 
   // Fetch signatures on component mount
   useEffect(() => {
     fetchSignatures()
   }, [])
-
+ const openEditModal=(signature:Signature)=>{
+  setEditingSignature(signature)
+  setName(signature.name)
+  setSignatureImage(null)
+  setImageFile(null)
+  setError(null)
+  setShowAddModal(true)
+ }
   const fetchSignatures = async () => {
     setLoading(true)
     setError(null)
@@ -100,81 +113,155 @@ export default function SignaturesScreen() {
   }
 
   const handleSubmit = async () => {
-    if (!name.trim()) {
-      setError("Please enter a name")
-      return
-    }
+  if (!name.trim()) {
+    setError("Please enter a name")
+    return
+  }
 
-    if (!imageFile) {
-      setError("Please upload a signature image")
-      return
-    }
+  const isEdit = !!editingsignature
 
-    setIsSubmitting(true)
-    setError(null)
+  // For ADD: image is required
+  if (!isEdit && !imageFile) {
+    setError("Please upload a signature image")
+    return
+  }
 
-    try {
-      // Get file type from file extension
-      const fileExtension = imageFile.name.split('.').pop()?.toLowerCase() || 'png'
+  // Confirm with Swal before saving/updating
+  const confirmResult = await Swal.fire({
+    title: isEdit ? "Update signature?" : "Save signature?",
+    text: isEdit
+      ? "This will update the existing signature."
+      : "This will save the new signature.",
+    icon: "question",
+    showCancelButton: true,
+    confirmButtonText: isEdit ? "Yes, update it" : "Yes, save it",
+    cancelButtonText: "Cancel",
+     buttonsStyling: false,
+    customClass: {
+      confirmButton:  "bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500",
+      cancelButton:"bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300",
+       actions: "flex justify-center gap-3 mt-4",
+    },
+  })
+
+  if (!confirmResult.isConfirmed) return
+
+  setIsSubmitting(true)
+  setError(null)
+
+  try {
+    const formData = new FormData()
+
+    const idToSend = isEdit ? editingsignature!.id : 0
+    formData.append("documents[0].Id", String(idToSend))
+    formData.append("documents[0].Name", name.trim())
+
+    // Only send file + fileType if a file is selected
+    if (imageFile) {
+      const fileExtension = imageFile.name.split(".").pop()?.toLowerCase() || "png"
       const fileType = fileExtension
 
-      // Create FormData - matching the DigitalSignature model structure
-      const formData = new FormData()
-      
-      // Format as documents[index].FieldName for array binding in ASP.NET Core
-      // FileDetails should be the actual File object (IFormFile), not a string
-      formData.append("documents[0].Id", "0")
-      formData.append("documents[0].FileDetails", imageFile) // Actual File object, not filename string
+      formData.append("documents[0].FileDetails", imageFile)
       formData.append("documents[0].FileType", fileType)
-      formData.append("documents[0].Name", name.trim())
-      // Note: Signature is output-only (set by backend after upload), don't send it
+    }
 
-      // Use the same headers format as AddDocuments
-      const response = await axiosInstance.post("/Attachment/AddDigitalSignature", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+    const response = await axiosInstance.post("/Attachment/AddDigitalSignature", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    })
+
+    if (response.data?.IsSuccess) {
+      await Swal.fire({
+        title: isEdit ? "Updated!" : "Saved!",
+        text: isEdit
+          ? "Signature has been updated successfully."
+          : "Signature has been saved successfully.",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false,
       })
 
-      if (response.data?.IsSuccess) {
-        await fetchSignatures()
-        handleCloseModal()
-      } else {
-        setError(response.data?.Message || "Failed to save signature")
-      }
-    } catch (err: any) {
-      console.error("Failed to save signature", err)
-      setError(err?.response?.data?.Message || err?.message || "Failed to save signature. Please try again.")
-    } finally {
-      setIsSubmitting(false)
+      await fetchSignatures()
+      handleCloseModal()
+    } else {
+      setError(response.data?.Message || "Failed to save signature")
+      await Swal.fire({
+        title: "Error",
+        text: response.data?.Message || "Failed to save signature",
+        icon: "error",
+      })
     }
+  } catch (err: any) {
+    console.error("Failed to save signature", err)
+    const msg =
+      err?.response?.data?.Message ||
+      err?.message ||
+      "Failed to save signature. Please try again."
+    setError(msg)
+    await Swal.fire({
+      title: "Error",
+      text: msg,
+      icon: "error",
+    })
+  } finally {
+    setIsSubmitting(false)
   }
+}
+
 
   const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this signature?")) {
-      return
-    }
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "this will delete the signature permanently!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it!",
+    cancelButtonText: "Cancel",
 
-    try {
-      // TODO: Replace with actual API endpoint
-      // await axiosInstance.delete(`/Signature/Delete/${id}`)
-      // await fetchSignatures()
+    // ❗ important: disable built-in button styles
+    buttonsStyling: false,
+    customClass: {
+      confirmButton:  "bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500",
+      cancelButton:"bg-gray-200 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300",
+       actions: "flex justify-center gap-3 mt-4",
+    },
+  })
 
-      // For now, delete from localStorage
-      const updated = signatures.filter((sig) => sig.id !== id)
-      setSignatures(updated)
-      localStorage.setItem("signatures", JSON.stringify(updated))
-    } catch (err) {
-      console.error("Failed to delete signature", err)
-      alert("Failed to delete signature")
+  if (!result.isConfirmed) return
+
+  try {
+    const response = await axiosInstance.delete("/Attachment/DeleteDigitalSignature/", {
+      params: { id },
+    })
+
+    if (response.data.IsSuccess) {
+      await Swal.fire({
+        title: "Deleted!",
+        text: "Signature has been deleted.",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false,
+      })
+      await fetchSignatures()
     }
+  } catch (err: any) {
+    console.error("Failed to delete signature", err)
+    await Swal.fire({
+      title: "Error",
+      text: err?.response?.data?.Message || "Failed to delete signature",
+      icon: "error",
+    })
   }
+}
+
 
   const handleCloseModal = () => {
     setShowAddModal(false)
     setName("")
     setSignatureImage(null)
     setImageFile(null)
+    setEditingSignature(null)
     setError(null)
   }
 
@@ -226,13 +313,24 @@ export default function SignaturesScreen() {
                     <p className="text-xs text-gray-500">Signature</p>
                   </div>
                 </div>
+                <div className="flex items-center gap-2">
                 <button
+                  onClick={() => openEditModal(signature)}
+                  className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                  title="Edit signature"
+                >
+                  <Edit2 size={16} />
+                  
+                </button>
+                 <button
                   onClick={() => handleDelete(signature.id)}
                   className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
                   title="Delete signature"
                 >
                   <Trash2 size={16} />
+                  
                 </button>
+                </div>
               </div>
               <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex items-center justify-center min-h-[120px]">
                 {signature.signatureUrl && (
@@ -260,7 +358,7 @@ export default function SignaturesScreen() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-6 py-5 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Add signature</h2>
+              <h2 className="text-lg font-semibold text-gray-900"> {editingsignature ? "Edit signature" : "Add signature"}</h2>
               <button
                 onClick={handleCloseModal}
                 className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 transition-colors"
@@ -352,7 +450,10 @@ export default function SignaturesScreen() {
                 disabled={isSubmitting || !name.trim() || !signatureImage}
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isSubmitting ? "Saving..." : "Save signature"}
+                {isSubmitting
+  ? (editingsignature ? "Updating..." : "Saving...")
+  : (editingsignature ? "Update signature" : "Save signature")}
+
               </button>
             </div>
           </div>
