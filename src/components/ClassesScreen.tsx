@@ -53,6 +53,10 @@ interface Student {
   initials: string;
 }
 
+
+
+
+
 // 2. DATE FORMATTING HELPER
 // Converts "2025-11-07T00:00:00" to "07-11-2025"
 const formatDate = (dateString: string) => {
@@ -126,9 +130,10 @@ export default function ClassesScreen() {
   const [classroom, setClassroom] = useState<string>("All");
   const [classType, setClassType] = useState<string>("V"); // Note: API doesn't provide this
   const [status, setStatus] = useState<string>("All");
-  const [pageNumber, setPageNumber] = useState(1);
-  const pageSize = 5;
-  const [totalCount, setTotalCount] = useState(0);
+
+  const [pageNumber, setPageNumber] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+  const [totalCount, setTotalCount] = useState<number>(0);
 
 
   // Filter options (still hardcoded, see "Next Steps" below)
@@ -145,48 +150,53 @@ export default function ClassesScreen() {
 
   // 5. DATA FETCHING WITH useEffect
   useEffect(() => {
-    const fetchClasses = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await axiosInstance.get('/Class/GetAllClassesWithPagination');
+  const fetchClasses = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axiosInstance.get('/Class/GetAllClassesWithPagination', {
+        params: { pageNumber, pageSize }
+      });
 
-        if (response.data && response.data.IsSuccess) {
-          // Map the API data to the component's 'ClassData' structure
-          const mappedData: ClassData[] = response.data.Data.Data.map((apiClass: ApiClass) => {
-            // Generate dummy student count based on class ID for variety (5-25 students)
-            const dummyStudentCount = (apiClass.ClassId % 20) + 5;
-            
-            return {
-              id: apiClass.ClassId,
-              title: apiClass.ClassTitle,
-              subtitle: apiClass.ClassDescription || `${apiClass.ClassSubject}${apiClass.ClassLevel ? `, ${apiClass.ClassLevel}` : ''}`, // Using ClassDescription from API, fallback to Subject + Level
-              students: dummyStudentCount, // Dummy data for student count
-              status: apiClass.IsActive ? "Active" : "Inactive",
-              teacher: `Teacher ID: ${apiClass.TeacherId}`, // <<< WARNING: API gives ID, not name.
-              classroom: "N/A", // <<< WARNING: 'classroom' is missing from API.
-              starts: formatDate(apiClass.StartDate),
-              ends: formatDate(apiClass.EndDate),
-              recurringDayTime: "N/A", // <<< WARNING: Schedule data not available from API.
-              paymentFrequency: "None", // <<< WARNING: Payment frequency not available from API.
-              paymentFees: "N/A", // <<< WARNING: Payment fees not available from API.
-            };
-          });
-          setClasses(mappedData);
-          setTotalCount(response.data.Data.TotalCount)
-        } else {
-          setError(response.data.Message || "Failed to fetch data.");
-        }
-      } catch (err: any) {
-        console.error("API Error:", err);
-        setError(err.message || "An error occurred while fetching classes.");
-      } finally {
-        setLoading(false);
+      if (response.data && response.data.IsSuccess) {
+        const rawItems: ApiClass[] = response.data?.Data?.Data ?? [];
+        const mappedData: ClassData[] = rawItems.map((apiClass: ApiClass) => {
+          const dummyStudentCount = (apiClass.ClassId % 20) + 5;
+          return {
+            id: apiClass.ClassId,
+            title: apiClass.ClassTitle,
+            subtitle: apiClass.ClassDescription || `${apiClass.ClassSubject}${apiClass.ClassLevel ? `, ${apiClass.ClassLevel}` : ''}`,
+            students: dummyStudentCount,
+            status: apiClass.IsActive ? "Active" : "Inactive",
+            teacher: `Teacher ID: ${apiClass.TeacherId}`,
+            classroom: "N/A",
+            starts: formatDate(apiClass.StartDate),
+            ends: formatDate(apiClass.EndDate),
+            recurringDayTime: "N/A",
+            paymentFrequency: "None",
+            paymentFees: "N/A",
+          };
+        });
+
+        setClasses(mappedData);
+        setTotalCount(Number(response.data?.Data?.TotalCount ?? 0));
+      } else {
+        setClasses([]);
+        setTotalCount(0);
+        setError(response.data?.Message ?? "Failed to fetch classes");
       }
-    };
+    } catch (err: any) {
+      console.error("API Error:", err);
+      setError(err?.message ?? "An error occurred while fetching classes.");
+      setClasses([]);
+      setTotalCount(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchClasses();
-  }, [pageNumber]); // Empty dependency array [] means this runs once when the component mounts
+  fetchClasses();
+}, [pageNumber, pageSize]);
 
   // 6. FILTERING LOGIC
   // This memo recalculates the list only when the data or filters change
@@ -302,12 +312,48 @@ const handleDelete = async (id: number) => {
   }
 };
 
+const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+const startEntry = totalCount === 0 ? 0 : (pageNumber - 1) * pageSize + 1;
+const endEntry = Math.min(totalCount, pageNumber * pageSize);
+const pageSizeSelectValue = pageSize === totalCount ? "all" : pageSize;
+
+// small helper to build page buttons (1, ..., 4, 5, 6, ..., last)
+const pageButtons = () => {
+  const pages: (number | string)[] = [];
+  const maxButtons = 5;
+  let left = Math.max(1, pageNumber - 2);
+  let right = Math.min(totalPages, pageNumber + 2);
+
+  if (pageNumber <= 3) {
+    left = 1;
+    right = Math.min(totalPages, maxButtons);
+  } else if (pageNumber + 2 >= totalPages) {
+    right = totalPages;
+    left = Math.max(1, totalPages - maxButtons + 1);
+  }
+
+  if (left > 1) {
+    pages.push(1);
+    if (left > 2) pages.push("...");
+  }
+
+  for (let i = left; i <= right; i++) pages.push(i);
+
+  if (right < totalPages) {
+    if (right < totalPages - 1) pages.push("...");
+    pages.push(totalPages);
+  }
+
+  return pages;
+};
+
+
 
   return (
     <div className="px-6 py-6">
       {/* Header with title */}
       <div className="mb-4">
-        <h1 className="text-2xl font-semibold text-gray-900">{classes.length} Classes</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">{totalCount} Classes</h1>
       </div>
 
       {/* Search bar */}
@@ -571,27 +617,80 @@ const handleDelete = async (id: number) => {
       
         </table>
 
-           <div className="flex items-center justify-between px-4 py-4 bg-white border-t border-gray-200">
-  <button
-    disabled={pageNumber === 1}
-    onClick={() => setPageNumber(p => p - 1)}
-    className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-  >
-    Previous
-  </button>
-
-  <div className="text-gray-600 text-sm">
-    Page {pageNumber} of {Math.ceil(totalCount / pageSize)}
+           {/* pagination footer */}
+<div className="flex items-center justify-between px-4 py-4 bg-white border-t border-gray-200">
+  <div className="text-sm text-gray-600">
+    {loading ? (
+      "Loading..."
+    ) : (
+      <>Showing <span className="font-medium">{startEntry}</span> - <span className="font-medium">{endEntry}</span> of <span className="font-medium">{totalCount}</span> Entries</>
+    )}
   </div>
 
-  <button
-    disabled={pageNumber >= Math.ceil(totalCount / pageSize)}
-    onClick={() => setPageNumber(p => p + 1)}
-    className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
-  >
-    Next
-  </button>
-</div>  
+
+  {/* page size selector */}
+
+
+<select
+  value={pageSizeSelectValue}
+  onChange={(e) => {
+    const v = e.target.value;
+    if (v === "all") {
+      // show all classes on one page (guard against totalCount being 0)
+      setPageSize(Math.max(1, totalCount));
+      setPageNumber(1);
+    } else {
+      setPageSize(Number(v));
+      setPageNumber(1);
+    }
+  }}
+  className="form-select text-sm border rounded px-2 py-1"
+>
+  {[5, 10, 25, 50, 100].map(s => (
+    <option key={s} value={s}>{s}</option>
+  ))}
+  <option value="all">All</option>
+</select>
+
+
+  <div className="flex items-center gap-2">
+    <button
+      disabled={pageNumber === 1}
+      onClick={() => setPageNumber(p => Math.max(1, p - 1))}
+      className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
+    >
+      Previous
+    </button>
+
+
+    
+
+
+    <div className="flex items-center gap-1">
+      {pageButtons().map((p, i) =>
+      p === "..." ? (
+        <span key={`e-${i}`} className="px-2 text-sm text-gray-500">…</span>
+      ) : (
+        <button
+          key={p}
+          onClick={() => setPageNumber(Number(p))}
+          className={`px-3 h-8 inline-flex items-center justify-center rounded text-sm border ${p === pageNumber ? "bg-orange-500 text-white border-orange-500" : "text-gray-700 border-gray-200 hover:bg-gray-50"}`}
+        >
+          {p}
+        </button>
+      ))}
+    </div>
+
+    <button
+      disabled={pageNumber >= totalPages}
+      onClick={() => setPageNumber(p => Math.min(totalPages, p + 1))}
+      className="px-4 py-2 rounded-lg border border-gray-300 disabled:opacity-50 bg-white hover:bg-gray-50"
+    >
+      Next
+    </button>
+  </div>
+</div>
+ 
         
       </div>
 
