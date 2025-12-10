@@ -23,13 +23,14 @@ export default function SignaturesScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [editingsignature, setEditingSignature] = useState<Signature | null>(null)
+  const [pageNumber,setPageNumber]=useState(1);
+  const [pageSize,setPageSize]=useState(10)
+  const [TotalCount,setTotalCount]=useState(0)
 
   const isEdit=!!editingsignature
 
   // Fetch signatures on component mount
-  useEffect(() => {
-    fetchSignatures()
-  }, [])
+
  const openEditModal=(signature:Signature)=>{
   setEditingSignature(signature)
   setName(signature.name)
@@ -38,42 +39,91 @@ export default function SignaturesScreen() {
   setError(null)
   setShowAddModal(true)
  }
-  const fetchSignatures = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await axiosInstance.get("/Attachment/GetDigitalSignatures")
-      
-      if (response.data?.IsSuccess && response.data?.Data?.Data) {
-        // Map API response to our Signature type
-        // Structure: { IsSuccess: true, Data: { Data: [...] } }
-        const signaturesData = response.data.Data.Data
-        const mappedSignatures: Signature[] = signaturesData.map((item: any) => {
-          // Ensure the URL is a valid string and trim any whitespace
-          const signatureUrl = item.Signature ? String(item.Signature).trim() : ""
-          console.log("Processing signature:", { id: item.Id, name: item.Name, url: signatureUrl })
-          return {
-            id: item.Id,
-            name: item.Name || "",
-            signatureUrl: signatureUrl, // CloudFront URL
-            fileDetails: item.FileDetails,
-            fileType: item.FileType
-          }
-        })
-        console.log("Mapped signatures:", mappedSignatures)
-        setSignatures(mappedSignatures)
-      } else {
-        console.warn("Unexpected API response structure:", response.data)
-        setSignatures([])
+  const fetchSignatures = async (page = pageNumber,size=pageSize) => {
+  setLoading(true)
+  setError(null)
+
+  try {
+    const response = await axiosInstance.get(
+      "/Attachment/GetDigitalSignaturesWithPagination", // 👈 make sure this matches your API name
+      {
+        params: {
+          pageNumber: page,
+          pageSize: size,
+        },
       }
-    } catch (err: any) {
-      console.error("Failed to fetch signatures", err)
-      setError(err?.response?.data?.Message || "Failed to load signatures")
+    )
+
+    console.log("API raw response:", response.data)
+
+    if (response.data?.IsSuccess && response.data?.Data) {
+      // 👇 THIS matches your screenshot shape
+      const signaturesData = response.data.Data.Data || []
+      const total = response.data.Data.TotalCount ?? 0
+
+      console.log("signaturesData from API:", signaturesData)
+
+      const mappedSignatures: Signature[] = signaturesData.map((item: any) => {
+        const signatureUrl = item.Signature ? String(item.Signature).trim() : ""
+        return {
+          id: item.Id,
+          name: item.Name || "",
+          signatureUrl,
+          fileDetails: item.FileDetails,
+          fileType: item.FileType,
+        }
+      })
+
+      console.log("mappedSignatures:", mappedSignatures)
+
+      setSignatures(mappedSignatures)
+      setTotalCount(total)
+      setPageNumber(page)
+      setPageSize(size)
+    } else {
+      console.warn("Unexpected API response structure:", response.data)
       setSignatures([])
-    } finally {
-      setLoading(false)
+      setTotalCount(0)
     }
+  } catch (err: any) {
+    console.error("Failed to fetch signatures", err)
+    setError(err?.response?.data?.Message || "Failed to load signatures")
+    setSignatures([])
+    setTotalCount(0)
+  } finally {
+    setLoading(false)
   }
+}
+
+  useEffect(() => {
+    fetchSignatures()
+  }, [pageNumber])
+
+const totalPages = Math.max(1, Math.ceil(TotalCount / pageSize))
+
+const getPageNumbers = () => {
+  const pages: (number | string)[] = []
+  const maxToShow = 5
+
+  if (totalPages <= maxToShow) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i)
+    return pages
+  }
+
+  const start = Math.max(2, pageNumber - 1)
+  const end = Math.min(totalPages - 1, pageNumber + 1)
+
+  pages.push(1)
+  if (start > 2) pages.push("...")
+
+  for (let i = start; i <= end; i++) pages.push(i)
+
+  if (end < totalPages - 1) pages.push("...")
+  pages.push(totalPages)
+
+  return pages
+}
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -296,59 +346,151 @@ export default function SignaturesScreen() {
             Add signature
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {signatures.map((signature) => (
-            <div
-              key={signature.id}
-              className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                    <PenTool size={20} className="text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">{signature.name}</h3>
-                    <p className="text-xs text-gray-500">Signature</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                <button
-                  onClick={() => openEditModal(signature)}
-                  className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
-                  title="Edit signature"
-                >
-                  <Edit2 size={16} />
-                  
-                </button>
-                 <button
-                  onClick={() => handleDelete(signature.id)}
-                  className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
-                  title="Delete signature"
-                >
-                  <Trash2 size={16} />
-                  
-                </button>
-                </div>
+   ) : (
+
+  <>
+    {/* Cards */}
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {signatures.map((signature) => (
+        <div
+          key={signature.id}
+          className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow"
+        >
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                <PenTool size={20} className="text-indigo-600" />
               </div>
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex items-center justify-center min-h-[120px]">
-                {signature.signatureUrl && (
-                  <a
-                    href={signature.signatureUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                  >
-                    <ExternalLink size={16} />
-                    View file
-                  </a>
-                )}
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">{signature.name}</h3>
+                <p className="text-xs text-gray-500">Signature</p>
               </div>
             </div>
-          ))}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => openEditModal(signature)}
+                className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                title="Edit signature"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button
+                onClick={() => handleDelete(signature.id)}
+                className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                title="Delete signature"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+
+          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex items-center justify-center min-h-[120px]">
+            {signature.signatureUrl && (
+              <a
+                href={signature.signatureUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                <ExternalLink size={16} />
+                View file
+              </a>
+            )}
+          </div>
         </div>
-      )}
+      ))}
+    </div>
+
+    {/* Pagination bar (like Students page) */}
+    {TotalCount > 0 && (
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between mt-6 gap-3">
+        {/* Left text: Showing x - y of z */}
+        <p className="text-sm text-gray-500">
+          Showing{" "}
+          {TotalCount === 0
+            ? 0
+            : (pageNumber - 1) * pageSize + 1}{" "}
+          -{" "}
+          {Math.min(pageNumber * pageSize, TotalCount)} of {TotalCount}
+        </p>
+
+        
+          {/* Page size dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 ">Rows per page</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                const newSize = Number(e.target.value)
+                setPageNumber(1)
+                setPageSize(newSize)
+                fetchSignatures(1, newSize)
+              }}
+              className="border border-gray-300 rounded-md text-sm px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+<div className="flex items-center gap-4">
+          {/* Page buttons */}
+          <div className="inline-flex items-center rounded-lg border border-gray-200 overflow-hidden">
+            <button
+              disabled={pageNumber === 1}
+              onClick={() => {
+                const newPage = Math.max(1, pageNumber - 1)
+                setPageNumber(newPage)
+                fetchSignatures(newPage, pageSize)
+              }}
+              className="px-3 py-1 text-sm disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Previous
+            </button>
+
+            {getPageNumbers().map((p, idx) =>
+              p === "..." ? (
+                <span key={idx} className="px-2 text-sm text-gray-400">
+                  ...
+                </span>
+              ) : (
+                <button
+                  key={p as number}
+                  onClick={() => {
+                    setPageNumber(p as number)
+                    fetchSignatures(p as number, pageSize)
+                  }}
+                  className={`px-3 py-1 text-sm border-l border-gray-200 ${
+                    pageNumber === p
+                      ? "bg-indigo-600 text-white"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  {p}
+                </button>
+              )
+            )}
+
+            <button
+              disabled={pageNumber >= totalPages}
+              onClick={() => {
+                const newPage = Math.min(totalPages, pageNumber + 1)
+                setPageNumber(newPage)
+                fetchSignatures(newPage, pageSize)
+              }}
+              className="px-3 py-1 text-sm border-l border-gray-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
+)
+
+}
 
       {/* Add Signature Modal */}
       {showAddModal && (
