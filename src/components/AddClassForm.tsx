@@ -201,58 +201,68 @@ export default function AddClassForm() {
       return Swal.fire("Required", "Please select a teacher for each schedule day.", "warning")
     }
 
-    // Convert files to base64
-    const convertFilesToBase64 = async () => {
-      const attachments = await Promise.all(
-        syllabusFiles.map(async (file) => {
-          const fileExtension = file.name.split('.').pop()?.toLowerCase() || ''
-          const base64 = await fileToBase64(file)
-          return {
-            Id: 0,
-            FileDetails: base64, // Base64 string of the file
-            FileType: fileExtension,
-            URL: "", // Will be set by backend after file upload
-            ClassID: 0 // Will be set by backend after class creation
-          }
-        })
-      )
-      return attachments
-    }
-
     try {
-      // Convert files to base64 before building payload
-      const attachments = await convertFilesToBase64()
+      // Create FormData for [FromForm] endpoint
+      const formDataToSend = new FormData();
 
-      // 2. Build the final payload matching the C# model EXACTLY
-      const payload = {
-        Id: 0,
-        ClassTitle: formData.title,
-        ClassRooomId: Number(formData.classRoomId),
-        ClassSubject: formData.subject,
-        ClassLevel: formData.level,
-        ClassDescription: formData.description,
-        ClassCode: formData.classCode || null,
-        Year: formData.year || null,
-        CreditHours: formData.creditHours || null,
-        AwardingBody: formData.awardingBody || null,
-        BookCode: formData.bookCode || null,
-        ClassType: formData.classType || null,
-        StartDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
-        EndDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
-        PublishDate: formData.publishDate ? new Date(formData.publishDate).toISOString() : null,
-        IsDeleted: false,
-        IsActive: true,
-        CreatedOn: new Date().toISOString(),
-        UpdatedOn: new Date().toISOString(),
-        CreatedBy: "system",
-        UpdatedBy: "system",
-        Schedule: scheduleEntries,
-        Attachments: attachments,
-      };
+      // Append basic class properties
+      formDataToSend.append("Id", "0");
+      formDataToSend.append("ClassTitle", formData.title);
+      formDataToSend.append("ClassRooomId", String(formData.classRoomId));
+      if (formData.subject) formDataToSend.append("ClassSubject", formData.subject);
+      if (formData.level) formDataToSend.append("ClassLevel", formData.level);
+      if (formData.description) formDataToSend.append("ClassDescription", formData.description);
+      if (formData.classCode) formDataToSend.append("ClassCode", formData.classCode);
+      if (formData.year) formDataToSend.append("Year", formData.year);
+      if (formData.creditHours) formDataToSend.append("CreditHours", formData.creditHours);
+      if (formData.awardingBody) formDataToSend.append("AwardingBody", formData.awardingBody);
+      if (formData.bookCode) formDataToSend.append("BookCode", formData.bookCode);
+      if (formData.classType) formDataToSend.append("ClassType", formData.classType);
+      
+      if (formData.startDate) {
+        formDataToSend.append("StartDate", new Date(formData.startDate).toISOString());
+      }
+      if (formData.endDate) {
+        formDataToSend.append("EndDate", new Date(formData.endDate).toISOString());
+      }
+      if (formData.publishDate) {
+        formDataToSend.append("PublishDate", new Date(formData.publishDate).toISOString());
+      }
+      
+      formDataToSend.append("IsDeleted", "false");
+      formDataToSend.append("IsActive", "true");
+      formDataToSend.append("CreatedOn", new Date().toISOString());
+      formDataToSend.append("UpdatedOn", new Date().toISOString());
+      formDataToSend.append("CreatedBy", "system");
+      formDataToSend.append("UpdatedBy", "system");
 
-      console.log("Sending payload to API:", JSON.stringify(payload, null, 2));
+      // Append Schedule entries
+      scheduleEntries.forEach((schedule, index) => {
+        formDataToSend.append(`Schedule[${index}].WeekDay`, schedule.WeekDay);
+        formDataToSend.append(`Schedule[${index}].StartTime`, schedule.StartTime);
+        formDataToSend.append(`Schedule[${index}].EndTime`, schedule.EndTime);
+        schedule.TeacherIds.forEach((teacherId, teacherIndex) => {
+          formDataToSend.append(`Schedule[${index}].TeacherIds[${teacherIndex}]`, String(teacherId));
+        });
+      });
 
-      const response = await axiosInstance.post("/Class/AddOrUpdateClass", payload);
+      // Append Attachments with actual File objects
+      syllabusFiles.forEach((file, index) => {
+        const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+        formDataToSend.append(`Attachments[${index}].Id`, "0");
+        formDataToSend.append(`Attachments[${index}].FileDetails`, file);
+        formDataToSend.append(`Attachments[${index}].FileType`, fileExtension);
+        formDataToSend.append(`Attachments[${index}].URL`, "");
+        formDataToSend.append(`Attachments[${index}].ClassID`, "0");
+      });
+
+      console.log("Sending FormData to API with", syllabusFiles.length, "attachment(s)");
+
+      const response = await axiosInstance.post("/Class/AddOrUpdateClass", formDataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
       Swal.fire({
         icon: "success",
         title: "Class Created",
