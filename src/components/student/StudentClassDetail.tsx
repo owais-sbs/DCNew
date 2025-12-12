@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { RefreshCw, ChevronLeft } from "lucide-react"
+import { RefreshCw, ChevronLeft, Paperclip } from "lucide-react"
 import { getStudentId, useStudentClasses } from "./useStudentClasses"
 import { useAuth } from "../AuthContext"
 import axiosInstance from "../axiosInstance"
@@ -15,6 +15,13 @@ type AttendanceEntry = {
   ClassTitle: string
 }
 
+type Attachment = {
+  Id: number
+  FileName?: string
+  URL?: string
+  CreatedOn?: string
+}
+
 export default function StudentClassDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -23,6 +30,9 @@ export default function StudentClassDetail() {
   const [attendanceData, setAttendanceData] = useState<AttendanceEntry[]>([])
   const [loadingAttendance, setLoadingAttendance] = useState<boolean>(false)
   const [attendanceError, setAttendanceError] = useState<string | null>(null)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
+  const [loadingAttachments, setLoadingAttachments] = useState<boolean>(false)
+  const [attachmentsError, setAttachmentsError] = useState<string | null>(null)
   
   // Get studentId from user context or localStorage
   const studentId = user?.studentId || getStudentId()
@@ -65,6 +75,39 @@ export default function StudentClassDetail() {
 
     fetchAttendance()
   }, [numericId, studentId])
+
+  // Fetch attachments when attachments tab is active or when classId changes
+  useEffect(() => {
+    const fetchAttachments = async () => {
+      if (!numericId) return
+      // Only fetch when attachments tab is active
+      if (activeTab !== "attachments") return
+
+      setLoadingAttachments(true)
+      setAttachmentsError(null)
+      try {
+        const response = await axiosInstance.get("/Attachment/GetByClassId", {
+          params: { id: numericId }
+        })
+
+        console.log("Attachments response:", response.data)
+        if (response.data?.IsSuccess && response.data?.Data?.Data) {
+          setAttachments(Array.isArray(response.data.Data.Data) ? response.data.Data.Data : [])
+        } else {
+          setAttachments([])
+          setAttachmentsError(response.data?.Message || "No attachments available.")
+        }
+      } catch (err: any) {
+        console.error("Error fetching attachments:", err)
+        setAttachmentsError(err?.message || "Failed to load attachments.")
+        setAttachments([])
+      } finally {
+        setLoadingAttachments(false)
+      }
+    }
+
+    fetchAttachments()
+  }, [numericId, activeTab])
 
   const getAttendanceButtonClass = (status: string) => {
     switch (status) {
@@ -357,7 +400,52 @@ export default function StudentClassDetail() {
 
         {activeTab === "attachments" && (
           <div className="p-6">
-            <p className="text-sm text-gray-600">No attachments available.</p>
+            {loadingAttachments ? (
+              <div className="text-sm text-gray-500 py-4">Loading attachments...</div>
+            ) : attachmentsError && !loadingAttachments ? (
+              <div className="text-sm text-red-500 py-4">{attachmentsError}</div>
+            ) : attachments.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Paperclip size={32} className="text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">No attachments available</h3>
+                <p className="text-gray-600">There are no attachments for this class yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {attachments.map((attachment) => (
+                  <div
+                    key={attachment.Id}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Paperclip size={20} className="text-gray-500" />
+                        <span className="text-sm font-medium text-gray-900 truncate">
+                          {attachment.FileName || attachment.URL?.split("/").pop() || "Attachment"}
+                        </span>
+                      </div>
+                    </div>
+                    {attachment.CreatedOn && (
+                      <div className="text-xs text-gray-500 mb-2">
+                        Uploaded on {formatDateValue(attachment.CreatedOn)}
+                      </div>
+                    )}
+                    {attachment.URL && (
+                      <a
+                        href={attachment.URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-indigo-600 hover:underline mt-2 inline-block"
+                      >
+                        View file
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

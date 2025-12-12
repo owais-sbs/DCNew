@@ -69,11 +69,7 @@ export default function AddClassForm() {
       setIsLoadingTeachers(true)
       setTeacherError(null)
       try {
-        const response = await axiosInstance.get("/Teacher/GetAllTeachers", {
-          params: {
-            pageNumber: 1,
-            pageSize: 10
-          },
+        const response = await axiosInstance.get("/Teacher/TeachersGetAll", {
           signal: controller.signal
         })
         if (response.data?.IsSuccess) {
