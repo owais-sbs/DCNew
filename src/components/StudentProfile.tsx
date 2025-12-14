@@ -11,17 +11,27 @@ type StudentFieldKey =
   | "Student ID"
   | "Address"
   | "Date of Birth"
-  | "Nationality"
   | "Passport Number"
   | "Course Start Date"
   | "Course End Date"
-  | "Course Title"
   | "Course Level"
   | "Mode of Study"
   | "Number of Weeks"
   | "Hours Per Week"
   | "Tuition Fees"
+  | "End of the Course Exam Fee"
+  | "ILEP Programme Reference"
+  | "Attendance"
+  | "Nationality"
+  | "Finished Course Date"
+  | "External Exam"
+  | "Date of External Exam"
+  | "Score External Exam"
+  | "ILEP Programme Title"
+  | "Course Title"
   | "Course Code"
+  | "ILEP programme reference"
+  | "End of the course exam fees"
 
 type DocumentTemplateContent = {
   id: string
@@ -94,7 +104,11 @@ export default function StudentProfile() {
   const [signatures, setSignatures] = useState<any[]>([])
   const [loadingSignatures, setLoadingSignatures] = useState(false)
   const [selectedSignatureId, setSelectedSignatureId] = useState<number | null>(null)
+  const [profileImageError, setProfileImageError] = useState(false)
   const [signatureBase64Map, setSignatureBase64Map] = useState<Record<number, string>>({})
+  const [attendanceStats, setAttendanceStats] = useState<any[]>([])
+  const [loadingAttendanceStats, setLoadingAttendanceStats] = useState(false)
+  const [attendanceStatsError, setAttendanceStatsError] = useState<string | null>(null)
 
   // Ref hooks
   const documentContentRef = useRef<HTMLDivElement | null>(null)
@@ -104,7 +118,10 @@ export default function StudentProfile() {
     const fetchStudent = async () => {
       try {
         const response = await axiosInstance.get(`/Student/GetById/${id}`);
-        if (response.data?.IsSuccess) setStudent(response.data.Data);
+        if (response.data?.IsSuccess) {
+          setStudent(response.data.Data);
+          setProfileImageError(false); // Reset error when new student data is loaded
+        }
       } catch (error) {
         console.error("Failed to fetch student:", error);
       }
@@ -332,6 +349,36 @@ export default function StudentProfile() {
     return () => controller.abort()
   }, [activeTab, id])
 
+  // Fetch attendance stats when attendance tab is active
+  useEffect(() => {
+    const fetchAttendanceStats = async () => {
+      if (activeTab.toLowerCase() !== "attendance" || !id) return
+
+      setLoadingAttendanceStats(true)
+      setAttendanceStatsError(null)
+      try {
+        const response = await axiosInstance.get("/Dashboard/GetStudentAttendanceStats", {
+          params: { studentId: Number(id) }
+        })
+
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+          setAttendanceStats(response.data.Data)
+        } else {
+          setAttendanceStats([])
+          setAttendanceStatsError(response.data?.Message || "No attendance stats available.")
+        }
+      } catch (error: any) {
+        console.error("Error fetching attendance stats:", error)
+        setAttendanceStatsError(error?.message || "Failed to load attendance stats.")
+        setAttendanceStats([])
+      } finally {
+        setLoadingAttendanceStats(false)
+      }
+    }
+
+    fetchAttendanceStats()
+  }, [activeTab, id])
+
   // Fetch attendance data for student in class
   const fetchAttendance = async (classId: number) => {
     if (!id) return
@@ -469,17 +516,16 @@ export default function StudentProfile() {
     "Student ID",
     "Address",
     "Date of Birth",
-    "Nationality",
     "Passport Number",
     "Course Start Date",
     "Course End Date",
-    "Course Title",
     "Course Level",
     "Mode of Study",
     "Number of Weeks",
     "Hours Per Week",
     "Tuition Fees",
-    "Course Code"
+    "End of the course exam fees",
+    "ILEP Programme Reference"
   ]
 
   const handleOpenInviteModal = () => {
@@ -526,14 +572,31 @@ export default function StudentProfile() {
   const studentFieldResolvers: Record<StudentFieldKey, () => string> = {
     "Name": () => studentName || "—",
     "Student ID": () => studentdetails?.IdNumber || "—",
-    "Address": () => studentAddress || "—",
     "Date of Birth": () => formatDateValue(studentdetails?.DateOfBirth),
+    "Attendance": () => {
+      // Try to get attendance percentage from stats or calculate it
+      if (attendanceStats && attendanceStats.length > 0) {
+        const presentStat = attendanceStats.find((stat: any) => stat.Status?.toLowerCase() === "present");
+        if (presentStat?.Percentage !== undefined) {
+          return `${presentStat.Percentage.toFixed(1)}%`;
+        }
+      }
+      // Fallback to attendance field if available
+      return studentdetails?.Attendance?.toString() || "—";
+    },
     "Nationality": () => studentdetails?.Nationality || "—",
-    "Passport Number": () => studentdetails?.PassportNumber || "—",
     "Course Start Date": () => formatDateValue(studentdetails?.CourseStartDate),
+    "Finished Course Date": () => formatDateValue(studentdetails?.FinishedCourseDate),
+    "Course Level": () => studentdetails?.CourseLevel || "—",
+    "External Exam": () => studentdetails?.ExternalExam || "—",
+    "Date of External Exam": () => formatDateValue(studentdetails?.ExternalExamDate),
+    "Score External Exam": () => studentdetails?.ScoreExternalExam || "—",
+    "ILEP Programme Reference": () => studentdetails?.IlepReference || "—",
+    "ILEP Programme Title": () => studentdetails?.IlepTitle || studentdetails?.IlepProgrammeTitle || "—",
+    "Address": () => studentAddress || "—",
+    "Passport Number": () => studentdetails?.PassportNumber || "—",
     "Course End Date": () => formatDateValue(studentdetails?.CourseEndDate),
     "Course Title": () => studentdetails?.CourseTitle || "—",
-    "Course Level": () => studentdetails?.CourseLevel || "—",
     "Mode of Study": () => studentdetails?.ModeOfStudy || "—",
     "Number of Weeks": () => {
       const weeks = studentdetails?.NumberOfWeeks;
@@ -546,7 +609,18 @@ export default function StudentProfile() {
       // Check if fully paid (you may need to adjust this logic based on your data)
       return formatCurrency(fees);
     },
-    "Course Code": () => studentdetails?.CourseCode || "—"
+    "Course Code": () => studentdetails?.CourseCode || "—",
+    "ILEP programme reference": () => studentdetails?.IlepReference || "—",
+    "End of the course exam fees": () => {
+      const examFees = studentdetails?.EndOfExamPaid;
+      if (examFees === null || examFees === undefined || examFees === "") return "—";
+      // If it's a number, format as currency, otherwise return as string
+      const numeric = Number(examFees);
+      if (!isNaN(numeric)) {
+        return formatCurrency(numeric);
+      }
+      return examFees.toString();
+    }
   }
 
   const getStudentFieldValue = (key: StudentFieldKey) => studentFieldResolvers[key]()
@@ -570,6 +644,41 @@ export default function StudentProfile() {
       .replace(/\{HoursPerWeek\}/g, String(studentdetails.HoursPerWeek ?? "—"))
       .replace(/\{TuitionFees\}/g, formatCurrency(studentdetails.TuitionFees))
       .replace(/\{CourseCode\}/g, studentdetails.CourseCode || "—")
+      .replace(/\{Attendance\}/g, (() => {
+        if (attendanceStats && attendanceStats.length > 0) {
+          const presentStat = attendanceStats.find((stat: any) => stat.Status?.toLowerCase() === "present");
+          if (presentStat?.Percentage !== undefined) {
+            return `${presentStat.Percentage.toFixed(1)}%`;
+          }
+        }
+        return studentdetails?.Attendance?.toString() || "—";
+      })())
+      .replace(/\{FinishedCourseDate\}/g, formatDateValue(studentdetails.FinishedCourseDate))
+      .replace(/\{ExternalExam\}/g, studentdetails.ExternalExam || "—")
+      .replace(/\{ExternalExamDate\}/g, formatDateValue(studentdetails.ExternalExamDate))
+      .replace(/\{DateOfExternalExam\}/g, formatDateValue(studentdetails.ExternalExamDate))
+      .replace(/\{ScoreExternalExam\}/g, studentdetails.ScoreExternalExam || "—")
+      .replace(/\{IlepReference\}/g, studentdetails.IlepReference || "—")
+      .replace(/\{ILEPProgrammeReference\}/g, studentdetails.IlepReference || "—")
+      .replace(/\{ILEPProgrammeTitle\}/g, studentdetails.IlepTitle || studentdetails.IlepProgrammeTitle || "—")
+      .replace(/\{EndOfExamPaid\}/g, (() => {
+        const examFees = studentdetails?.EndOfExamPaid;
+        if (examFees === null || examFees === undefined || examFees === "") return "—";
+        const numeric = Number(examFees);
+        if (!isNaN(numeric)) {
+          return formatCurrency(numeric);
+        }
+        return examFees.toString();
+      })())
+      .replace(/\{EndOfCourseExamFees\}/g, (() => {
+        const examFees = studentdetails?.EndOfExamPaid;
+        if (examFees === null || examFees === undefined || examFees === "") return "—";
+        const numeric = Number(examFees);
+        if (!isNaN(numeric)) {
+          return formatCurrency(numeric);
+        }
+        return examFees.toString();
+      })())
   }
 
   const tabs = [
@@ -1004,99 +1113,138 @@ export default function StudentProfile() {
     </div>
   )
 
-  const renderAttendanceContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Attendance</h2>
+  // Helper function to get status color
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "present":
+        return "bg-green-500"
+      case "absent":
+        return "bg-red-500"
+      case "late":
+        return "bg-yellow-500"
+      case "excused":
+        return "bg-blue-500"
+      default:
+        return "bg-gray-500"
+    }
+  }
+
+  // Helper function to get border color for donut chart
+  const getStatusBorderColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "present":
+        return "border-green-500"
+      case "absent":
+        return "border-red-500"
+      case "late":
+        return "border-yellow-500"
+      case "excused":
+        return "border-blue-500"
+      default:
+        return "border-gray-500"
+    }
+  }
+
+  const renderAttendanceContent = () => {
+    // Find Present status for donut chart
+    const presentStat = attendanceStats.find((stat: any) => stat.Status?.toLowerCase() === "present")
+    const overallPercentage = presentStat?.Percentage || 0
+    const overallStatus = presentStat?.Status || "Present"
+
+    return (
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Attendance</h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
+              Class: <ChevronDown size={14} />
+            </button>
+            <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
+              Date: Total <ChevronDown size={14} />
+            </button>
+            <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white text-gray-700 flex items-center justify-center">
+              <Clock size={16} />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
-            Class: <ChevronDown size={14} />
-          </button>
-          <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
-            Date: Total <ChevronDown size={14} />
-          </button>
-          <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white text-gray-700 flex items-center justify-center">
-            <Clock size={16} />
-          </button>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Donut Chart Placeholder */}
-        <div className="flex items-center justify-center">
-          <div className="relative">
-            <div className="h-48 w-48 rounded-full border-8 border-gray-200 flex items-center justify-center">
-              <div className="h-32 w-32 rounded-full border-8 border-green-500 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">88.8%</div>
-                  <div className="text-sm text-gray-600">Present</div>
+
+        {loadingAttendanceStats ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
+              <p className="text-gray-600">Loading attendance stats...</p>
+            </div>
+          </div>
+        ) : attendanceStatsError ? (
+          <div className="text-center py-12">
+            <p className="text-red-600">{attendanceStatsError}</p>
+          </div>
+        ) : attendanceStats.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">No attendance data available.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Donut Chart */}
+            <div className="flex items-center justify-center">
+              <div className="relative">
+                <div className="h-48 w-48 rounded-full border-8 border-gray-200 flex items-center justify-center">
+                  <div className={`h-32 w-32 rounded-full border-8 ${getStatusBorderColor(overallStatus)} flex items-center justify-center`}>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-gray-900">{overallPercentage.toFixed(1)}%</div>
+                      <div className="text-sm text-gray-600">{overallStatus}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Attendance Details Table */}
+            <div>
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Time</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Count</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Percentage (%)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attendanceStats.map((stat: any, index: number) => {
+                    const isLast = index === attendanceStats.length - 1
+                    return (
+                      <tr key={index} className={isLast ? "" : "border-b border-gray-100"}>
+                        <td className="py-3 px-4">
+                          {stat.Status?.toLowerCase() === "excused" ? (
+                            <span className="text-gray-700">{stat.Status}</span>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <div className={`h-2 w-2 rounded-full ${getStatusColor(stat.Status)}`} />
+                              <span className="text-gray-700">{stat.Status}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-gray-700">{stat.Time || "0"}</td>
+                        <td className="py-3 px-4 text-gray-700">{stat.Count || 0}</td>
+                        <td className="py-3 px-4 text-gray-700">
+                          {stat.Percentage !== undefined && stat.Percentage !== null
+                            ? stat.Percentage.toFixed(1)
+                            : stat.Status?.toLowerCase() === "excused" ? "-" : "0"}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-        
-        {/* Attendance Details Table */}
-        <div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Time</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Count</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Percentage (%)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-gray-100">
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-gray-700">Present</span>
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-gray-700">167 hours</td>
-                <td className="py-3 px-4 text-gray-700">111</td>
-                <td className="py-3 px-4 text-gray-700">88.80</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-red-500" />
-                    <span className="text-gray-700">Absent</span>
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-gray-700">21 hours</td>
-                <td className="py-3 px-4 text-gray-700">14</td>
-                <td className="py-3 px-4 text-gray-700">11.20</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                    <span className="text-gray-700">Late</span>
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4">
-                  <span className="text-gray-700">Excused</span>
-                </td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-                <td className="py-3 px-4 text-gray-700">-</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        )}
       </div>
-    </div>
-  )
+    )
+  }
 
 
   const renderFeesContent = () => (
@@ -2049,11 +2197,12 @@ export default function StudentProfile() {
         {/* Header card */}
         <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
           <div className="flex items-start gap-4">
-            {studentdetails?.ProfilePicture ? (
+            {(studentdetails?.Photo || studentdetails?.ProfilePicture) && !profileImageError ? (
               <img 
-                src={studentdetails.ProfilePicture} 
-                className="h-16 w-16 rounded-full object-cover" 
+                src={studentdetails.Photo || studentdetails.ProfilePicture} 
+                className="h-16 w-16 rounded-full object-cover border border-gray-200" 
                 alt={studentName}
+                onError={() => setProfileImageError(true)}
               />
             ) : (
               <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">

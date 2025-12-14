@@ -1,14 +1,13 @@
-import { useState } from "react";
-import { X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, Search, Loader2, ChevronDown } from "lucide-react";
 import axiosInstance from './axiosInstance'; 
 import axios from 'axios'; 
 // Assume SweetAlert2 is installed and imported for better popups
 import Swal from 'sweetalert2';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-// import PhoneInput from "react-phone-number-input";
-// import "react-phone-number-input/style.css";
-import { ChevronDown } from "lucide-react"; 
+import PhoneInput from "react-phone-number-input";
+// import "react-phone-number-input/style.css"; 
 
 
 // -------------------------------------------------------------
@@ -76,6 +75,8 @@ interface StudentApiPayload {
     UpdatedBy: number | null;
     IsActive: boolean | null;
     IsDeleted: boolean | null;
+    IsEnrollment?: boolean | null;
+    ClassId?: number | null;
 }
 
 // Defines the shape of the full form data state (client-side)
@@ -132,6 +133,8 @@ interface FormDataState {
     substituteLessonsPerMonth: string;
     substituteStartDate: string;
     substituteEndDate: string;
+    selectedClassId: number | null;
+    selectedClassName: string | null;
 }
 
 interface AddStudentFormProps {
@@ -192,7 +195,9 @@ const initialFormData: FormDataState = {
     allowSubstituteLessons: false,
     substituteLessonsPerMonth: "",
     substituteStartDate: "",
-    substituteEndDate: ""
+    substituteEndDate: "",
+    selectedClassId: null,
+    selectedClassName: null
 };
 
 // -------------------------------------------------------------
@@ -317,6 +322,8 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>, photoBase64?: s
         UpdatedBy: null,
         IsActive: true,
         IsDeleted: false,
+        IsEnrollment: formData.selectedClassId ? true : null,
+        ClassId: formData.selectedClassId || null,
     };
 };
 
@@ -328,6 +335,35 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
     const [formData, setFormData] = useState<FormDataState>(initialFormData);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isLoadingId, setIsLoadingId] = useState(false);
+    const [showClassModal, setShowClassModal] = useState(false);
+    const [classes, setClasses] = useState<any[]>([]);
+    const [loadingClasses, setLoadingClasses] = useState(false);
+    const [classPageNumber, setClassPageNumber] = useState(1);
+    const [classPageSize, setClassPageSize] = useState(10);
+    const [classTotalCount, setClassTotalCount] = useState(0);
+    const [classSearchQuery, setClassSearchQuery] = useState("");
+    const [classSearchDebounced, setClassSearchDebounced] = useState("");
+
+    // Fetch next student ID when form opens
+    useEffect(() => {
+        const fetchNextStudentId = async () => {
+            if (isOpen) {
+                try {
+                    setIsLoadingId(true);
+                    const response = await axiosInstance.get("/Student/GetNextStudentId");
+                    if (response?.data?.IsSuccess && response.data.Message) {
+                        setFormData(prev => ({ ...prev, idNumber: response.data.Message }));
+                    }
+                } catch (err) {
+                    console.error("Error fetching next student ID:", err);
+                } finally {
+                    setIsLoadingId(false);
+                }
+            }
+        };
+        fetchNextStudentId();
+    }, [isOpen]);
 
     const handleInputChange = (field: keyof FormDataState, value: string | boolean) => {
         setFormData(prev => ({ ...prev, [field]: value }));
@@ -339,9 +375,50 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
     }
 
     const resetForm = () => {
-        setFormData(initialFormData);
+        setFormData({ ...initialFormData, idNumber: "", selectedClassId: null, selectedClassName: null });
         setError(null);
     };
+
+    // Debounce class search
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setClassSearchDebounced(classSearchQuery);
+            setClassPageNumber(1);
+        }, 500);
+        return () => clearTimeout(timer);
+    }, [classSearchQuery]);
+
+    // Fetch classes for selection modal
+    useEffect(() => {
+        if (showClassModal) {
+            const fetchClasses = async () => {
+                setLoadingClasses(true);
+                try {
+                    const response = await axiosInstance.get('/Class/GetAllClassesWithPagination', {
+                        params: {
+                            pageNumber: classPageNumber,
+                            pageSize: classPageSize,
+                            search: classSearchDebounced || null
+                        }
+                    });
+                    if (response.data?.IsSuccess) {
+                        setClasses(response.data.Data?.Data || []);
+                        setClassTotalCount(Number(response.data.Data?.TotalCount ?? 0));
+                    } else {
+                        setClasses([]);
+                        setClassTotalCount(0);
+                    }
+                } catch (err) {
+                    console.error("Error fetching classes:", err);
+                    setClasses([]);
+                    setClassTotalCount(0);
+                } finally {
+                    setLoadingClasses(false);
+                }
+            };
+            fetchClasses();
+        }
+    }, [showClassModal, classPageNumber, classPageSize, classSearchDebounced]);
 
     // --- Submission Logic with Axios and Swal ---
     const handleSubmit = async (e: React.FormEvent, isAddAndNew: boolean = false) => {
@@ -381,6 +458,13 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
         }
         
         const apiPayload = mapToApiPayload(clientPayload, photoBase64);
+        
+        // Log payload for debugging
+        console.log("Student payload:", {
+            IsEnrollment: apiPayload.IsEnrollment,
+            ClassId: apiPayload.ClassId,
+            selectedClassId: formData.selectedClassId
+        });
         
         const API_ENDPOINT = "Student/AddStudent"; 
 
@@ -594,10 +678,11 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 <input
                                     type="text"
                                     value={formData.idNumber}
-                                    onChange={(e) => handleInputChange('idNumber', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+                                    disabled
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-100 text-sm cursor-not-allowed"
+                                    placeholder={isLoadingId ? "Loading..." : ""}
                                 />
-                                <p className="text-gray-500 text-xs mt-1">Please confirm ID after student has been created.</p>
+                                <p className="text-gray-500 text-xs mt-1">Student ID is automatically generated.</p>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Photo</label>
@@ -719,32 +804,16 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                                <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-gray-200 bg-white">
-                                    <span className="text-sm">🇮🇪</span>
-                                    <span className="text-sm">Ireland</span>
-                                </div>
+                                <input
+                                    type="text"
+                                    value={formData.country}
+                                    onChange={(e) => handleInputChange('country', e.target.value)}
+                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+                                />
                             </div>
                         </div>
                     </div>
 
-                    {/* Time zone and Country */}
-                    <div className="bg-gray-50 rounded-xl p-6">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Time zone</label>
-                                <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-gray-200 bg-white">
-                                    <span className="text-sm">Europe/London</span>
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                                <div className="flex items-center gap-2 h-10 px-3 rounded-lg border border-gray-200 bg-white">
-                                    <span className="text-sm">🇮🇪</span>
-                                    <span className="text-sm">Ireland</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Custom Fields (Course/Passport/Visa) */}
                     <div className="bg-gray-50 rounded-xl p-6">
@@ -797,10 +866,24 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Course Start Date</label>
-                                <input
-                                    type="text"
-                                    value={formData.courseStartDate}
-                                    onChange={(e) => handleInputChange('courseStartDate', e.target.value)}
+                                <DatePicker
+                                    selected={formData.courseStartDate ? (() => {
+                                        const date = new Date(formData.courseStartDate);
+                                        return isNaN(date.getTime()) ? null : date;
+                                    })() : null}
+                                    onChange={(date: Date | null) => {
+                                        if (date) {
+                                            const formattedDate = date.toLocaleDateString('en-IE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+                                            handleInputChange('courseStartDate', formattedDate);
+                                        } else {
+                                            handleInputChange('courseStartDate', '');
+                                        }
+                                    }}
+                                    dateFormat="dd-MM-yyyy"
+                                    placeholderText="Select date"
+                                    showYearDropdown
+                                    showMonthDropdown
+                                    dropdownMode="select"
                                     className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
@@ -815,10 +898,24 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Course End Date</label>
-                                <input
-                                    type="text"
-                                    value={formData.courseEndDate}
-                                    onChange={(e) => handleInputChange('courseEndDate', e.target.value)}
+                                <DatePicker
+                                    selected={formData.courseEndDate ? (() => {
+                                        const date = new Date(formData.courseEndDate);
+                                        return isNaN(date.getTime()) ? null : date;
+                                    })() : null}
+                                    onChange={(date: Date | null) => {
+                                        if (date) {
+                                            const formattedDate = date.toLocaleDateString('en-IE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+                                            handleInputChange('courseEndDate', formattedDate);
+                                        } else {
+                                            handleInputChange('courseEndDate', '');
+                                        }
+                                    }}
+                                    dateFormat="dd-MM-yyyy"
+                                    placeholderText="Select date"
+                                    showYearDropdown
+                                    showMonthDropdown
+                                    dropdownMode="select"
                                     className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 />
                             </div>
@@ -964,6 +1061,14 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 >
                                     <option value="">Select</option>
+                                    {Array.from({ length: 5 }, (_, i) => {
+                                        const num = String(i + 1).padStart(3, '0');
+                                        return (
+                                            <option key={num} value={`0355/${num}`}>
+                                                0355/{num}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
                             <div className="md:col-span-2">
@@ -1014,6 +1119,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 >
                                     <option value="">Select</option>
+                                    <option value="General English With Exam Preparation">General English With Exam Preparation</option>
                                 </select>
                             </div>
                             <div>
@@ -1024,69 +1130,62 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
                                 >
                                     <option value="">Select</option>
+                                    <option value="200525">200525</option>
+                                    <option value="a1">a1</option>
+                                    <option value="A1">A1</option>
+                                    <option value="A1 20 25">A1 20 25</option>
+                                    <option value="A1 am">A1 am</option>
+                                    <option value="A1(2)">A1(2)</option>
+                                    <option value="A1(2) am">A1(2) am</option>
+                                    <option value="A1(2) pm">A1(2) pm</option>
+                                    <option value="A1(3) pm">A1(3) pm</option>
+                                    <option value="a2">a2</option>
+                                    <option value="A2">A2</option>
+                                    <option value="A2 am">A2 am</option>
+                                    <option value="A2 pm">A2 pm</option>
+                                    <option value="A2(2) pm">A2(2) pm</option>
+                                    <option value="am">am</option>
+                                    <option value="B1">B1</option>
+                                    <option value="B1 am">B1 am</option>
+                                    <option value="B1 new am">B1 new am</option>
+                                    <option value="B1 pm">B1 pm</option>
+                                    <option value="B2">B2</option>
+                                    <option value="b2">b2</option>
+                                    <option value="B2 new am">B2 new am</option>
+                                    <option value="B2(2) pm">B2(2) pm</option>
+                                    <option value="C1">C1</option>
+                                    <option value="C1 am">C1 am</option>
+                                    <option value="C1 pm">C1 pm</option>
+                                    <option value="C1(2) pm">C1(2) pm</option>
+                                    <option value="p2">p2</option>
+                                    <option value="pm">pm</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    {/* Substitute lessons */}
-                    <div className="bg-gray-50 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Substitute lessons</h3>
-                        <p className="text-sm text-gray-600 mb-4">Allow substitute lessons, and set the number of substitute lessons per month and the start and end date for the substitute lessons. <span className="text-blue-600 cursor-pointer">Learn more</span></p>
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.allowSubstituteLessons}
-                                    onChange={(e) => handleInputChange('allowSubstituteLessons', e.target.checked)}
-                                    className="w-4 h-4"
-                                />
-                                <span className="text-sm text-gray-700">Allow substitute lessons</span>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Substitute lessons per month</label>
-                                    <input
-                                        type="text"
-                                        value={formData.substituteLessonsPerMonth}
-                                        onChange={(e) => handleInputChange('substituteLessonsPerMonth', e.target.value)}
-                                        className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                        disabled={!formData.allowSubstituteLessons}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Start date</label>
-                                    <input
-                                        type="text"
-                                        value={formData.substituteStartDate}
-                                        onChange={(e) => handleInputChange('substituteStartDate', e.target.value)}
-                                        className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                        placeholder="select..."
-                                        disabled={!formData.allowSubstituteLessons}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">End date</label>
-                                    <input
-                                        type="text"
-                                        value={formData.substituteEndDate}
-                                        onChange={(e) => handleInputChange('substituteEndDate', e.target.value)}
-                                        className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                        placeholder="select..."
-                                        disabled={!formData.allowSubstituteLessons}
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Enroll in classes */}
                     <div className="bg-gray-50 rounded-xl p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Enroll in classes</h3>
                         <p className="text-sm text-gray-600 mb-4">Enroll the student in a class</p>
-                        <button type="button" className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm" disabled={isLoading}>
-                            Select classes
+                        <button 
+                            type="button" 
+                            onClick={() => setShowClassModal(true)}
+                            className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50" 
+                            disabled={isLoading}
+                        >
+                            {formData.selectedClassName || "Select classes"}
                         </button>
+                        {formData.selectedClassId && (
+                            <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({ ...prev, selectedClassId: null, selectedClassName: null }))}
+                                className="ml-2 h-10 px-4 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm hover:bg-red-100"
+                            >
+                                Clear
+                            </button>
+                        )}
                     </div>
 
                     {/* Action buttons */}
@@ -1116,6 +1215,108 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                         </button>
                     </div>
                 </form>
+
+                {/* Class Selection Modal */}
+                {showClassModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" onClick={() => setShowClassModal(false)}>
+                        <div
+                            className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                                <h2 className="text-xl font-semibold text-gray-900">Select Class</h2>
+                                <button
+                                    onClick={() => setShowClassModal(false)}
+                                    className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+                                >
+                                    ×
+                                </button>
+                            </div>
+
+                            <div className="p-6 flex-1 overflow-y-auto">
+                                {/* Search */}
+                                <div className="mb-4">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search classes..."
+                                            value={classSearchQuery}
+                                            onChange={(e) => setClassSearchQuery(e.target.value)}
+                                            className="w-full h-10 pl-10 pr-4 rounded-lg border border-gray-200 bg-white text-sm"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Classes List */}
+                                {loadingClasses ? (
+                                    <div className="flex items-center justify-center py-12">
+                                        <Loader2 className="animate-spin text-blue-500" size={32} />
+                                    </div>
+                                ) : classes.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-500">No classes found</div>
+                                ) : (
+                                    <div className="space-y-2">
+                                        {classes.map((cls: any) => (
+                                            <div
+                                                key={cls.ClassId}
+                                                onClick={() => {
+                                                    setFormData(prev => ({ 
+                                                        ...prev, 
+                                                        selectedClassId: cls.ClassId,
+                                                        selectedClassName: cls.ClassTitle || "Unnamed Class"
+                                                    }));
+                                                    setShowClassModal(false);
+                                                }}
+                                                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                                                    formData.selectedClassId === cls.ClassId
+                                                        ? "border-blue-500 bg-blue-50"
+                                                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                                                }`}
+                                            >
+                                                <div className="font-medium text-gray-900">{cls.ClassTitle || "Unnamed Class"}</div>
+                                                <div className="text-sm text-gray-600 mt-1">
+                                                    {cls.ClassSubject}{cls.ClassLevel ? ` - ${cls.ClassLevel}` : ""}
+                                                </div>
+                                                {cls.ClassDescription && (
+                                                    <div className="text-xs text-gray-500 mt-1">{cls.ClassDescription}</div>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Pagination */}
+                                {classTotalCount > 0 && (
+                                    <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+                                        <div className="text-sm text-gray-600">
+                                            Showing {((classPageNumber - 1) * classPageSize) + 1} to {Math.min(classPageNumber * classPageSize, classTotalCount)} of {classTotalCount} classes
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => setClassPageNumber(prev => Math.max(1, prev - 1))}
+                                                disabled={classPageNumber === 1}
+                                                className="h-8 px-3 rounded-lg border border-gray-200 bg-white text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                            >
+                                                Previous
+                                            </button>
+                                            <span className="text-sm text-gray-700">
+                                                Page {classPageNumber} of {Math.ceil(classTotalCount / classPageSize)}
+                                            </span>
+                                            <button
+                                                onClick={() => setClassPageNumber(prev => Math.min(Math.ceil(classTotalCount / classPageSize), prev + 1))}
+                                                disabled={classPageNumber >= Math.ceil(classTotalCount / classPageSize)}
+                                                className="h-8 px-3 rounded-lg border border-gray-200 bg-white text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     )

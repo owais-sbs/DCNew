@@ -148,6 +148,18 @@ export default function ClassesScreen() {
     "Leitrim", "Leitrim (05)", "Limerick", "Limerick (06)", "Meath", "Monaghan (06)", "Online Lesson"
   ];
 
+  // Debounce search query
+  const [searchQueryDebounced, setSearchQueryDebounced] = useState("");
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearchQueryDebounced(searchQuery);
+      setPageNumber(1); // Reset to first page on search
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // 5. DATA FETCHING WITH useEffect
   useEffect(() => {
   const fetchClasses = async () => {
@@ -155,7 +167,11 @@ export default function ClassesScreen() {
     setError(null);
     try {
       const response = await axiosInstance.get('/Class/GetAllClassesWithPagination', {
-        params: { pageNumber, pageSize }
+        params: { 
+          pageNumber, 
+          pageSize,
+          search: searchQueryDebounced || null
+        }
       });
 
       if (response.data && response.data.IsSuccess) {
@@ -196,18 +212,13 @@ export default function ClassesScreen() {
   };
 
   fetchClasses();
-}, [pageNumber, pageSize]);
+}, [pageNumber, pageSize, searchQueryDebounced]);
 
   // 6. FILTERING LOGIC
   // This memo recalculates the list only when the data or filters change
+  // Note: Search is now handled server-side, so we only filter by other criteria
   const filteredClasses = useMemo(() => {
     return classes.filter(cls => {
-      // Search Query Filter
-      const searchLower = searchQuery.toLowerCase();
-      const matchesSearch =
-        cls.title.toLowerCase().includes(searchLower) ||
-        cls.subtitle.toLowerCase().includes(searchLower);
-
       // Teacher Filter
       // Note: This matches against "Teacher ID: 1" for now.
       const matchesTeacher = teacher === "All" || cls.teacher.includes(teacher);
@@ -222,9 +233,9 @@ export default function ClassesScreen() {
       // Class Type Filter (Academic/Non Academic)
       // This filter is not implemented as the API doesn't provide this data.
       
-      return matchesSearch && matchesTeacher && matchesClassroom && matchesStatus;
+      return matchesTeacher && matchesClassroom && matchesStatus;
     });
-  }, [classes, searchQuery, teacher, classroom, status]);
+  }, [classes, teacher, classroom, status]);
 
 
   const handleSelectAll = () => {

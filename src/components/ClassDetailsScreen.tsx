@@ -117,7 +117,7 @@ export default function ClassDetailsScreen() {
           />
         );
       case "students":
-        return <StudentsContent />;
+        return <StudentsContent classId={Number(id)} />;
       default:
         return <LessonsContent classId={id!} />;
     }
@@ -618,8 +618,47 @@ function LessonsContent({
   );
 }
 
-function StudentsContent() {
+function StudentsContent({ classId }: { classId: number }) {
   const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!classId) return;
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axiosInstance.get("/Class/GetStudentInClass", {
+          params: { classId },
+        });
+        if (response?.data?.IsSuccess) {
+          setStudents(response.data.Data || []);
+        } else {
+          setError("Failed to load students");
+          setStudents([]);
+        }
+      } catch (err: any) {
+        console.error("Error loading students:", err);
+        setError(err.response?.data || "Failed to load students");
+        setStudents([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStudents();
+  }, [classId]);
+
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
 
   return (
     <>
@@ -651,142 +690,109 @@ function StudentsContent() {
       </div>
 
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                Student name
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                Phone
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                Email
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                Present hours
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                Enrolled
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                Status
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {[
-              {
-                name: "Abdul Hameed",
-                id: "DCE3277",
-                phone: "",
-                email: "abdulhameed@onepathsolutions.com",
-                enrolled: "02-10-2025",
-                status: "Unenrolled",
-              },
-              {
-                name: "Eduardo Augusto Manuel Antonio",
-                id: "DCE2345",
-                phone: "0833445736",
-                email: "edupendela@gmail.com",
-                enrolled: "02-01-2025",
-                status: "Unenrolled",
-              },
-              {
-                name: "Etelvina Pomponet Souza Soares Bisneta",
-                id: "DCE2164",
-                phone: "0833814206",
-                email: "etelvinapomponet@icloud.com",
-                enrolled: "16-01-2025",
-                status: "Unenrolled",
-              },
-              {
-                name: "Muhammead Patel",
-                id: "DCE2221",
-                phone: "76893534",
-                email: "pmoha698@gmail.com",
-                enrolled: "02-01-2025",
-                status: "Unenrolled",
-              },
-              {
-                name: "Pablo Bogdan Begara Lopez",
-                id: "DCE2369",
-                phone: "",
-                email: "paulbega808@gmail.com",
-                enrolled: "02-01-2025",
-                status: "Unenrolled",
-              },
-              {
-                name: "Anujin Enkhtsatsral",
-                id: "DCE2314",
-                phone: "0899868570",
-                email: "goimonshn@gmail.com",
-                enrolled: "02-01-2025",
-                status: "Archived",
-              },
-              {
-                name: "Brisa Del Mar Montes Ascencio",
-                id: "DCE2320",
-                phone: "0838521309",
-                email: "mar.montes369@gmail.com",
-                enrolled: "16-01-2025",
-                status: "Archived",
-              },
-            ].map((student, index) => (
-              <tr key={index} className="hover:bg-gray-50">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-medium text-gray-600">
-                        {student.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .slice(0, 2)}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {student.name}
-                      </div>
-                      <div className="text-sm text-gray-500">{student.id}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-900">
-                  {student.phone || "-"}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-900">
-                  {student.email}
-                </td>
-                <td className="px-4 py-3 text-sm text-gray-900">00:00</td>
-                <td className="px-4 py-3 text-sm text-gray-900">
-                  {student.enrolled}
-                </td>
-                <td className="px-4 py-3">
-                  <span
-                    className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      student.status === "Unenrolled"
-                        ? "bg-red-100 text-red-800"
-                        : "bg-yellow-100 text-yellow-800"
-                    }`}
-                  >
-                    {student.status}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <button className="p-1 text-gray-600 hover:text-gray-800">
-                    <Edit className="h-4 w-4" />
-                  </button>
-                </td>
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="animate-spin text-blue-500" size={32} />
+          </div>
+        ) : error ? (
+          <div className="px-6 py-12 text-center text-red-600">{error}</div>
+        ) : students.length === 0 ? (
+          <div className="px-6 py-12 text-center text-gray-500">No students enrolled in this class</div>
+        ) : (
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Student name
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Student code
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Phone
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Email
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Enrolled
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Status
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
+                  Actions
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {students.map((student) => {
+                const fullName = `${student.FirstName || ""} ${student.Surname || ""}`.trim() || "Unnamed Student";
+                const initials = fullName
+                  .split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <tr key={student.Id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-medium text-gray-600">
+                            {initials}
+                          </span>
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {fullName}
+                          </div>
+                          {student.IdNumber && (
+                            <div className="text-sm text-gray-500">{student.IdNumber}</div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {student.IdNumber || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {student.MobilePhone || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {student.Email || "-"}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {formatDate(student.RegistrationDate)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          student.IsActive && !student.IsDeleted
+                            ? "bg-green-100 text-green-800"
+                            : student.IsDeleted
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800"
+                        }`}
+                      >
+                        {student.IsActive && !student.IsDeleted
+                          ? "Active"
+                          : student.IsDeleted
+                          ? "Unenrolled"
+                          : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button className="p-1 text-gray-600 hover:text-gray-800">
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
       
 

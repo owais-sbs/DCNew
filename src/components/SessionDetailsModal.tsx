@@ -14,6 +14,9 @@ import {
   FilePlus,
   Mail,
   Trash2,
+  Check,
+  X,
+  Clock,
 } from "lucide-react";
 import axiosInstance from "./axiosInstance";
 import AddStudentForm from "./AddStudentForm";
@@ -103,6 +106,11 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
   const [showUnenrollModal, setShowUnenrollModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentInSession | null>(null);
   const [dropdownPositions, setDropdownPositions] = useState<Record<number, { top: number; left: number }>>({});
+  const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [attendanceApplyTo, setAttendanceApplyTo] = useState<"all" | "selected">("all");
+  const [bulkAttendanceStatus, setBulkAttendanceStatus] = useState<"Present" | "Absent" | "Late" | null>(null);
+  const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   const numericSessionId = useMemo(() => Number(sessionId), [sessionId]);
 
@@ -234,6 +242,87 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
     }
   };
 
+  const toggleStudentSelection = (studentId: number) => {
+    setSelectedStudents((prev) =>
+      prev.includes(studentId) ? prev.filter((id) => id !== studentId) : [...prev, studentId]
+    );
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedStudents.length === sessionStudents.length) {
+      setSelectedStudents([]);
+    } else {
+      setSelectedStudents(sessionStudents.map((s) => s.id));
+    }
+  };
+
+  const clearAttendance = async () => {
+    const studentsToClear = attendanceApplyTo === "all" 
+      ? sessionStudents 
+      : sessionStudents.filter((s) => selectedStudents.includes(s.id));
+
+    if (studentsToClear.length === 0) return;
+
+    setIsBulkUpdating(true);
+    try {
+      const promises = studentsToClear.map((student) =>
+        axiosInstance.get("/Class/RemoveAttendance", {
+          params: {
+            scheduleId: numericSessionId,
+            studentId: student.id,
+            date: currentDate,
+          },
+        })
+      );
+
+      await Promise.all(promises);
+      await fetchSessionStudents();
+      setShowAttendanceModal(false);
+      setBulkAttendanceStatus(null);
+      setAttendanceApplyTo("all");
+    } catch (err) {
+      console.error("Error clearing attendance", err);
+      alert("Failed to clear attendance");
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
+  const saveBulkAttendance = async () => {
+    if (!bulkAttendanceStatus) return;
+
+    const studentsToUpdate = attendanceApplyTo === "all"
+      ? sessionStudents
+      : sessionStudents.filter((s) => selectedStudents.includes(s.id));
+
+    if (studentsToUpdate.length === 0) return;
+
+    setIsBulkUpdating(true);
+    try {
+      const promises = studentsToUpdate.map((student) => {
+        const payload = {
+          classId: student.classId,
+          scheduleId: numericSessionId,
+          studentId: student.id,
+          date: currentDate,
+          attendanceStatus: bulkAttendanceStatus,
+        };
+        return axiosInstance.post("/Class/MarkAttendance", null, { params: payload });
+      });
+
+      await Promise.all(promises);
+      await fetchSessionStudents();
+      setShowAttendanceModal(false);
+      setBulkAttendanceStatus(null);
+      setAttendanceApplyTo("all");
+    } catch (err) {
+      console.error("Error marking bulk attendance", err);
+      alert("Failed to mark attendance");
+    } finally {
+      setIsBulkUpdating(false);
+    }
+  };
+
   const renderStudents = () => {
     if (isLoadingStudents) {
       return (
@@ -251,9 +340,24 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
       );
     }
 
-    return sessionStudents.map((student) => (
-      <div key={student.id} className="bg-white border border-gray-200 rounded-2xl p-4 hover:shadow-sm transition-shadow overflow-visible">
+    return sessionStudents.map((student) => {
+      const isSelected = selectedStudents.includes(student.id);
+      return (
+      <div 
+        key={student.id} 
+        onClick={() => toggleStudentSelection(student.id)}
+        className={`bg-white border rounded-2xl p-4 hover:shadow-sm transition-shadow overflow-visible cursor-pointer ${
+          isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
+        }`}
+      >
         <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => toggleStudentSelection(student.id)}
+            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            onClick={(e) => e.stopPropagation()}
+          />
           {student.photo ? (
             <img
               src={student.photo}
@@ -278,6 +382,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
             <div className="text-[16px] font-semibold text-gray-900 truncate">{student.name}</div>
             <div className="relative mt-3 group w-full max-w-xs">
               <button
+                onClick={(e) => e.stopPropagation()}
                 className={`w-full h-12 rounded-full border text-[15px] font-semibold transition-all ${
                   student.status === "Present"
                     ? "bg-green-100 text-green-700 border-green-300"
@@ -298,25 +403,34 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                 )}
               </button>
               {student.status !== "Excused" && (
-                <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto">
+                <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
                   <div className="w-full h-12 rounded-full border border-gray-300 bg-white overflow-hidden flex text-[15px] font-medium">
                     <button
                       className="flex-1 hover:bg-green-50 text-green-700"
-                      onClick={() => markAttendance(student.classId, student.id, "Present")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAttendance(student.classId, student.id, "Present");
+                      }}
                     >
                       Present
                     </button>
                     <div className="w-px bg-gray-300" />
                     <button
                       className="flex-1 hover:bg-red-50 text-red-700"
-                      onClick={() => markAttendance(student.classId, student.id, "Absent")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAttendance(student.classId, student.id, "Absent");
+                      }}
                     >
                       Absent
                     </button>
                     <div className="w-px bg-gray-300" />
                     <button
                       className="flex-1 hover:bg-yellow-50 text-yellow-700"
-                      onClick={() => markAttendance(student.classId, student.id, "Late")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        markAttendance(student.classId, student.id, "Late");
+                      }}
                     >
                       Late
                     </button>
@@ -383,7 +497,8 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
           </div>
         </div>
       </div>
-    ));
+      );
+    });
   };
 
   return (
@@ -432,14 +547,21 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                 <h3 className="text-lg font-semibold text-gray-800">Students {sessionStudents.length}</h3>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => navigate("/people/students")}
+                    onClick={toggleSelectAll}
                     className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50"
                   >
-                    Select/deselect all
+                    {selectedStudents.length === sessionStudents.length ? "Deselect all" : "Select all"} ({selectedStudents.length})
                   </button>
                   {["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
                     <button
                       key={label}
+                      onClick={() => {
+                        if (label === "Attendance") {
+                          // Auto-select "selected" if students are selected, otherwise "all"
+                          setAttendanceApplyTo(selectedStudents.length > 0 ? "selected" : "all");
+                          setShowAttendanceModal(true);
+                        }
+                      }}
                       className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1"
                     >
                       {label}
@@ -641,6 +763,141 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
             setSelectedStudent(null);
           }}
         />
+      )}
+
+      {showAttendanceModal && (
+        <div 
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 px-4" 
+          onClick={() => {
+            setShowAttendanceModal(false);
+            setBulkAttendanceStatus(null);
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Take attendance</h2>
+              <button 
+                onClick={() => {
+                  setShowAttendanceModal(false);
+                  setBulkAttendanceStatus(null);
+                }} 
+                className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-6">
+              <div className="flex gap-4 justify-center mb-6">
+                <button
+                  onClick={() => setBulkAttendanceStatus("Present")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                    bulkAttendanceStatus === "Present"
+                      ? "border-green-500 bg-green-50"
+                      : "border-gray-200 hover:border-green-300"
+                  }`}
+                >
+                  <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center">
+                    <Check className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">Present</span>
+                </button>
+
+                <button
+                  onClick={() => setBulkAttendanceStatus("Absent")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                    bulkAttendanceStatus === "Absent"
+                      ? "border-red-500 bg-red-50"
+                      : "border-gray-200 hover:border-red-300"
+                  }`}
+                >
+                  <div className="h-12 w-12 rounded-full bg-red-500 flex items-center justify-center">
+                    <X className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">Absent</span>
+                </button>
+
+                <button
+                  onClick={() => setBulkAttendanceStatus("Late")}
+                  className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                    bulkAttendanceStatus === "Late"
+                      ? "border-orange-500 bg-orange-50"
+                      : "border-gray-200 hover:border-orange-300"
+                  }`}
+                >
+                  <div className="h-12 w-12 rounded-full bg-orange-500 flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700">Late</span>
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Apply to:</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setAttendanceApplyTo("all")}
+                    className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      attendanceApplyTo === "all"
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    All ({sessionStudents.length})
+                  </button>
+                  <button
+                    onClick={() => setAttendanceApplyTo("selected")}
+                    className={`flex-1 px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                      attendanceApplyTo === "selected"
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    }`}
+                    disabled={selectedStudents.length === 0}
+                  >
+                    Selected ({selectedStudents.length})
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-6 border-t border-gray-200">
+              <button
+                onClick={clearAttendance}
+                disabled={isBulkUpdating}
+                className="text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
+              >
+                Clear attendance
+              </button>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowAttendanceModal(false);
+                    setBulkAttendanceStatus(null);
+                    setAttendanceApplyTo("all");
+                  }}
+                  disabled={isBulkUpdating}
+                  className="px-6 h-10 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveBulkAttendance}
+                  disabled={!bulkAttendanceStatus || isBulkUpdating}
+                  className="px-6 h-10 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isBulkUpdating ? (
+                    <Loader2 className="animate-spin w-5 h-5 mx-auto" />
+                  ) : (
+                    "Save"
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

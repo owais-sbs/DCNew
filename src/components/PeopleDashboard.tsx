@@ -109,6 +109,8 @@ export default function PeopleDashboard() {
   const [pageNumber, setPageNumber] = useState(1)
   const [pageSize, setPageSize] = useState<number | "all">(10)
   const [totalCount, setTotalCount] = useState(0)
+  const [studentSearch, setStudentSearch] = useState("")
+  const [studentSearchDebounced, setStudentSearchDebounced] = useState("")
 
   // Teachers state
   const [teachers, setTeachers] = useState<TeacherRow[]>([])
@@ -165,7 +167,8 @@ const makePageButtons = (totalPages: number, current: number) => {
         const response = await axiosInstance.get("/Student/GetAllWithPagination", {
           params: {
             pageNumber,
-            pageSize: pageSize === "all" ? (totalCount > 0 ? totalCount : 1000000) : pageSize
+            pageSize: pageSize === "all" ? (totalCount > 0 ? totalCount : 1000000) : pageSize,
+            search: studentSearchDebounced || null
           },
           signal: controller.signal
         })
@@ -194,7 +197,17 @@ const makePageButtons = (totalPages: number, current: number) => {
     fetchStudents()
 
     return () => controller.abort()
-  }, [pageNumber, pageSize])
+  }, [pageNumber, pageSize, studentSearchDebounced])
+
+  // Debounce student search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setStudentSearchDebounced(studentSearch)
+      setPageNumber(1) // Reset to first page on search
+    }, 500) // 500ms delay
+
+    return () => clearTimeout(timer)
+  }, [studentSearch])
 
   // Debounce teacher search
   useEffect(() => {
@@ -697,7 +710,10 @@ const handleStaffDelete = async (id: number) => {
           <div className="mt-4 flex items-center gap-3">
             <div className="relative w-64">
               <input
-                placeholder="Search"
+                type="text"
+                placeholder="Search students"
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
                 className="w-full h-10 pl-4 pr-3 rounded-xl border border-gray-200 bg-white text-sm placeholder:text-gray-400"
               />
             </div>
