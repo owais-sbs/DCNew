@@ -22,7 +22,15 @@ import {
   Plus,
   X,
   Loader2,
-  MoreVertical
+  MoreVertical,
+  HelpCircle,
+  Megaphone,
+  Bell,
+  Gift,
+  CheckSquare,
+  FileText,
+  DollarSign,
+  Mail
 } from "lucide-react"
 import axiosInstance from "./axiosInstance"
 import SessionDetailsModal from "./SessionDetailsModal"
@@ -284,9 +292,13 @@ export default function Dashboard() {
               <BookOpen className="text-indigo-600" size={20} />
               <h2 className="text-lg font-semibold text-gray-800">Lessons</h2>
               {/* CHANGED: Dynamic lesson count */}
-              <span className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-white border border-gray-200 rounded-full text-gray-600">
+              <div className="text-sm text-gray-500 mt-1">
+  There are {lessons.length} Lessons Today
+</div>
+
+              <div className="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-white border border-gray-200 rounded-full text-gray-600">
                 {lessons.length}
-              </span>
+              </div>
               {/* Controls inline on the right */}
               <div className="ml-auto flex items-center gap-2">
                 <button
@@ -372,108 +384,117 @@ export default function Dashboard() {
             
             {/* Cards list */}
             {!isLoading && !error && (
-              <div className="space-y-4">
-                {lessons.map((l) => {
-                  const isSelected = selected === l.id
-                  const isHovered = hovered === l.id
-                  return (
-                    <article
-                      key={l.id}
-                      onMouseEnter={() => setHovered(l.id)}
-                      onMouseLeave={() => setHovered((h) => (h === l.id ? null : h))}
-                      onClick={() => setSelected(l.id)}
-                      role="button"
-                      tabIndex={0}
-                      // CHANGED: Dynamic accent color
-                      className={`group cursor-pointer bg-white border-t border-r border-b border-white border-l-2 border-l-red-500 rounded-xl transition-transform duration-150 flex items-center ${
-                        isSelected
-                          ? "ring-2 ring-indigo-200 shadow-md transform -translate-y-1 scale-[1.01]"
-                          : isHovered
-                          ? "shadow-sm transform -translate-y-0.5 scale-[1.005]"
-                          : ""
-                      }`}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          setSelected((s) => (s === l.id ? null : l.id))
-                        }
-                      }}
-                    >
-                      <div className="py-2 px-3 grid grid-cols-[75px_1fr_auto] gap-3 items-center w-full">
-                        {/* Left: Time and Duration */}
-                        <div>
-                          <div className="text-gray-900 font-semibold text-base">{l.time}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">{l.duration}</div>
-                        </div>
+              <div className="relative pl-24  max-w-5xl">
+                <div className="space-y-4">
+                  {lessons.map((l, index) => {
+                    const isSelected = selected === l.id
+                    const isHovered = hovered === l.id
+                    return (
+                      <div key={l.id} className="relative flex items-center gap-2">
+                        {/* Vertical Timeline Line - matches card height */}
+                        <div className="absolute left-14 top-0 h-full w-px bg-gray-300"></div>
 
-                        {/* Middle: Class Details */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 text-gray-900">
-                            <span className="font-semibold text-sm">{l.className}</span>
-                            {l.subject && <span className="text-xs text-gray-500">({l.subject})</span>}
-                          </div>
-                          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
-                            <MapPin size={12} />
-                            <span>{l.classroom}</span>
+                        
+                        {/* Blue Circle on Timeline - centered vertically with card */}
+                        <div className="absolute left-11 top-8 h-3 w-3 bg-blue-500 rounded-full border-2 border-white z-10"></div>
+
+                        
+                        {/* Left: Time and Duration - OUTSIDE the card */}
+                        <div className="w-20 flex-shrink-0 flex items-center">
+                          <div>
+                            <div className="text-gray-900 font-semibold text-sm">{l.time}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">{l.duration}</div>
                           </div>
                         </div>
 
-                        {/* Right: Icons, Teacher, and Progress Bar */}
-                        <div className="flex flex-col items-end gap-1.5">
-                          {/* Top row: Stats icons */}
-                          <div className="flex items-center gap-2.5 text-gray-600">
-                            <div className="flex items-center gap-1 text-xs">
-                              <Users2 size={14} className="text-gray-500" />
-                              {l.totalStudents}
-                            </div>
-                            <div className="flex items-center gap-1 text-xs">
-                              <Plus size={14} className="text-gray-500" />
-                              0
-                            </div>
-                            <div className="flex items-center gap-1 text-xs">
-                              <Copy size={14} className="text-gray-500" />
-                              0
-                            </div>
-                          </div>
+                        {/* Card - centered with fixed width */}
+                        <div className="flex-1 flex justify-center">
+                          <article
+                            onMouseEnter={() => setHovered(l.id)}
+                            onMouseLeave={() => setHovered((h) => (h === l.id ? null : h))}
+                            onClick={() => setSelected(l.id)}
+                            role="button"
+                            tabIndex={0}
+                            className="group cursor-pointer bg-white border border-gray-300 border-l-4 border-l-red-500 rounded-md w-full max-w-[700px]"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                setSelected((s) => (s === l.id ? null : l.id))
+                              }
+                            }}
+                          >
+                            {/* TOP SECTION: Light gray background */}
+                            <div className="bg-gray-50 py-1.5 px-2.5 border-b border-gray-200">
+                              <div className="flex items-center justify-between gap-3">
+                                {/* Left: Class Details - location beside lesson name */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-sm text-blue-600">{l.className}</span>
+                                    {l.subject && <span className="text-xs text-gray-500">({l.subject})</span>}
+                                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                      <MapPin size={12} className="text-gray-500" />
+                                      <span>{l.classroom}</span>
+                                    </div>
+                                  </div>
+                                </div>
 
-                          {/* Middle row: Teacher */}
-                          {l.teacherNames.length > 0 && (
-                            <div className="flex items-center gap-2">
-                              <div className="text-xs text-gray-700 truncate max-w-[120px]">
-                                {l.teacherNames.join(", ")}
-                              </div>
-                              <div className="h-7 w-7 rounded-full grid place-items-center text-white text-[10px] font-semibold bg-blue-500 flex-shrink-0">
-                                {l.teacherNames[0].split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                                {/* Right: Teacher */}
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                  {l.teacherNames.length > 0 && (
+                                    <>
+                                      <div className="text-xs text-gray-700 text-right">
+                                        {l.teacherNames.length === 1 ? (
+                                          <span>{l.teacherNames[0]}</span>
+                                        ) : (
+                                          <span>{l.teacherNames.length} Teachers</span>
+                                        )}
+                                      </div>
+                                      <div className="h-6 w-6 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                                        <Users2 size={14} className="text-gray-600" />
+                                      </div>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          )}
 
-                          {/* Bottom row: More Stats and Progress Bar */}
-                          <div className="flex items-center gap-2.5 text-gray-600">
-                            <div className="flex items-center gap-1 text-xs">
-                              <Star size={14} className="text-gray-500" />
-                              0
+                            {/* BOTTOM SECTION: White background */}
+                            <div className="bg-white py-1.5 px-2.5">
+                              {/* Single Row: Icons and Progress Bar */}
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                  <Users2 size={14} className="text-gray-500" />
+                                  <span>{l.totalStudents}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                  <Plus size={14} className="text-gray-500" />
+                                  <span>0</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                  <Copy size={14} className="text-gray-500" />
+                                  <span>0</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                  <Star size={14} className="text-gray-500" />
+                                  <span>0</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-gray-600">
+                                  <Flag size={14} className="text-gray-500" />
+                                  <span>0</span>
+                                </div>
+                                <div className="flex items-center flex-1 justify-end min-w-0 ml-2">
+                                  <div className="h-2 bg-gray-200 rounded-full w-full max-w-48"></div>
+                                </div>
+                                <div className="flex items-center flex-shrink-0 ml-1">
+                                  <MoreVertical size={16} className="text-gray-500" />
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1 text-xs">
-                              <Flag size={14} className="text-gray-500" />
-                              0
-                            </div>
-                            <div className="flex items-center gap-1 text-xs">
-                              <StickyNote size={14} className="text-gray-500" />
-                              0
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <ProgressBar 
-                                green={l.presentCount} 
-                                red={l.absentCount} 
-                                gray={l.totalStudents - l.presentCount - l.absentCount} 
-                              />
-                            </div>
-                          </div>
+                          </article>
                         </div>
                       </div>
-                    </article>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
             )}
 
@@ -481,197 +502,186 @@ export default function Dashboard() {
 
           {/* Right column: widgets */}
           <aside className="flex flex-col gap-4">
-            {/* Announcement Card (above Unread notes) */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
-                    <span className="text-blue-600 text-sm">📢</span>
-                  </div>
-                  <div className="font-semibold text-gray-800">Announcements</div>
+            {/* Announcement Card */}
+            <section className="w-80 bg-white border border-gray-300 rounded-md">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 bg-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <Megaphone size={16} className="text-gray-700" />
+                  <div className="font-medium text-sm text-gray-700">Announcements</div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Info size={16} className="text-gray-400" />
-                  <button
-                    onClick={() => navigate("/compose?type=announcement")}
-                    className="h-6 w-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm"
-                  >
-                    +
-                  </button>
-                </div>
+                <button className="h-5 w-5 bg-gray-300 rounded-full flex items-center justify-center">
+                  <HelpCircle size={12} className="text-white" />
+                </button>
               </div>
-              <div className="mt-3 text-sm text-gray-500">No unread announcements</div>
+              <div className="px-4 py-3 text-[12px] text-gray-500 text-center">No unread announcements</div>
             </section>
 
             {/* 1. Unread notes Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
-                    <span className="text-blue-600 text-sm">📝</span>
-                  </div>
-                  <div className="font-semibold text-gray-800">Unread notes</div>
+            <section className="w-80 bg-white border border-gray-300 rounded-md">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 bg-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <FileText size={16} className="text-gray-700" />
+                  <div className="font-medium text-sm text-gray-700">Unread Notes</div>
                 </div>
-                <Info size={16} className="text-gray-400" />
+                <button className="h-5 w-5 bg-gray-300 rounded-full flex items-center justify-center">
+                  <HelpCircle size={12} className="text-white" />
+                </button>
               </div>
-              <div className="mt-3 text-sm text-gray-500">No unread notes</div>
+              <div className="px-4 py-3 text-[12px] text-gray-500 text-center">No unread notes</div>
             </section>
 
             {/* 3. Notifications Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
-                    <span className="text-blue-600 text-sm">🔔</span>
-                  </div>
-                  <div className="font-semibold text-gray-800">Notifications</div>
+            <section className="w-80 bg-white border border-gray-300 rounded-md">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 bg-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <Bell size={16} className="text-gray-700" />
+                  <div className="font-medium text-sm text-gray-700">Notifications</div>
                 </div>
-                <Info size={16} className="text-gray-400" />
+                <button className="h-5 w-5 bg-gray-300 rounded-full flex items-center justify-center">
+                  <HelpCircle size={12} className="text-white" />
+                </button>
               </div>
-              <div className="mt-3 text-sm text-gray-500">No new notifications</div>
+              <div className="px-4 py-3 text-[12px] text-gray-500 text-center">No new notifications</div>
             </section>
 
             {/* 4. Birthdays Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
-                    <span className="text-blue-600 text-sm">🎂</span>
-                  </div>
-                  <div className="font-semibold text-gray-800">Birthdays</div>
+            <section className="w-80 bg-white border border-gray-300 rounded-md">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 bg-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <Gift size={16} className="text-gray-700" />
+                  <div className="font-medium text-sm text-gray-700">Birthdays</div>
                 </div>
-                <div className="text-sm text-gray-400">Students</div>
+                <div className="text-xs font-medium text-gray-500">STUDENTS</div>
               </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 border-l-2 border-blue-200 pl-3">
+              <div className="px-4 py-2 text-center text-xs font-medium text-gray-600">STUDENTS</div>
+              <div className="px-4 pb-3 space-y-3">
+                <div className="flex items-center gap-3">
                   <img
                     src="https://i.pravatar.cc/40?img=1"
-                    alt="Maximiliano"
+                    alt="Joao Vitor"
                     className="h-9 w-9 rounded-full object-cover"
                   />
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-800">Maximiliano Luis Muller</div>
-                    <div className="text-xs text-gray-500">Turns 31 today</div>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-500 text-sm">🎂</span>
-                    <MessageSquare size={14} className="text-blue-500" />
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 border-l-2 border-blue-200 pl-3">
-                  <img
-                    src="https://i.pravatar.cc/40?img=2"
-                    alt="Maria"
-                    className="h-9 w-9 rounded-full object-cover"
-                  />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-800">Maria Fernanda Avila Roca</div>
+                    <div className="text-sm font-medium text-blue-600">Joao Vitor Da Silva Boscariol</div>
                     <div className="text-xs text-gray-500">Turns 30 today</div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-yellow-500 text-sm">🎂</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-lg">🎂</span>
                     <MessageSquare size={14} className="text-blue-500" />
                   </div>
                 </div>
+              </div>
+              <div className="px-4 pb-3 text-center">
+                <button className="text-xs text-blue-600 hover:underline">Show 17 Upcoming Birthdays</button>
               </div>
             </section>
 
             {/* 5. Checklist Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
-                    <span className="text-blue-600 text-sm">✓</span>
-                  </div>
-                  <div className="font-semibold text-gray-800">Checklist</div>
+            <section className="w-80 bg-white border border-gray-300 rounded-md">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 bg-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <CheckSquare size={16} className="text-gray-700" />
+                  <div className="font-medium text-sm text-gray-700">Checklist</div>
                 </div>
-                <button className="h-6 w-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm">+</button>
+                <button className="h-5 w-5 bg-gray-300 rounded-full flex items-center justify-center">
+                  <HelpCircle size={12} className="text-white" />
+                </button>
+              </div>
+              <div className="px-4 py-3 flex items-center justify-end">
+                <button className="h-8 px-3 bg-gray-200 text-gray-700 rounded flex items-center gap-1 text-sm hover:bg-gray-300">
+                  <Plus size={14} />
+                  <span>Add</span>
+                </button>
               </div>
             </section>
 
             {/* 6. Lessons Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-2">
-                  <BarChart3 size={16} className="text-indigo-600" />
-                  <div className="font-semibold text-gray-800">Lessons</div>
+            <section className="w-80 bg-white border border-gray-300 rounded-md">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 bg-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <FileText size={16} className="text-gray-700" />
+                  <div className="font-medium text-sm text-gray-700">Lessons</div>
                 </div>
-                <div className="text-sm text-gray-500">89</div>
+                <div className="text-sm text-gray-600 font-medium">89</div>
               </div>
-
-              <div className="mt-3 flex items-center gap-4">
-                <div>
-                  <div className="h-24 w-24 rounded-full border-4 border-gray-200 flex items-center justify-center">
-                    <span className="text-sm text-gray-500">0%</span>
-                  </div>
+              <div className="px-4 py-6 flex flex-col items-center">
+                <div className="relative h-32 w-32">
+                  <svg className="h-32 w-32 transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke="#d1d5db"
+                      strokeWidth="8"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke="white"
+                      strokeWidth="8"
+                      strokeDasharray={`${2 * Math.PI * 45 * 0.25} ${2 * Math.PI * 45}`}
+                      strokeDashoffset="0"
+                    />
+                  </svg>
                 </div>
-
-                <div className="flex-1">
-                  <div className="text-sm text-gray-600 mb-2">Attendance</div>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-emerald-500" /> <span>Present: 0</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-rose-500" /> <span>Absent: 0</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full bg-amber-400" /> <span>Late: 0</span>
-                    </div>
-                  </div>
-                </div>
+                <div className="mt-4 text-xs font-medium text-gray-700 uppercase">ATTENDANCE</div>
               </div>
             </section>
 
             {/* 7. Behaviours Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="font-semibold text-gray-800 mb-3">Behaviours</div>
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                <div className="flex flex-col items-center gap-2">
-                  <div className="h-12 w-12 rounded-lg border border-yellow-400 grid place-items-center text-yellow-500 relative">
-                    <Star />
-                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-orange-500 text-white rounded-full flex items-center justify-center text-xs font-bold">0</div>
-                  </div>
-                  <div className="text-sm font-medium text-gray-700">Gold stars</div>
+            <section className="w-80 bg-white border border-gray-300 rounded-md">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 bg-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <Star size={16} className="text-gray-700 fill-gray-700" />
+                  <div className="font-medium text-sm text-gray-700">Behaviour</div>
                 </div>
-
+              </div>
+              <div className="px-4 py-4 grid grid-cols-2 gap-4">
                 <div className="flex flex-col items-center gap-2">
-                  <div className="h-12 w-12 rounded-lg border border-rose-300 grid place-items-center text-rose-500 relative">
-                    <Flag />
-                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs font-bold">0</div>
+                  <div className="relative">
+                    <Star size={48} className="text-yellow-500 fill-yellow-500" />
+                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-orange-500 border-2 border-white rounded-full flex items-center justify-center text-xs font-bold text-white">0</div>
                   </div>
-                  <div className="text-sm font-medium text-gray-700">Red Flags</div>
+                  <div className="text-xs font-medium text-gray-700 uppercase">GOLD STARS</div>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="relative">
+                    <Flag size={48} className="text-red-500 fill-red-500" />
+                    <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 border-2 border-white rounded-full flex items-center justify-center text-xs font-bold text-white">0</div>
+                  </div>
+                  <div className="text-xs font-medium text-gray-700 uppercase">RED FLAGS</div>
                 </div>
               </div>
             </section>
 
             {/* 8. Payments Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
-                  <span className="text-blue-600 font-bold text-sm">$</span>
+            <section className="w-80 bg-white border border-gray-300 rounded-md">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 bg-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <DollarSign size={16} className="text-gray-700" />
+                  <div className="font-medium text-sm text-gray-700">Payments</div>
                 </div>
-                <div className="font-semibold text-gray-800">Payments</div>
               </div>
-              <div className="space-y-2">
-                <div className="text-sm text-green-600">Payments received: 0</div>
-                <div className="text-sm text-red-600">Payments due: 0</div>
+              <div className="px-4 py-4 space-y-2">
+                <div className="text-sm text-green-600">Payments Received: 0</div>
+                <div className="text-sm text-red-600">Payments Due: 0</div>
               </div>
             </section>
 
             {/* 9. Communication Card */}
-            <section className="bg-white border border-gray-200 rounded-xl shadow-sm p-4 w-80">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-5 w-5 bg-blue-100 rounded flex items-center justify-center">
-                  <MessageSquare size={14} className="text-blue-600" />
+            <section className="w-80 bg-white border border-gray-300 rounded-md">
+              <div className="flex items-center justify-between px-4 py-2 border-b border-gray-300 bg-gray-200">
+                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  <Mail size={16} className="text-gray-700" />
+                  <div className="font-medium text-sm text-gray-700">Group Messaging</div>
                 </div>
-                <div className="font-semibold text-gray-800">Communication</div>
               </div>
-              <div className="space-y-2">
-                <div className="text-sm text-blue-600">SMS sent: 0</div>
-                <div className="text-sm text-blue-600">Emails sent: 0</div>
+              <div className="px-4 py-4 space-y-2">
+                <div className="text-sm text-blue-600">SMS Sent: 0</div>
+                <div className="text-sm text-blue-600">Emails Sent: 1</div>
               </div>
             </section>
           </aside>
