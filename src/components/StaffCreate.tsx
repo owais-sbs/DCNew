@@ -9,6 +9,8 @@ export default function StaffCreate() {
         <div className="mb-4">
           <h1 className="text-2xl font-semibold text-gray-900">Add staff</h1>
         </div>
+        <div className="border-t border-dotted border-gray-300 mb-1" />
+        <div className="border-t border-dotted border-gray-300 mb-6" />
         <AddStaffForm isOpen={true} asPage onClose={() => navigate(-1)} />
       </div>
     </div>

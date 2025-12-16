@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { ArrowLeft, X } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import axiosInstance from "./axiosInstance"
 import Swal from "sweetalert2"
 
@@ -138,14 +138,12 @@ export default function EditTeacher() {
           gender: data.Gender ?? "Not specified",
           dateOfBirth: fromIsoToDateInput(data.DateOfBirth),
           idNumber: data.IdNumber ?? "",
-          // if API returns photo name/url you can map it here
           photoName: "",
           photoBase64: "",
           about: data.About ?? "",
           mobilePhone: data.Mobile ?? data.MobilePhone ?? "",
           homePhone: data.HomeNumber ?? data.HomePhone ?? "",
           email: data.Email ?? "",
-          // usually backend will NOT return password - keep empty
           password: "",
           onlineLessonLink: data.OnlineSessionLink ?? data.OnlineLessonLink ?? "",
           streetAddress: data.StreetAddress ?? "",
@@ -190,7 +188,7 @@ export default function EditTeacher() {
       Gender: formData.gender,
       DateOfBirth: toIsoOrNull(formData.dateOfBirth),
       IdNumber: formData.idNumber,
-      Photo: formData.photoBase64 || null, // send only if changed
+      Photo: formData.photoBase64 || null,
       About: formData.about,
       Mobile: formData.mobilePhone,
       HomeNumber: formData.homePhone,
@@ -203,7 +201,6 @@ export default function EditTeacher() {
       Country: formData.country,
       TimeZone: formData.timezone,
       Notes: formData.generalNotes,
-      // if password is empty, backend can ignore it (depends on your API)
       Password: formData.password || null
     }
 
@@ -220,7 +217,6 @@ export default function EditTeacher() {
           timer: 1500,
           showConfirmButton: false
         })
-        // go back to list or previous page
         navigate(-1)
       } else {
         setErrorMessage(res.data?.Message || "Failed to update teacher.")
@@ -241,32 +237,34 @@ export default function EditTeacher() {
     )
   }
 
+  // UI helper for the admin flat look
+  const SectionHeader = ({ title }: { title: string }) => (
+    <div className="bg-[#f2f2f2] px-4 py-2 border-t border-b text-[13px] font-semibold text-gray-800">
+      {title}
+    </div>
+  );
+
+  const teacherName = `${formData.name} ${formData.surname}`.trim() || "Teacher";
+
   return (
-    <div className="px-6 py-6 max-w-5xl mx-auto">
-      {/* Page header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Edit teacher</h1>
-            <p className="text-sm text-gray-500">
-              Update teacher personal, contact and notes information.
-            </p>
+    <div className="w-full min-h-screen bg-gray-50 py-8 px-6">
+      <div className="max-w-6xl mx-auto bg-white border border-gray-300 shadow-sm overflow-hidden">
+        
+        {/* Top dark title bar */}
+        <div className="bg-[#2b2b2e] px-4 py-2 text-white text-sm font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <button onClick={() => navigate(-1)} className="text-white opacity-80 hover:opacity-100">
+                <ArrowLeft size={16} />
+             </button>
+             <span>Edit {teacherName}</span>
           </div>
         </div>
-      </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="p-0 space-y-0">
           {(errorMessage || successMessage) && (
             <div
-              className={`p-4 rounded-xl text-sm ${
-                errorMessage ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"
+              className={`p-3 text-sm border-b ${
+                errorMessage ? "bg-red-50 text-red-700 border-red-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"
               }`}
             >
               {errorMessage || successMessage}
@@ -274,69 +272,69 @@ export default function EditTeacher() {
           )}
 
           {/* Personal details */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SectionHeader title="Personal Details" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <label className="block text-[13px] text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Surname *</label>
+                <label className="block text-[13px] text-gray-700 mb-1">Surname <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   value={formData.surname}
                   onChange={(e) => handleInputChange("surname", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-                <div className="flex gap-4">
+                <label className="block text-[13px] text-gray-700 mb-1">Gender</label>
+                <div className="flex gap-0 border border-gray-300 bg-white h-[34px] items-center">
                   {["Male", "Female", "Not specified"].map((option) => (
-                    <label key={option} className="flex items-center gap-2">
+                    <label key={option} className="flex items-center px-3 text-[13px] cursor-pointer">
                       <input
                         type="radio"
                         name="gender"
                         value={option}
                         checked={formData.gender === option}
                         onChange={(e) => handleInputChange("gender", e.target.value)}
-                        className="w-4 h-4"
+                        className="mr-2"
                       />
-                      <span className="text-sm text-gray-700">{option}</span>
+                      <span>{option}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date of birth</label>
+                <label className="block text-[13px] text-gray-700 mb-1">Date of birth</label>
                 <input
                   type="text"
                   value={formData.dateOfBirth}
                   onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                   placeholder="yyyy-mm-dd"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ID number</label>
+                <label className="block text-[13px] text-gray-700 mb-1">ID number</label>
                 <input
                   type="text"
                   value={formData.idNumber}
                   onChange={(e) => handleInputChange("idNumber", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Photo</label>
-                <div className="flex items-center gap-2">
+                <label className="block text-[13px] text-gray-700 mb-1">Photo</label>
+                <div className="flex items-center gap-3">
                   <input
                     type="file"
                     id="photo"
@@ -346,51 +344,31 @@ export default function EditTeacher() {
                   />
                   <label
                     htmlFor="photo"
-                    className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm cursor-pointer flex items-center"
+                    className="h-[34px] px-3 border border-gray-300 flex items-center text-[13px] cursor-pointer bg-white"
                   >
-                    Choose file
+                    Browse...
                   </label>
-                  <span className="text-sm text-gray-500">
-                    {formData.photoName || "No file chosen"}
+                  <span className="text-[13px] text-gray-500 truncate max-w-[150px]">
+                    {formData.photoName || "No file selected..."}
                   </span>
                 </div>
-                <p className="text-gray-500 text-xs mt-1">
-                  Accepted file types: jpg, jpeg, png, gif
-                </p>
+                <p className="text-gray-500 text-xs mt-1">jpg, jpeg, png, gif</p>
               </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">About</label>
-                {/* Same "fake" toolbar just for UI consistency */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="flex items-center gap-1 p-2 border-b border-gray-200 bg-gray-50">
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-sm font-bold">B</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-sm italic">I</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-sm underline">U</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-sm line-through">S</button>
-                    <div className="w-px h-6 bg-gray-300 mx-1"></div>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">≡</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">≡</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">≡</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">≡</button>
-                    <div className="w-px h-6 bg-gray-300 mx-1"></div>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 bg-yellow-200">A</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200 text-xs">14</button>
-                    <div className="w-px h-6 bg-gray-300 mx-1"></div>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">•</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">1.</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">→</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">←</button>
-                    <div className="w-px h-6 bg-gray-300 mx-1"></div>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">🔗</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">📹</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">📷</button>
-                    <button type="button" className="h-8 w-8 grid place-items-center rounded hover:bg-gray-200">📎</button>
+              <div className="md:col-span-3">
+                <label className="block text-[13px] text-gray-700 mb-1">About</label>
+                <div className="border border-gray-300 bg-white">
+                  <div className="flex items-center gap-1 p-1 border-b border-gray-300 bg-[#f9f9f9]">
+                    <button type="button" className="h-6 w-6 grid place-items-center hover:bg-gray-200 text-xs font-bold">B</button>
+                    <button type="button" className="h-6 w-6 grid place-items-center hover:bg-gray-200 text-xs italic">I</button>
+                    <button type="button" className="h-6 w-6 grid place-items-center hover:bg-gray-200 text-xs underline">U</button>
+                    <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                    <button type="button" className="h-6 w-6 grid place-items-center hover:bg-gray-200 text-xs">≡</button>
                   </div>
                   <textarea
                     value={formData.about}
                     onChange={(e) => handleInputChange("about", e.target.value)}
-                    className="w-full h-32 px-3 py-2 text-sm resize-none border-0 focus:ring-0"
-                    placeholder="Enter teacher's bio and information..."
+                    className="w-full h-24 px-2 py-2 text-[13px] resize-none border-0 focus:ring-0"
+                    placeholder="Enter teacher's bio..."
                   />
                 </div>
               </div>
@@ -398,154 +376,152 @@ export default function EditTeacher() {
           </div>
 
           {/* Contact details */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact details</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <SectionHeader title="Contact Details" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Mobile phone</label>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 h-10 px-3 rounded-xl border border-gray-200 bg-white">
-                    <span className="text-sm">🇮🇪</span>
-                    <span className="text-sm">+353</span>
+                <label className="block text-[13px] text-gray-700 mb-1">Mobile phone</label>
+                <div className="flex items-center gap-0">
+                  <div className="flex items-center gap-1 h-[34px] px-2 border border-gray-300 border-r-0 bg-gray-50">
+                    <span className="text-[13px]">🇮🇪 +353</span>
                   </div>
                   <input
                     type="tel"
                     value={formData.mobilePhone}
                     onChange={(e) => handleInputChange("mobilePhone", e.target.value)}
-                    className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                    className="flex-1 h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Home phone</label>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 h-10 px-3 rounded-xl border border-gray-200 bg-white">
-                    <span className="text-sm">🇮🇪</span>
-                    <span className="text-sm">+353</span>
+                <label className="block text-[13px] text-gray-700 mb-1">Home phone</label>
+                <div className="flex items-center gap-0">
+                  <div className="flex items-center gap-1 h-[34px] px-2 border border-gray-300 border-r-0 bg-gray-50">
+                    <span className="text-[13px]">🇮🇪 +353</span>
                   </div>
                   <input
                     type="tel"
                     value={formData.homePhone}
                     onChange={(e) => handleInputChange("homePhone", e.target.value)}
-                    className="flex-1 h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                    className="flex-1 h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email address *</label>
+                <label className="block text-[13px] text-gray-700 mb-1">Email address <span className="text-red-500">*</span></label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <label className="block text-[13px] text-gray-700 mb-1">Password</label>
                 <input
                   type="password"
                   value={formData.password}
                   onChange={(e) => handleInputChange("password", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                   minLength={6}
-                  placeholder="Leave blank to keep existing password"
+                  placeholder="Leave blank to keep existing"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Online Lesson Link</label>
+                <label className="block text-[13px] text-gray-700 mb-1">Online Lesson Link</label>
                 <input
                   type="text"
                   value={formData.onlineLessonLink}
                   onChange={(e) => handleInputChange("onlineLessonLink", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Street address</label>
+                <label className="block text-[13px] text-gray-700 mb-1">Street address</label>
                 <input
                   type="text"
                   value={formData.streetAddress}
                   onChange={(e) => handleInputChange("streetAddress", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
+                <label className="block text-[13px] text-gray-700 mb-1">City</label>
                 <input
                   type="text"
                   value={formData.city}
                   onChange={(e) => handleInputChange("city", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
+                <label className="block text-[13px] text-gray-700 mb-1">Postcode</label>
                 <input
                   type="text"
                   value={formData.postcode}
                   onChange={(e) => handleInputChange("postcode", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">State/Province/Region</label>
+                <label className="block text-[13px] text-gray-700 mb-1">State/Province/Region</label>
                 <input
                   type="text"
                   value={formData.state}
                   onChange={(e) => handleInputChange("state", e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-gray-200 bg-white">
-                  <span className="text-sm">🇮🇪</span>
-                  <span className="text-sm">Ireland</span>
+                <label className="block text-[13px] text-gray-700 mb-1">Country</label>
+                <div className="flex items-center gap-2 h-[34px] px-2 border border-gray-300 bg-white">
+                  <span className="text-[13px]">🇮🇪 Ireland</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Time zone */}
-          <div className="bg-gray-50 rounded-xl p-6">
+          <SectionHeader title="Time zone" />
+          <div className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Time zone</label>
-                <div className="flex items-center gap-2 h-10 px-3 rounded-xl border border-gray-200 bg-white">
-                  <span className="text-sm">{formData.timezone}</span>
+                <label className="block text-[13px] text-gray-700 mb-1">Time zone</label>
+                <div className="flex items-center gap-2 h-[34px] px-2 border border-gray-300 bg-white">
+                  <span className="text-[13px]">{formData.timezone}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Notes */}
-          <div className="bg-gray-50 rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Notes</h3>
+          <SectionHeader title="Notes" />
+          <div className="p-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">General notes</label>
+              <label className="block text-[13px] text-gray-700 mb-1">General notes</label>
               <textarea
                 value={formData.generalNotes}
                 onChange={(e) => handleInputChange("generalNotes", e.target.value)}
-                className="w-full h-24 px-3 py-2 rounded-xl border border-gray-200 bg-white text-sm resize-none"
-                placeholder="Enter any additional notes about the teacher..."
+                className="w-full h-24 px-2 py-2 border border-gray-300 bg-white text-[13px] resize-none"
+                placeholder="Enter any additional notes..."
               />
             </div>
           </div>
 
           {/* Action buttons */}
-          <div className="flex items-center justify-end gap-3 pt-6">
+          <div className="flex items-center justify-end gap-3 px-4 py-3 border-t bg-white">
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm"
+              className="h-[34px] px-3 border border-gray-300 text-[13px] bg-white hover:bg-gray-50 text-gray-700"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="h-10 px-4 rounded-xl bg-blue-600 text-white text-sm disabled:opacity-60"
+              className="h-[34px] px-3 bg-blue-600 text-white text-[13px] hover:bg-blue-700 disabled:opacity-60"
               disabled={isSubmitting}
             >
               {isSubmitting ? "Saving..." : "Update teacher"}

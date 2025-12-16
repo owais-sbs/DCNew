@@ -2,19 +2,15 @@ import { useState, useEffect } from "react";
 import { X, Search, Loader2, ChevronDown } from "lucide-react";
 import axiosInstance from './axiosInstance'; 
 import axios from 'axios'; 
-// Assume SweetAlert2 is installed and imported for better popups
 import Swal from 'sweetalert2';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import PhoneInput from "react-phone-number-input";
-// import "react-phone-number-input/style.css"; 
-
+import "react-phone-number-input/style.css";
 
 // -------------------------------------------------------------
 // Type Definitions (Kept outside for cleaner component code)
 // -------------------------------------------------------------
-
-// Defines the exact structure of the data sent to the C# API
 interface StudentApiPayload {
     Id: number; 
     FirstName: string | null;
@@ -79,9 +75,7 @@ interface StudentApiPayload {
     ClassId?: number | null;
 }
 
-// Defines the shape of the full form data state (client-side)
 interface FormDataState {
-    // ... (All FormDataState fields remain the same)
     id: number; 
     firstName: string;
     surname: string;
@@ -203,22 +197,11 @@ const initialFormData: FormDataState = {
 // -------------------------------------------------------------
 // Data Mapping Helpers (Repeated for context)
 // -------------------------------------------------------------
-
 const parseDate = (dateString: string): string | null => {
     if (!dateString) return null;
-    
     // Attempt to parse DD-MM-YYYY format
     const parts = dateString.split('-');
-    // if (parts.length === 3) {
-    //     const [day, month, year] = parts.map(p => parseInt(p, 10)); // Fixed parseInt usage
-    //     if (day > 0 && day <= 31 && month > 0 && month <= 12 && year >= 1900) {
-    //         const date = new Date(year, month - 1, day);
-    //         if (!isNaN(date.getTime())) {
-    //             return date.toISOString().split('T')[0];
-    //         }
-    //     }
-    // }
-    // Fallback/direct attempt
+    // fallback/direct attempt
     try {
         const date = new Date(dateString);
         if (!isNaN(date.getTime())) return date.toISOString();
@@ -246,7 +229,6 @@ const fileToBase64 = (file: File): Promise<string> => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => {
-            // Keep the full data URL with header (e.g., "data:image/jpeg;base64,/9j/4AAQSkZJRg...")
             const base64String = reader.result as string;
             resolve(base64String);
         };
@@ -255,7 +237,6 @@ const fileToBase64 = (file: File): Promise<string> => {
 };
 
 const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>, photoBase64?: string): StudentApiPayload => {
-    // This mapping object MUST match the C# Student model properties (case-sensitive)
     return {
         Id: formData.id,
         FirstName: formData.firstName || null,
@@ -278,7 +259,7 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>, photoBase64?: s
         ZipCode: formData.zipCode || null,
         State: formData.state || null,
         Country: formData.country || null,
-        TimeZone: formData.timezone || null, // Note: C# Model uses 'TimeZone', state uses 'timezone'
+        TimeZone: formData.timezone || null,
 
         Nationality: formData.nationality || null,
         PassportNumber: formData.passportNumber || null,
@@ -330,7 +311,6 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>, photoBase64?: s
 // -------------------------------------------------------------
 // Component Start
 // -------------------------------------------------------------
-
 export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFormProps) {
     const [formData, setFormData] = useState<FormDataState>(initialFormData);
     const [isLoading, setIsLoading] = useState(false);
@@ -425,7 +405,6 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
         e.preventDefault();
 
         if (!formData.firstName || !formData.surname) {
-             // Use Swal for client-side required field alert
             await Swal.fire({
                 icon: 'warning',
                 title: 'Missing Required Fields',
@@ -472,15 +451,11 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
           const response = await axiosInstance.post(API_ENDPOINT, apiPayload);
           const respData = response.data;
 
-          // Normalize message and success detection to handle both string and object responses.
           const message =
               typeof respData === 'string'
                   ? respData
                   : (respData && (respData.Message ?? respData.message)) || JSON.stringify(respData);
 
-          // Determine success using multiple signals:
-          //  - if backend returns IsSuccess === true
-          //  - OR if the message text contains "saved successfully" (case-insensitive)
           const isSuccessFromFlag = respData && typeof respData === 'object' && respData.IsSuccess === true;
           const isSuccessFromMessage = /saved successfully/i.test(message);
           const isSuccess = Boolean(isSuccessFromFlag || isSuccessFromMessage);
@@ -500,7 +475,6 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                   onClose();
               }
           } else {
-              // Backend returned 200 but indicates logical error (or inconsistent flag/message)
               setError(message);
               await Swal.fire({
                   icon: 'error',
@@ -514,11 +488,9 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
           let errorDetails = '';
 
           if (axios.isAxiosError(err) && err.response) {
-              // Server responded with non-2xx status (e.g., 400, 500)
               errorMessage = (err.response.data as any)?.message || `Server Error: ${err.response.status}`;
               errorDetails = JSON.stringify(err.response.data, null, 2);
           } else if (err instanceof Error) {
-              // Client-side or network error
               errorMessage = err.message;
           }
 
@@ -548,144 +520,139 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
             return { disabled: false, text: 'Add student', className: 'bg-blue-600 hover:bg-blue-700' };
         }
         
-        return { disabled: false, text: 'Add and new', className: 'bg-blue-50 text-blue-700 hover:bg-blue-100' };
+        return { disabled: false, text: 'Add and new', className: 'bg-white border text-gray-700 hover:bg-gray-50' };
     };
 
     const addStudentButton = getButtonState('add');
     const addAndNewButton = getButtonState('addAndNew');
 
+    // UI small helpers for the admin flat look
+    const SectionHeader = ({ title }: { title: string }) => (
+        <div className="bg-[#f2f2f2] px-4 py-2 border-t border-b text-[13px] font-semibold text-gray-800">
+            {title}
+        </div>
+    );
 
     return (
         <div className={asPage ? "" : "fixed inset-0 z-50 grid place-items-center bg-black/30 px-4"} onClick={asPage ? undefined : onClose}>
-            <div className={`w-full ${asPage ? "bg-white" : "max-w-4xl bg-white rounded-2xl border border-gray-200 shadow-xl"} overflow-hidden ${asPage ? "" : "max-h-[90vh] overflow-y-auto"}`} onClick={(e) => e.stopPropagation()}>
-                {!asPage && (
-                    <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                        <h2 className="text-xl font-semibold text-gray-900">Add student</h2>
-                        <button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100" disabled={isLoading}>
-                            <X size={20} />
+            <div
+  className={`bg-white border border-gray-300 overflow-hidden
+    ${asPage 
+      ? "mx-[250px]" 
+      : "max-w-none mx-[100px] max-h-[90vh] overflow-y-auto"
+    }`}
+  onClick={(e) => e.stopPropagation()}
+>
+    {/* Top dark title bar (like image) */}
+                <div className="bg-[#2b2b2e] px-4 py-2 text-white text-sm font-semibold flex items-center justify-between">
+                    <div>Enter Student Details</div>
+                    {!asPage && (
+                        <button onClick={onClose} className="text-white opacity-80 hover:opacity-100">
+                            <X size={16} />
                         </button>
-                    </div>
-                )}
+                    )}
+                </div>
 
-                <form onSubmit={(e) => handleSubmit(e, false)} className={`${asPage ? "p-6" : "p-6"} space-y-6`}>
-                    {/* --- Global Error Message (Optional, Swal handles the primary alert) --- */}
+                <form onSubmit={(e) => handleSubmit(e, false)} className={`${asPage ? "p-0" : "p-0"} space-y-0`}>
+                    {/* show global error if exists */}
                     {error && (
-                        <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
+                        <div className="p-3 bg-red-100 border border-red-400 text-red-700 text-sm">
                             **Last Submission Error:** {error}
                         </div>
                     )}
-                    
-                    {/* ------------------------------------------------------------- */}
+
                     {/* Personal details */}
-                    {/* ------------------------------------------------------------- */}
-                    <div className="bg-gray-50 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <SectionHeader title="Personal Details" />
+                    <div className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">First name *</label>
+                                <label className="block text-[13px] text-gray-700 mb-1">Name <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     value={formData.firstName}
                                     onChange={(e) => handleInputChange('firstName', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+                                    className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                                     required
                                 />
-                                <p className={`text-red-500 text-xs mt-1 ${formData.firstName ? 'hidden' : ''}`}>This field is required</p>
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Surname *</label>
+                                <label className="block text-[13px] text-gray-700 mb-1">Surname <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     value={formData.surname}
                                     onChange={(e) => handleInputChange('surname', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+                                    className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                                     required
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
-                                <div className="flex gap-0 rounded-lg border border-gray-200 bg-white p-1 w-fit">
-                                    {["Male", "Female", "Not specified"].map((option) => (
-                                        <label key={option} className="cursor-pointer">
-                                            <input
-                                                type="radio"
-                                                name="gender"
-                                                value={option}
-                                                checked={formData.gender === option}
-                                                onChange={(e) => handleInputChange('gender', e.target.value)}
-                                                className="hidden"
-                                            />
-                                            <span className={`block px-4 py-1.5 rounded text-sm transition ${
-                                                formData.gender === option
-                                                    ? "bg-blue-100 text-blue-700 font-medium"
-                                                    : "text-gray-700 hover:bg-gray-50"
-                                            }`}>
-                                                {option}
-                                            </span>
+                                <label className="block text-[13px] text-gray-700 mb-1">Gender</label>
+                                <div className="flex gap-0 border border-gray-300 bg-white">
+                                    {["Male","Female","Not specified"].map(option => (
+                                        <label key={option} className="flex items-center px-3 text-[13px] cursor-pointer">
+                                            <input type="radio" name="gender" value={option} checked={formData.gender === option} onChange={(e) => handleInputChange('gender', e.target.value)} className="mr-2" />
+                                            <span>{option}</span>
                                         </label>
                                     ))}
                                 </div>
                             </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Registration date *</label>
+                                <label className="block text-[13px] text-gray-700 mb-1">Registration Date <span className="text-red-500">*</span></label>
                                 <input
                                     type="text"
                                     value={formData.registrationDate}
                                     onChange={(e) => handleInputChange('registrationDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+                                    className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                                     required
                                 />
                                 <p className="text-gray-500 text-xs mt-1">dd-mm-yyyy</p>
                             </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date of birth</label>
-                                <div className="[&_.react-datepicker-wrapper]:w-full [&_input]:w-full [&_input]:h-10 [&_input]:px-3 [&_input]:rounded-lg [&_input]:border [&_input]:border-gray-200 [&_input]:bg-white [&_input]:text-sm">
-                                    <DatePicker
-                                        selected={formData.dateOfBirth ? (() => {
-                                            // Parse dd-mm-yyyy format
-                                            const parts = formData.dateOfBirth.split('-');
-                                            if (parts.length === 3) {
-                                                const day = Number.parseInt(parts[0], 10);
-                                                const month = Number.parseInt(parts[1], 10);
-                                                const year = Number.parseInt(parts[2], 10);
-                                                if (!isNaN(day) && !isNaN(month) && !isNaN(year) && day > 0 && month > 0 && year > 0) {
-                                                    return new Date(year, month - 1, day);
-                                                }
+                                <label className="block text-[13px] text-gray-700 mb-1">Date of Birth</label>
+                                <DatePicker
+                                    selected={formData.dateOfBirth ? (() => {
+                                        const parts = formData.dateOfBirth.split('-');
+                                        if (parts.length === 3) {
+                                            const day = Number.parseInt(parts[0], 10);
+                                            const month = Number.parseInt(parts[1], 10);
+                                            const year = Number.parseInt(parts[2], 10);
+                                            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                                                return new Date(year, month - 1, day);
                                             }
-                                            // Fallback to standard date parsing
-                                            const date = new Date(formData.dateOfBirth);
-                                            return isNaN(date.getTime()) ? null : date;
-                                        })() : null}
-                                        onChange={(date: Date | null) => {
-                                            if (date) {
-                                                const formattedDate = date.toLocaleDateString('en-IE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-                                                handleInputChange('dateOfBirth', formattedDate);
-                                            } else {
-                                                handleInputChange('dateOfBirth', '');
-                                            }
-                                        }}
-                                        dateFormat="dd-MM-yyyy"
-                                        placeholderText="Select date"
-                                        maxDate={new Date()}
-                                        showYearDropdown
-                                        showMonthDropdown
-                                        dropdownMode="select"
-                                    />
-                                </div>
+                                        }
+                                        const date = new Date(formData.dateOfBirth);
+                                        return isNaN(date.getTime()) ? null : date;
+                                    })() : null}
+                                    onChange={(date: Date | null) => {
+                                        if (date) {
+                                            const formattedDate = date.toLocaleDateString('en-IE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
+                                            handleInputChange('dateOfBirth', formattedDate);
+                                        } else {
+                                            handleInputChange('dateOfBirth', '');
+                                        }
+                                    }}
+                                    dateFormat="dd-MM-yyyy"
+                                    placeholderText="Select date"
+                                    className="w-full h-[34px] px-2 border border-gray-300 text-[13px]"
+                                />
                             </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">ID number</label>
+                                <label className="block text-[13px] text-gray-700 mb-1">Identification Number</label>
                                 <input
                                     type="text"
                                     value={formData.idNumber}
                                     disabled
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-gray-100 text-sm cursor-not-allowed"
+                                    className="w-full h-[34px] px-2 border border-gray-300 bg-gray-100 text-[13px] cursor-not-allowed"
                                     placeholder={isLoadingId ? "Loading..." : ""}
                                 />
                                 <p className="text-gray-500 text-xs mt-1">Student ID is automatically generated.</p>
                             </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Photo</label>
+                                <label className="block text-[13px] text-gray-700 mb-1">Photo</label>
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="file"
@@ -694,441 +661,158 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                         accept="image/jpeg,image/jpg,image/png,image/gif"
                                         className="hidden"
                                     />
-                                    <label htmlFor="photo" className="h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm cursor-pointer flex items-center text-gray-700">
-                                        Choose File
-                                    </label>
-                                    <span className="text-sm text-gray-500">{formData.photo ? formData.photo.name : 'No file chosen'}</span>
+                                    <label htmlFor="photo" className="h-[34px] px-3 border border-gray-300 flex items-center text-[13px] cursor-pointer bg-white">Browse...</label>
+                                    <span className="text-[13px] text-gray-500">{formData.photo ? formData.photo.name : 'No file selected...'}</span>
                                 </div>
-                                <p className="text-gray-500 text-xs mt-1">Accepted file types: jpg, jpeg, png, gif</p>
+                                <p className="text-gray-500 text-xs mt-1">Upload photo in JPG,JPEG,PNG,GIF format only</p>
                             </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Preferred payment method</label>
-                                <select
-                                    value={formData.preferredPaymentMethod}
-                                    onChange={(e) => handleInputChange('preferredPaymentMethod', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                >
+                                <label className="block text-[13px] text-gray-700 mb-1">Preferred Payment Method</label>
+                                <select value={formData.preferredPaymentMethod} onChange={(e) => handleInputChange('preferredPaymentMethod', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white">
                                     <option value="">select</option>
                                     <option value="cash">Cash</option>
                                     <option value="card">Card</option>
                                     <option value="bank">Bank Transfer</option>
                                 </select>
                             </div>
+
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Discount</label>
-                                <div className="flex items-center gap-2">
-                                    <input
-                                        type="text"
-                                        value={formData.discount}
-                                        onChange={(e) => handleInputChange('discount', e.target.value)}
-                                        className="flex-1 h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                    />
-                                    <span className="text-sm text-gray-500">%</span>
+                                <label className="block text-[13px] text-gray-700 mb-1">Discount</label>
+                                <div className="flex items-center">
+                                    <input type="text" value={formData.discount} onChange={(e) => handleInputChange('discount', e.target.value)} className="flex-1 h-[34px] px-2 border border-gray-300 text-[13px] bg-white" />
+                                    <span className="ml-2 text-[13px]">%</span>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    {/* ------------------------------------------------------------- */}
                     {/* Contact details */}
-                    {/* ------------------------------------------------------------- */}
-                    <div className="bg-gray-50 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact details</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <SectionHeader title="Contact Details" />
+                    <div className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Mobile phone</label>
-                                <div className="[&_.PhoneInput]:flex [&_.PhoneInput]:items-center [&_.PhoneInput]:h-10 [&_.PhoneInput]:rounded-xl [&_.PhoneInput]:border [&_.PhoneInput]:border-gray-200 [&_.PhoneInput]:bg-white [&_.PhoneInput]:w-full [&_.PhoneInputCountry]:flex [&_.PhoneInputCountry]:items-center [&_.PhoneInputCountry]:gap-1 [&_.PhoneInputCountry]:px-3 [&_.PhoneInputCountry]:h-full [&_.PhoneInputCountry]:border-r [&_.PhoneInputCountry]:border-gray-200 [&_.PhoneInputCountryIcon]:w-5 [&_.PhoneInputCountryIcon]:h-4 [&_.PhoneInputCountrySelect]:border-0 [&_.PhoneInputCountrySelect]:bg-transparent [&_.PhoneInputCountrySelect]:text-sm [&_.PhoneInputCountrySelect]:cursor-pointer [&_.PhoneInputCountrySelectArrow]:ml-1 [&_.PhoneInputInput]:flex-1 [&_.PhoneInputInput]:h-full [&_.PhoneInputInput]:px-3 [&_.PhoneInputInput]:border-0 [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:text-sm [&_.PhoneInputInput]:bg-transparent">
-                                    <PhoneInput
-                                        international
-                                        defaultCountry="IE"
-                                        value={formData.mobilePhone}
-                                        onChange={(value) => handleInputChange('mobilePhone', value || '')}
-                                    />
-                                </div>
+                                <label className="block text-[13px] text-gray-700 mb-1">Mobile Phone</label>
+                                <PhoneInput international defaultCountry="IE" value={formData.mobilePhone} onChange={(v) => handleInputChange('mobilePhone', v || '')} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Home phone</label>
-                                <div className="[&_.PhoneInput]:flex [&_.PhoneInput]:items-center [&_.PhoneInput]:h-10 [&_.PhoneInput]:rounded-xl [&_.PhoneInput]:border [&_.PhoneInput]:border-gray-200 [&_.PhoneInput]:bg-white [&_.PhoneInput]:w-full [&_.PhoneInputCountry]:flex [&_.PhoneInputCountry]:items-center [&_.PhoneInputCountry]:gap-1 [&_.PhoneInputCountry]:px-3 [&_.PhoneInputCountry]:h-full [&_.PhoneInputCountry]:border-r [&_.PhoneInputCountry]:border-gray-200 [&_.PhoneInputCountryIcon]:w-5 [&_.PhoneInputCountryIcon]:h-4 [&_.PhoneInputCountrySelect]:border-0 [&_.PhoneInputCountrySelect]:bg-transparent [&_.PhoneInputCountrySelect]:text-sm [&_.PhoneInputCountrySelect]:cursor-pointer [&_.PhoneInputCountrySelectArrow]:ml-1 [&_.PhoneInputInput]:flex-1 [&_.PhoneInputInput]:h-full [&_.PhoneInputInput]:px-3 [&_.PhoneInputInput]:border-0 [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:text-sm [&_.PhoneInputInput]:bg-transparent">
-                                    <PhoneInput
-                                        international
-                                        defaultCountry="IE"
-                                        value={formData.homePhone}
-                                        onChange={(value) => handleInputChange('homePhone', value || '')}
-                                    />
-                                </div>
+                                <label className="block text-[13px] text-gray-700 mb-1">Home Phone</label>
+                                <PhoneInput international defaultCountry="IE" value={formData.homePhone} onChange={(v) => handleInputChange('homePhone', v || '')} />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email address (recommended)</label>
-                                <input
-                                    type="email"
-                                    value={formData.email}
-                                    onChange={(e) => handleInputChange('email', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
+                                <label className="block text-[13px] text-gray-700 mb-1">Email address (recommended)</label>
+                                <input type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" />
+                            </div>
+
+                            <div>
+                                <label className="block text-[13px] text-gray-700 mb-1">Street Address</label>
+                                <input type="text" value={formData.streetAddress} onChange={(e) => handleInputChange('streetAddress', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Street address</label>
-                                <input
-                                    type="text"
-                                    value={formData.streetAddress}
-                                    onChange={(e) => handleInputChange('streetAddress', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
+                                <label className="block text-[13px] text-gray-700 mb-1">City</label>
+                                <input type="text" value={formData.city} onChange={(e) => handleInputChange('city', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                                <input
-                                    type="text"
-                                    value={formData.city}
-                                    onChange={(e) => handleInputChange('city', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
+                                <label className="block text-[13px] text-gray-700 mb-1">ZIP/Post code</label>
+                                <input type="text" value={formData.zipCode} onChange={(e) => handleInputChange('zipCode', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" />
+                            </div>
+
+                            <div>
+                                <label className="block text-[13px] text-gray-700 mb-1">State/Province/Region</label>
+                                <input type="text" value={formData.state} onChange={(e) => handleInputChange('state', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">ZIP/Post code</label>
-                                <input
-                                    type="text"
-                                    value={formData.zipCode}
-                                    onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
+                                <label className="block text-[13px] text-gray-700 mb-1">Country</label>
+                                <input type="text" value={formData.country} onChange={(e) => handleInputChange('country', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">State/Province/Region</label>
-                                <input
-                                    type="text"
-                                    value={formData.state}
-                                    onChange={(e) => handleInputChange('state', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                                <input
-                                    type="text"
-                                    value={formData.country}
-                                    onChange={(e) => handleInputChange('country', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
+                                <label className="block text-[13px] text-gray-700 mb-1">Time zone</label>
+                                <select value={formData.timezone} onChange={(e) => handleInputChange('timezone', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white">
+                                    <option>Europe/London</option>
+                                </select>
                             </div>
                         </div>
                     </div>
 
+                    {/* Custom Fields */}
+                    <SectionHeader title="Custom Fields" />
+                    <div className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Nationality</label><input type="text" value={formData.nationality} onChange={(e)=>handleInputChange('nationality', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Passport Number</label><input type="text" value={formData.passportNumber} onChange={(e)=>handleInputChange('passportNumber', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Passport Expiry Date</label><input type="text" value={formData.passportExpiryDate} onChange={(e)=>handleInputChange('passportExpiryDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 
-                    {/* Custom Fields (Course/Passport/Visa) */}
-                    <div className="bg-gray-50 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Custom Fields</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
-                                <input
-                                    type="text"
-                                    value={formData.nationality}
-                                    onChange={(e) => handleInputChange('nationality', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Passport Number</label>
-                                <input
-                                    type="text"
-                                    value={formData.passportNumber}
-                                    onChange={(e) => handleInputChange('passportNumber', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">GNIB Expiry Date</label>
-                                <input
-                                    type="text"
-                                    value={formData.gnibExpiryDate}
-                                    onChange={(e) => handleInputChange('gnibExpiryDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Passport Expiry Date</label>
-                                <input
-                                    type="text"
-                                    value={formData.passportExpiryDate}
-                                    onChange={(e) => handleInputChange('passportExpiryDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Finished Course Date</label>
-                                <input
-                                    type="text"
-                                    value={formData.finishedCourseDate}
-                                    onChange={(e) => handleInputChange('finishedCourseDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Course Start Date</label>
-                                <DatePicker
-                                    selected={formData.courseStartDate ? (() => {
-                                        const date = new Date(formData.courseStartDate);
-                                        return isNaN(date.getTime()) ? null : date;
-                                    })() : null}
-                                    onChange={(date: Date | null) => {
-                                        if (date) {
-                                            const formattedDate = date.toLocaleDateString('en-IE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-                                            handleInputChange('courseStartDate', formattedDate);
-                                        } else {
-                                            handleInputChange('courseStartDate', '');
-                                        }
-                                    }}
-                                    dateFormat="dd-MM-yyyy"
-                                    placeholderText="Select date"
-                                    showYearDropdown
-                                    showMonthDropdown
-                                    dropdownMode="select"
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Course Level</label>
-                                <input
-                                    type="text"
-                                    value={formData.courseLevel}
-                                    onChange={(e) => handleInputChange('courseLevel', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Course End Date</label>
-                                <DatePicker
-                                    selected={formData.courseEndDate ? (() => {
-                                        const date = new Date(formData.courseEndDate);
-                                        return isNaN(date.getTime()) ? null : date;
-                                    })() : null}
-                                    onChange={(date: Date | null) => {
-                                        if (date) {
-                                            const formattedDate = date.toLocaleDateString('en-IE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
-                                            handleInputChange('courseEndDate', formattedDate);
-                                        } else {
-                                            handleInputChange('courseEndDate', '');
-                                        }
-                                    }}
-                                    dateFormat="dd-MM-yyyy"
-                                    placeholderText="Select date"
-                                    showYearDropdown
-                                    showMonthDropdown
-                                    dropdownMode="select"
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Hours Per Week</label>
-                                <input
-                                    type="text"
-                                    value={formData.hoursPerWeek}
-                                    onChange={(e) => handleInputChange('hoursPerWeek', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Attendance</label>
-                                <input
-                                    type="text"
-                                    value={formData.attendance}
-                                    onChange={(e) => handleInputChange('attendance', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Course Code</label>
-                                <input
-                                    type="text"
-                                    value={formData.courseCode}
-                                    onChange={(e) => handleInputChange('courseCode', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Course Title</label>
-                                <input
-                                    type="text"
-                                    value={formData.courseTitle}
-                                    onChange={(e) => handleInputChange('courseTitle', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Mode of Study</label>
-                                <input
-                                    type="text"
-                                    value={formData.modeOfStudy}
-                                    onChange={(e) => handleInputChange('modeOfStudy', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Number of Weeks</label>
-                                <input
-                                    type="text"
-                                    value={formData.numberOfWeeks}
-                                    onChange={(e) => handleInputChange('numberOfWeeks', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Tuition Fees</label>
-                                <input
-                                    type="text"
-                                    value={formData.tuitionFees}
-                                    onChange={(e) => handleInputChange('tuitionFees', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                                <input
-                                    type="text"
-                                    value={formData.department}
-                                    onChange={(e) => handleInputChange('department', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">External Exam</label>
-                                <input
-                                    type="text"
-                                    value={formData.externalExam}
-                                    onChange={(e) => handleInputChange('externalExam', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">GNIB Expiry Date</label><input type="text" value={formData.gnibExpiryDate} onChange={(e)=>handleInputChange('gnibExpiryDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Course Start Date</label>
+                                <DatePicker selected={formData.courseStartDate ? new Date(formData.courseStartDate) : null} onChange={(date)=>{ if(date){ const f=date.toLocaleDateString('en-IE').replace(/\//g,'-'); handleInputChange('courseStartDate', f);} else handleInputChange('courseStartDate','');}} dateFormat="dd-MM-yyyy" className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Course End Date</label>
+                                <DatePicker selected={formData.courseEndDate ? new Date(formData.courseEndDate) : null} onChange={(date)=>{ if(date){ const f=date.toLocaleDateString('en-IE').replace(/\//g,'-'); handleInputChange('courseEndDate', f);} else handleInputChange('courseEndDate','');}} dateFormat="dd-MM-yyyy" className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" /></div>
+
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Finished Course Date</label><input type="text" value={formData.finishedCourseDate} onChange={(e)=>handleInputChange('finishedCourseDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Attendance</label><input type="text" value={formData.attendance} onChange={(e)=>handleInputChange('attendance', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Course Title</label><input type="text" value={formData.courseTitle} onChange={(e)=>handleInputChange('courseTitle', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Course Level</label><input type="text" value={formData.courseLevel} onChange={(e)=>handleInputChange('courseLevel', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Mode of Study</label><input type="text" value={formData.modeOfStudy} onChange={(e)=>handleInputChange('modeOfStudy', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Number of Weeks</label><input type="text" value={formData.numberOfWeeks} onChange={(e)=>handleInputChange('numberOfWeeks', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Hours Per Week</label><input type="text" value={formData.hoursPerWeek} onChange={(e)=>handleInputChange('hoursPerWeek', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Tuition Fees</label><input type="text" value={formData.tuitionFees} onChange={(e)=>handleInputChange('tuitionFees', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Department</label><input type="text" value={formData.department} onChange={(e)=>handleInputChange('department', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+
+                            <div><label className="block text-[13px] text-gray-700 mb-1">External Exam</label><input type="text" value={formData.externalExam} onChange={(e)=>handleInputChange('externalExam', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                         </div>
                     </div>
 
-                    {/* Course Code Section - Payment Details */}
-                    <div className="bg-gray-50 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Details & Payment Info</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {/* Course Code, Course Level, External Exam are repeated in the original code, but kept for fidelity */}
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date of External Exam</label>
-                                <input
-                                    type="text"
-                                    value={formData.externalExamDate}
-                                    onChange={(e) => handleInputChange('externalExamDate', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Score External Exam</label>
-                                <input
-                                    type="text"
-                                    value={formData.scoreExternalExam}
-                                    onChange={(e) => handleInputChange('scoreExternalExam', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Date of Payment</label>
-                                <input
-                                    type="text"
-                                    value={formData.dateOfPayment}
-                                    onChange={(e) => handleInputChange('dateOfPayment', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
-                                <input
-                                    type="text"
-                                    value={formData.duration}
-                                    onChange={(e) => handleInputChange('duration', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
-                                <input
-                                    type="text"
-                                    value={formData.schedule}
-                                    onChange={(e) => handleInputChange('schedule', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">ILEP reference number</label>
-                                <select
-                                    value={formData.ilepReference}
-                                    onChange={(e) => handleInputChange('ilepReference', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                >
+                    {/* Course Details & Payment Info */}
+                    <SectionHeader title="Course Details & Payment Info" />
+                    <div className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Date of External Exam</label><input type="text" value={formData.externalExamDate} onChange={(e)=>handleInputChange('externalExamDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Score External Exam</label><input type="text" value={formData.scoreExternalExam} onChange={(e)=>handleInputChange('scoreExternalExam', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Date of Payment</label><input type="text" value={formData.dateOfPayment} onChange={(e)=>handleInputChange('dateOfPayment', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Duration</label><input type="text" value={formData.duration} onChange={(e)=>handleInputChange('duration', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Schedule</label><input type="text" value={formData.schedule} onChange={(e)=>handleInputChange('schedule', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">ILEP reference number</label>
+                                <select value={formData.ilepReference} onChange={(e)=>handleInputChange('ilepReference', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white">
                                     <option value="">Select</option>
                                     {Array.from({ length: 5 }, (_, i) => {
                                         const num = String(i + 1).padStart(3, '0');
-                                        return (
-                                            <option key={num} value={`0355/${num}`}>
-                                                0355/{num}
-                                            </option>
-                                        );
+                                        return <option key={num} value={`0355/${num}`}>0355/{num}</option>
                                     })}
                                 </select>
                             </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">End of Exam paid</label>
-                                <input
-                                    type="text"
-                                    value={formData.endOfExamPaid}
-                                    onChange={(e) => handleInputChange('endOfExamPaid', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
+
+                            <div className="md:col-span-2"><label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label><input type="text" value={formData.endOfExamPaid} onChange={(e)=>handleInputChange('endOfExamPaid', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                         </div>
                     </div>
 
                     {/* Other details */}
-                    <div className="bg-gray-50 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Other details</h3>
-                        <div className="space-y-4">
+                    <SectionHeader title="Other Details" />
+                    <div className="p-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">General notes</label>
-                                <textarea
-                                    value={formData.generalNotes}
-                                    onChange={(e) => handleInputChange('generalNotes', e.target.value)}
-                                    className="w-full h-24 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm resize-none"
-                                />
+                                <label className="block text-[13px] text-gray-700 mb-1">General notes</label>
+                                <textarea value={formData.generalNotes} onChange={(e) => handleInputChange('generalNotes', e.target.value)} className="w-full border border-gray-300 h-24 p-2 text-[13px]" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Medical notes</label>
-                                <textarea
-                                    value={formData.medicalNotes}
-                                    onChange={(e) => handleInputChange('medicalNotes', e.target.value)}
-                                    className="w-full h-24 px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm resize-none"
-                                />
+                                <label className="block text-[13px] text-gray-700 mb-1">Medical notes</label>
+                                <textarea value={formData.medicalNotes} onChange={(e) => handleInputChange('medicalNotes', e.target.value)} className="w-full border border-gray-300 h-24 p-2 text-[13px]" />
                             </div>
                         </div>
                     </div>
 
                     {/* Class options */}
-                    <div className="bg-gray-50 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Class options</h3>
-                        <p className="text-sm text-gray-600 mb-4">If selected, this student can only be enrolled in these subjects or levels. Leaving it blank allows the student to be enrolled in any classes.</p>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Class subject</label>
-                                <select
-                                    value={formData.classSubject}
-                                    onChange={(e) => handleInputChange('classSubject', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                >
-                                    <option value="">Select</option>
-                                    <option value="General English With Exam Preparation">General English With Exam Preparation</option>
-                                </select>
+                    <SectionHeader title="Class Options" />
+                    <div className="p-4">
+                        <p className="text-[13px] text-gray-600 mb-3">If selected, this student can only be enrolled in these subjects or levels. Leaving it blank allows the student to be enrolled in all classes.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Class subject</label>
+                                <select value={formData.classSubject} onChange={(e)=>handleInputChange('classSubject', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white"><option value="">Select</option><option value="General English With Exam Preparation">General English With Exam Preparation</option></select>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Class level</label>
-                                <select
-                                    value={formData.classLevel}
-                                    onChange={(e) => handleInputChange('classLevel', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-                                >
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Class level</label>
+                                <select value={formData.classLevel} onChange={(e)=>handleInputChange('classLevel', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white">
                                     <option value="">Select</option>
                                     <option value="200525">200525</option>
                                     <option value="a1">a1</option>
@@ -1164,123 +848,56 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                         </div>
                     </div>
 
-
                     {/* Enroll in classes */}
-                    <div className="bg-gray-50 rounded-xl p-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Enroll in classes</h3>
-                        <p className="text-sm text-gray-600 mb-4">Enroll the student in a class</p>
-                        <button 
-                            type="button" 
-                            onClick={() => setShowClassModal(true)}
-                            className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50" 
-                            disabled={isLoading}
-                        >
-                            {formData.selectedClassName || "Select classes"}
-                        </button>
-                        {formData.selectedClassId && (
-                            <button
-                                type="button"
-                                onClick={() => setFormData(prev => ({ ...prev, selectedClassId: null, selectedClassName: null }))}
-                                className="ml-2 h-10 px-4 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm hover:bg-red-100"
-                            >
-                                Clear
-                            </button>
-                        )}
+                    <SectionHeader title="Enroll in classes" />
+                    <div className="p-4">
+                        <p className="text-[13px] text-gray-600 mb-3">Enroll the student in a class</p>
+                        <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => setShowClassModal(true)} className="h-[34px] px-3 border border-gray-300 text-[13px] bg-white">{formData.selectedClassName || "Select classes"}</button>
+                            {formData.selectedClassId && (
+                                <button type="button" onClick={() => setFormData(prev => ({ ...prev, selectedClassId: null, selectedClassName: null }))} className="h-[34px] px-3 border border-red-200 text-red-700 text-[13px] bg-white">Clear</button>
+                            )}
+                        </div>
                     </div>
 
                     {/* Action buttons */}
-                    <div className="flex items-center justify-end gap-3 pt-6">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm"
-                            disabled={isLoading}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="button"
-                            onClick={(e) => handleSubmit(e, true)}
-                            className={`h-10 px-4 rounded-lg border border-blue-200 text-sm ${addAndNewButton.className}`}
-                            disabled={addAndNewButton.disabled}
-                        >
-                            {addAndNewButton.text}
-                        </button>
-                        <button
-                            type="submit"
-                            className={`h-10 px-4 rounded-lg text-white text-sm ${addStudentButton.className}`}
-                            disabled={addStudentButton.disabled}
-                        >
-                            {addStudentButton.text}
-                        </button>
+                    <div className="flex items-center justify-end gap-3 px-4 py-3 border-t bg-white">
+                        <button type="button" onClick={onClose} className="h-[34px] px-3 border border-gray-300 text-[13px] bg-white" disabled={isLoading}>Cancel</button>
+                        <button type="button" onClick={(e) => handleSubmit(e, true)} className={`h-[34px] px-3 border text-[13px] ${addAndNewButton.className}`} disabled={addAndNewButton.disabled}>{addAndNewButton.text}</button>
+                        <button type="submit" className={`h-[34px] px-3 text-white text-[13px] ${addStudentButton.className}`} disabled={addStudentButton.disabled}>{addStudentButton.text}</button>
                     </div>
                 </form>
 
                 {/* Class Selection Modal */}
                 {showClassModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4" onClick={() => setShowClassModal(false)}>
-                        <div
-                            className="bg-white rounded-2xl border border-gray-200 shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                                <h2 className="text-xl font-semibold text-gray-900">Select Class</h2>
-                                <button
-                                    onClick={() => setShowClassModal(false)}
-                                    className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
-                                >
-                                    ×
-                                </button>
+                        <div className="bg-white w-full max-w-4xl border border-gray-300" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex items-center justify-between px-4 py-3 border-b">
+                                <h2 className="text-[16px] font-semibold">Select Class</h2>
+                                <button onClick={() => setShowClassModal(false)} className="text-gray-700">×</button>
                             </div>
 
-                            <div className="p-6 flex-1 overflow-y-auto">
+                            <div className="p-4 max-h-[60vh] overflow-y-auto">
                                 {/* Search */}
                                 <div className="mb-4">
                                     <div className="relative">
                                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search classes..."
-                                            value={classSearchQuery}
-                                            onChange={(e) => setClassSearchQuery(e.target.value)}
-                                            className="w-full h-10 pl-10 pr-4 rounded-lg border border-gray-200 bg-white text-sm"
-                                        />
+                                        <input type="text" placeholder="Search classes..." value={classSearchQuery} onChange={(e) => setClassSearchQuery(e.target.value)} className="w-full h-[34px] pl-10 pr-4 border border-gray-300 text-[13px]" />
                                     </div>
                                 </div>
 
                                 {/* Classes List */}
                                 {loadingClasses ? (
-                                    <div className="flex items-center justify-center py-12">
-                                        <Loader2 className="animate-spin text-blue-500" size={32} />
-                                    </div>
+                                    <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-blue-500" size={28} /></div>
                                 ) : classes.length === 0 ? (
-                                    <div className="text-center py-12 text-gray-500">No classes found</div>
+                                    <div className="py-12 text-center text-gray-500">No classes found</div>
                                 ) : (
                                     <div className="space-y-2">
                                         {classes.map((cls: any) => (
-                                            <div
-                                                key={cls.ClassId}
-                                                onClick={() => {
-                                                    setFormData(prev => ({ 
-                                                        ...prev, 
-                                                        selectedClassId: cls.ClassId,
-                                                        selectedClassName: cls.ClassTitle || "Unnamed Class"
-                                                    }));
-                                                    setShowClassModal(false);
-                                                }}
-                                                className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                                                    formData.selectedClassId === cls.ClassId
-                                                        ? "border-blue-500 bg-blue-50"
-                                                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                                                }`}
-                                            >
-                                                <div className="font-medium text-gray-900">{cls.ClassTitle || "Unnamed Class"}</div>
-                                                <div className="text-sm text-gray-600 mt-1">
-                                                    {cls.ClassSubject}{cls.ClassLevel ? ` - ${cls.ClassLevel}` : ""}
-                                                </div>
-                                                {cls.ClassDescription && (
-                                                    <div className="text-xs text-gray-500 mt-1">{cls.ClassDescription}</div>
-                                                )}
+                                            <div key={cls.ClassId} onClick={() => { setFormData(prev => ({ ...prev, selectedClassId: cls.ClassId, selectedClassName: cls.ClassTitle || "Unnamed Class" })); setShowClassModal(false); }} className={`p-3 border ${formData.selectedClassId === cls.ClassId ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:bg-gray-50'} cursor-pointer`}>
+                                                <div className="font-medium text-gray-900 text-[14px]">{cls.ClassTitle || "Unnamed Class"}</div>
+                                                <div className="text-[13px] text-gray-600">{cls.ClassSubject}{cls.ClassLevel ? ` - ${cls.ClassLevel}` : ""}</div>
+                                                {cls.ClassDescription && <div className="text-xs text-gray-500 mt-1">{cls.ClassDescription}</div>}
                                             </div>
                                         ))}
                                     </div>
@@ -1288,28 +905,12 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
 
                                 {/* Pagination */}
                                 {classTotalCount > 0 && (
-                                    <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
-                                        <div className="text-sm text-gray-600">
-                                            Showing {((classPageNumber - 1) * classPageSize) + 1} to {Math.min(classPageNumber * classPageSize, classTotalCount)} of {classTotalCount} classes
-                                        </div>
+                                    <div className="mt-4 flex items-center justify-between border-t pt-3">
+                                        <div className="text-[13px] text-gray-600">Showing {((classPageNumber - 1) * classPageSize) + 1} to {Math.min(classPageNumber * classPageSize, classTotalCount)} of {classTotalCount} classes</div>
                                         <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => setClassPageNumber(prev => Math.max(1, prev - 1))}
-                                                disabled={classPageNumber === 1}
-                                                className="h-8 px-3 rounded-lg border border-gray-200 bg-white text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                            >
-                                                Previous
-                                            </button>
-                                            <span className="text-sm text-gray-700">
-                                                Page {classPageNumber} of {Math.ceil(classTotalCount / classPageSize)}
-                                            </span>
-                                            <button
-                                                onClick={() => setClassPageNumber(prev => Math.min(Math.ceil(classTotalCount / classPageSize), prev + 1))}
-                                                disabled={classPageNumber >= Math.ceil(classTotalCount / classPageSize)}
-                                                className="h-8 px-3 rounded-lg border border-gray-200 bg-white text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                                            >
-                                                Next
-                                            </button>
+                                            <button onClick={() => setClassPageNumber(prev => Math.max(1, prev - 1))} disabled={classPageNumber === 1} className="h-[30px] px-3 border border-gray-300 text-[13px] disabled:opacity-50">Previous</button>
+                                            <span className="text-[13px]">Page {classPageNumber} of {Math.ceil(classTotalCount / classPageSize)}</span>
+                                            <button onClick={() => setClassPageNumber(prev => Math.min(Math.ceil(classTotalCount / classPageSize), prev + 1))} disabled={classPageNumber >= Math.ceil(classTotalCount / classPageSize)} className="h-[30px] px-3 border border-gray-300 text-[13px] disabled:opacity-50">Next</button>
                                         </div>
                                     </div>
                                 )}
