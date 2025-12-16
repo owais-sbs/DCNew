@@ -362,33 +362,47 @@ const pageButtons = () => {
 
   return (
     <div className="px-6 py-6">
-      {/* Header with title */}
-      <div className="mb-4">
+      {/* Header with title + Export / Add class */}
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold text-gray-900">{totalCount} Classes</h1>
-      </div>
-
-      {/* Search bar */}
-      <div className="mb-4">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Q Search"
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl bg-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex items-center gap-3">
+          <button className="h-9 px-3 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50">
+            <Download size={16} /> Export
+          </button>
+          {/* <button
+            onClick={() => navigate('/notes/add-class')}
+            className="h-9 px-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm"
+          >
+            <Plus size={16} /> Add class
+          </button> */}
         </div>
       </div>
 
-      {/* Filters and action buttons */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-2">
+      {/* Retro container: toolbar (search + filters) + table */}
+      <div className="border border-gray-400 rounded-sm overflow-hidden bg-white">
+        {/* Toolbar row */}
+        <div className="flex items-center gap-3 px-4 py-2 bg-[#f1f1f1] border-b border-gray-400">
+          {/* Search */}
+          <div className="flex-1 max-w-md">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Q Search"
+                className="w-full h-9 pl-9 pr-3 rounded border border-gray-300 bg-white text-sm placeholder:text-gray-400"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Filters and small icon buttons */}
+          <div className="flex items-center gap-2 ml-auto">
           {/* Teacher dropdown */}
           <div className="relative">
             <button 
               onClick={()=>{setTeacherOpen(!teacherOpen); setClassroomOpen(false); setTypeOpen(false); setStatusOpen(false);}} 
-              className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-50"
+              className="h-9 px-3 rounded border border-gray-300 bg-white text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-50"
             >
               <span>Teacher: {teacher}</span>
               <span className="text-gray-500">▾</span>
@@ -409,7 +423,7 @@ const pageButtons = () => {
           <div className="relative">
             <button 
               onClick={()=>{setClassroomOpen(!classroomOpen); setTeacherOpen(false); setTypeOpen(false); setStatusOpen(false);}} 
-              className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-50"
+              className="h-9 px-3 rounded border border-gray-300 bg-white text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-50"
             >
               <span>Classroom: {classroom}</span>
               <span className="text-gray-500">▾</span>
@@ -427,7 +441,7 @@ const pageButtons = () => {
           <div className="relative">
             <button 
               onClick={()=>{setTypeOpen(!typeOpen); setTeacherOpen(false); setClassroomOpen(false); setStatusOpen(false);}} 
-              className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-50"
+              className="h-9 px-3 rounded border border-gray-300 bg-white text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-50"
             >
               <span>Class type:</span>
               <span className="text-gray-500">▾</span>
@@ -445,7 +459,7 @@ const pageButtons = () => {
           <div className="relative">
             <button 
               onClick={()=>{setStatusOpen(!statusOpen); setTeacherOpen(false); setClassroomOpen(false); setTypeOpen(false);}} 
-              className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-50"
+              className="h-9 px-3 rounded border border-gray-300 bg-white text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-50"
             >
               <span>Status: {status}</span>
               <span className="text-gray-500">▾</span>
@@ -460,37 +474,23 @@ const pageButtons = () => {
           </div>
 
           {/* Icon buttons */}
-          <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50">
+          <button className="h-9 w-9 grid place-items-center rounded border border-gray-300 bg-white text-gray-500 hover:bg-gray-50">
             <Filter className="h-4 w-4" />
           </button>
-          <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50">
+          <button className="h-9 w-9 grid place-items-center rounded border border-gray-300 bg-white text-gray-500 hover:bg-gray-50">
             <Grid3X3 className="h-4 w-4" />
           </button>
-          <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:bg-gray-50">
+          <button className="h-9 w-9 grid place-items-center rounded border border-gray-300 bg-white text-gray-500 hover:bg-gray-50">
             <MoreHorizontal className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Action buttons on the right */}
-        <div className="flex items-center gap-3">
-          <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-            <Download size={16} /> Export
-          </button>
-          <button
-            onClick={() => navigate('/notes/add-class')}
-            className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-blue-600 text-white hover:bg-blue-700 shadow-sm text-sm"
-          >
-            <Plus size={16} /> Add class
           </button>
         </div>
       </div>
 
-      {/* Classes table */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-500">
+      {/* Classes table – retro grid look */}
+      <table className="w-full text-sm border-collapse">
+        <thead className="bg-[#f1f1f1] text-gray-700">
             <tr>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">
+            <th className="px-4 py-2.5 font-medium text-left border-b border-gray-400 border-r">
                 <input
                   type="checkbox"
                   checked={filteredClasses.length > 0 && selectedRows.length === filteredClasses.length}
@@ -498,19 +498,30 @@ const pageButtons = () => {
                   className="rounded border-gray-300"
                 />
               </th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Title</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Status</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Teacher</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Classroom</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Starts</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Ends</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Recurring Day/Time</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Payment Frequency</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Payment Fees</th>
-              <th className="px-4 py-3 font-medium text-left border-b border-gray-200">Actions</th>
+            {[
+              "Title",
+              "Status",
+              "Teacher",
+              "Classroom",
+              "Starts",
+              "Ends",
+              "Recurring Day/Time",
+              "Payment Frequency",
+              "Payment Fees",
+              "Actions"
+            ].map((heading, idx) => (
+              <th
+                key={heading}
+                className={`px-4 py-2.5 font-medium text-left border-b border-gray-400 ${
+                  idx === 9 ? "" : "border-r"
+                }`}
+              >
+                {heading}
+              </th>
+            ))}
             </tr>
-          </thead>
-          <tbody>
+        </thead>
+        <tbody>
             {loading && (
               <tr>
                 <td colSpan={11} className="px-4 py-6 text-center text-gray-500">
@@ -527,14 +538,17 @@ const pageButtons = () => {
             )}
             {!loading && !error && filteredClasses.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-4 py-6 text-center text-gray-500">
+                <td colSpan={11} className="px-4 py-6 text-center text-gray-500 border-b border-gray-300">
                   No classes found.
                 </td>
               </tr>
             )}
             {!loading && !error && filteredClasses.map((cls) => (
-              <tr key={cls.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                <td className="px-4 py-3">
+              <tr
+                key={cls.id}
+                className="border-b border-gray-300 last:border-b-0 hover:bg-[#f7f7f7]"
+              >
+                <td className="px-4 py-3 border-r border-gray-300">
                   <input
                     type="checkbox"
                     checked={selectedRows.includes(cls.id)}
@@ -542,7 +556,7 @@ const pageButtons = () => {
                     className="rounded border-gray-300"
                   />
                 </td>
-                <td className="px-4 py-3 text-indigo-700">
+                <td className="px-4 py-3 text-indigo-700 border-r border-gray-300">
                   <div className="flex items-start gap-2 justify-between">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <div className={`h-2 w-2 rounded-full flex-shrink-0 ${cls.status === 'Active' ? 'bg-red-500' : 'bg-gray-400'}`}></div>
@@ -576,18 +590,18 @@ const pageButtons = () => {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 border-r border-gray-300">
                   <span className={`px-2 py-1 rounded-full text-xs font-medium ${cls.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                     {cls.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-700">{cls.teacher}</td>
-                <td className="px-4 py-3 text-gray-700">{cls.classroom}</td>
-                <td className="px-4 py-3 text-gray-700">{cls.starts}</td>
-                <td className="px-4 py-3 text-gray-700">{cls.ends}</td>
-                <td className="px-4 py-3 text-gray-700">{cls.recurringDayTime}</td>
-                <td className="px-4 py-3 text-gray-700">{cls.paymentFrequency}</td>
-                <td className="px-4 py-3 text-gray-700">{cls.paymentFees}</td>
+                <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.teacher}</td>
+                <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.classroom}</td>
+                <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.starts}</td>
+                <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.ends}</td>
+                <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.recurringDayTime}</td>
+                <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.paymentFrequency}</td>
+                <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.paymentFees}</td>
                 <td className="px-4 py-3 relative">
   {/* More button */}
   <button
@@ -626,10 +640,10 @@ const pageButtons = () => {
             ))}
           </tbody>
       
-        </table>
+      </table>
 
-           {/* pagination footer */}
-<div className="flex items-center justify-between px-4 py-4 bg-white border-t border-gray-200">
+      {/* pagination footer */}
+      <div className="flex items-center justify-between px-4 py-4 bg-white border-t border-gray-200">
   <div className="text-sm text-gray-600">
     {loading ? (
       "Loading..."
@@ -700,11 +714,8 @@ const pageButtons = () => {
       Next
     </button>
   </div>
-</div>
- 
-        
       </div>
-
+ 
       {/* Student List Tooltip */}
       {hoveredClassId !== null && tooltipPosition && (() => {
         const classData = filteredClasses.find(c => c.id === hoveredClassId);
@@ -756,6 +767,6 @@ const pageButtons = () => {
           </div>
         );
       })()}
-    </div>
+    </div> </div>
   );
 }
