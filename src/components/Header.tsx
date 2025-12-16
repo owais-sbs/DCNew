@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-
 import {
   Plus,
   ChevronDown,
@@ -9,17 +8,21 @@ import {
   Settings,
   CreditCard,
   MessageSquare,
-  Users,
   LogOut,
   HelpCircle,
   Star,
   BookOpen,
   FileText,
+  Users,
   PenTool,
+  Search,
+  UserPlus,
+  Briefcase,
+  GraduationCap
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
 
-const logo = "/src/assets/logo.webp";
+const logo = "/src/assets/DCE_newlogo.png";
 
 export default function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -28,18 +31,28 @@ export default function Header() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   
-  // Get user initials for avatar
+  // Mock subscription check based on your image
+  const subscriptionEnded = true; 
+
   const getUserInitials = () => {
     if (!user?.name) return "U";
-    return user.name
-      .split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
+    return user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   };
-  
-  // Get profile menu items based on role
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      if (!target.closest('.dropdown-container')) {
+        setIsAddNewOpen(false);
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Your original Profile Menu Items
   const getProfileMenuItems = () => {
     if (user?.role === 'Student') {
       return [
@@ -48,8 +61,6 @@ export default function Header() {
         { icon: LogOut, label: "Log out" },
       ];
     }
-    
-    // Admin and Teacher menu items
     return [
       { icon: User, label: "My account" },
       { icon: Settings, label: "School settings" },
@@ -63,154 +74,128 @@ export default function Header() {
       { icon: LogOut, label: "Log out" },
     ];
   };
-  
-  const profileMenuItems = getProfileMenuItems();
-  // Close dropdowns when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.dropdown-container')) {
-        setIsAddNewOpen(false);
-        setIsProfileOpen(false);
-      }
-    };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const profileMenuItems = getProfileMenuItems();
+
+  // Your original Add New items mapped to specific icons for the Grid Layout
+  const addNewItems = [
+    // { icon: CreditCard, label: "Payment", path: "/payments/new" }, // Added mock for visual balance
+    { icon: BookOpen, label: "Class", path: "/notes/add-class" },
+    { icon: FileText, label: "Document", path: "/notes/documents" },
+
+    { icon: Users, label: "Student", path: "/people/students/new" },
+    { icon: GraduationCap, label: "Teacher", path: "/people/teachers/new" },
+    { icon: Briefcase, label: "Staff", path: "/people/staffs/new" },
+
+    // { icon: UserPlus, label: "Prospect", path: "/people/prospects/new" }, // Added mock
+    
+    
+    { icon: Users, label: "Related Contact", path: "/people/related/new" },
+    // { icon: MessageSquare, label: "Group Msg", path: "/messaging/new" }, // Added mock
+    
+   
+    { icon: PenTool, label: "Signature", path: "/signatures" },
+  ];
 
   return (
-    <header className="sticky top-0 z-20 bg-gradient-to-r from-indigo-50 via-blue-50 to-white border-b border-blue-100 shadow-sm">
-      <div className={`transition-all duration-300 ${isExpanded ? 'pl-[325px]' : 'pl-[117px]'}`}>
-        {/* Increased height & spacing */}
-        <div className="h-20 flex items-center justify-between px-8 relative">
+    <div className="flex flex-col sticky top-0 z-20">
+      {/* Dark Header */}
+      <header className="bg-[#2B2F3E] border-b border-gray-700 shadow-sm h-14">
+        <div className={`transition-all duration-300 h-full flex items-center justify-between px-4 ${isExpanded ? 'pl-[325px]' : 'pl-[117px]'}`}>
           
-          {/* Left: Logo */}
-          <div className="flex items-center gap-4">
-            <img
-              src={logo}
-              alt="DCEDU Logo"
-              className="h-16 w-auto object-contain" // logo bigger now
-            />
-            <span className="text-2xl font-semibold text-indigo-700 tracking-tight">
-              DCEDU
-            </span>
+          {/* Left: Logo & Text */}
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="Logo" className="h-6 w-auto object-contain" />
+          
           </div>
 
-          {/* Center: Search Bar */}
-          <div className="flex-1 max-w-lg mx-8">
-            <div className="relative">
-              <svg
-                className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-blue-400"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <path d="m21 21-4.3-4.3" />
-              </svg>
+          {/* Center: Search Bar (Dark Theme) */}
+          <div className="flex-1 max-w-sm mx-6">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search"
-                className="w-full pl-12 pr-4 py-3 rounded-full border border-blue-100 bg-white focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 text-base placeholder:text-blue-300 shadow-sm"
+                className="w-full pl-9 pr-4 py-1.5 rounded bg-[#3F4454] border border-transparent text-sm text-gray-200 placeholder:text-gray-400 focus:bg-white focus:text-gray-900 focus:outline-none transition-colors"
               />
             </div>
           </div>
 
           {/* Right: Controls */}
-          <div className="flex items-center gap-5 relative">
+          <div className="flex items-center gap-2 relative">
             
-            {/* Add New Dropdown - Only show for Admin and Teacher */}
+            {/* ADD NEW BUTTON - SQUARED & DARK */}
             {user?.role !== 'Student' && (
               <div className="relative dropdown-container">
                 <button
                   onClick={() => setIsAddNewOpen(!isAddNewOpen)}
-                  className="h-11 px-6 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-base transition"
+                  className="h-9 w-9 flex items-center justify-center rounded bg-[#3F4454] hover:bg-[#4E5466] text-white transition-colors"
                 >
                   <Plus size={20} />
-                  Add new
                 </button>
 
+                {/* GRID DROPDOWN MENU */}
                 {isAddNewOpen && (
-                  <div className="absolute right-0 mt-3 w-60 bg-white rounded-2xl shadow-lg border border-blue-100 p-3 z-30">
-                    {[
-                      { icon: BookOpen, label: "Class", path: "/notes/add-class" },
-                      { icon: FileText, label: "Document", path: "/notes/documents" },
-                      { icon: Users, label: "Student", path: "/people/students/new" },
-                      { icon: Users, label: "Teacher", path: "/people/teachers/new" },
-                      { icon: Users, label: "Staff", path: "/people/staffs/new" },
-                      { icon: Users, label: "Related contact", path: "/people/related/new" },
-                      { icon: PenTool, label: "Signature", path: "/signatures" },
-                    ].map((item, i) => (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          navigate(item.path);
-                          setIsAddNewOpen(false);
-                        }}
-                        className="flex w-full items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 transition"
-                      >
-                        <item.icon size={18} />
-                        {item.label}
-                      </button>
-                    ))}
+                  <div className="absolute right-0 mt-3 w-72 bg-white rounded-md shadow-2xl border border-gray-200 z-50 overflow-hidden">
+                     {/* Little arrow pointing up */}
+                    <div className="absolute top-0 right-3 -mt-1 w-2 h-2 bg-white transform rotate-45 border-t border-l border-gray-200"></div>
+                    
+                    <div className="px-4 py-2 border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">
+                      Add New
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-1 p-2">
+                      {addNewItems.map((item, i) => (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            navigate(item.path);
+                            setIsAddNewOpen(false);
+                          }}
+                          className="flex flex-col items-center justify-center gap-1 p-3 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded transition-colors group"
+                        >
+                          <item.icon size={20} className="text-gray-500 group-hover:text-blue-600 mb-1" />
+                          <span className="text-[11px] font-medium leading-none text-center">{item.label}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Profile Dropdown */}
-            <div className="relative dropdown-container">
+            {/* Profile Section */}
+            <div className="relative dropdown-container ml-2">
               <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
-                className="h-12 w-12 flex items-center justify-center rounded-full border border-blue-200 bg-white hover:bg-blue-50 transition relative"
+                className="flex items-center gap-3 pl-2 pr-1 py-1 rounded hover:bg-[#3F4454] transition-colors"
               >
+                <div className="text-right hidden sm:block">
+                    <div className="text-sm font-medium text-white leading-none">{user?.name || "Asif"}</div>
+                    {/* Organization Logo Placeholder if needed */}
+                </div>
                 {user?.name ? (
-                  <div className="h-9 w-9 rounded-full bg-indigo-600 text-white flex items-center justify-center text-sm font-semibold">
+                  <div className="h-8 w-8 rounded-full bg-orange-600 text-white flex items-center justify-center text-xs font-bold border-2 border-[#2B2F3E]">
                     {getUserInitials()}
                   </div>
                 ) : (
-                  <img
-                    src={logo}
-                    alt="Profile"
-                    className="h-9 w-9 rounded-full object-cover"
-                  />
+                  <img src={logo} alt="Profile" className="h-8 w-8 rounded-full" />
                 )}
-                <ChevronDown
-                  size={18}
-                  className="absolute right-[-18px] top-1/2 -translate-y-1/2 text-gray-500"
-                />
               </button>
 
               {isProfileOpen && (
-                <div className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-lg border border-blue-100 p-4 z-30">
-                  <div className="flex items-center gap-3 border-b pb-3 mb-2">
-                    {user?.name ? (
-                      <div className="h-12 w-12 rounded-full bg-indigo-600 text-white flex items-center justify-center text-base font-semibold">
-                        {getUserInitials()}
-                      </div>
-                    ) : (
-                      <img
-                        src={logo}
-                        alt="Profile"
-                        className="h-12 w-12 rounded-full object-cover"
-                      />
-                    )}
-                    <div>
-                      <p className="text-base font-semibold">{user?.name || "User"}</p>
-                      <p className="text-sm text-gray-500">{user?.role || "User"}</p>
-                    </div>
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded shadow-xl border border-gray-100 py-1 z-50">
+                   <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+                    <p className="text-sm font-bold text-gray-800">{user?.name || "User"}</p>
+                    <p className="text-xs text-gray-500">{user?.role || "Admin"}</p>
                   </div>
                   {profileMenuItems.map((item, i) => (
                     <button
                       key={i}
                       onClick={item.label === "Log out" ? logout : undefined}
-                      className="flex w-full items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg hover:bg-blue-50 transition"
+                      className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition"
                     >
-                      <item.icon size={18} />
+                      <item.icon size={16} />
                       {item.label}
                     </button>
                   ))}
@@ -219,7 +204,23 @@ export default function Header() {
             </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Subscription Alert Banner */}
+      {/* {subscriptionEnded && (
+        <div className={`bg-blue-50 border-b border-blue-200 px-6 py-3 transition-all duration-300 ${isExpanded ? 'pl-[345px]' : 'pl-[137px]'}`}>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+             <div className="text-sm text-blue-800">
+               <span className="font-bold">Your subscription has ended</span>
+               <span className="mx-1 hidden sm:inline">|</span>
+               <span className="opacity-90">We were unable to renew your subscription which ended on 11-12-2025. Kindly update your billing info to renew your subscription.</span>
+             </div>
+             <button className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded shadow-sm whitespace-nowrap transition-colors">
+               Update Billing Info
+             </button>
+          </div>
+        </div>
+      )} */}
+    </div>
   );
 }

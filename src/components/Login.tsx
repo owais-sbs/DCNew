@@ -5,7 +5,8 @@ import axiosInstance from './axiosInstance'; // Assuming this path is correct
 import { useAuth } from './AuthContext'; // Assuming this path is correct
 
 // Helper function to get dashboard route based on role
-const getDashboardRoute = (role: string): string => {
+// Accepts undefined to avoid TypeScript errors; defaults to main dashboard
+const getDashboardRoute = (role?: string): string => {
   switch (role) {
     case 'Student':
       return '/student/dashboard';
@@ -316,21 +317,22 @@ export default function Login() {
 
   // If not authenticated, render the login form
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-indigo-50 via-white to-blue-100 grid place-items-center p-4">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#F2F8FF] via-[#F6FAFF] to-[#EAF4FF] flex flex-col items-center pt-[50px] px-4 font-sans">
       <div className="w-full max-w-sm sm:w-[380px]">
         {/* Logo */}
-        <div className="mb-5 grid place-items-center">
-          <div className="h-14 rounded-2xl border border-gray-200 bg-white px-5 grid place-items-center shadow-sm">
-            {/* Using the logo path from your second component */}
-            <img src="/src/assets/logo.webp" alt="Teach 'n Go" className="h-9" />
-          </div>
-        </div>
+        <div className="mb-8 grid place-items-center">
+  {/* Increased container height (h-14 -> h-20) and padding (px-5 -> px-8) */}
+  <div className="h-20 rounded-xl border border-gray-200 bg-white px-8 grid place-items-center shadow-sm">
+    {/* Increased logo height (h-9 -> h-12) */}
+    <img src="/src/assets/logo.png" alt="logo" className="h-12" />
+  </div>
+</div>
 
         {/* Card */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm">
           <div className="px-6 sm:px-8 pt-8 pb-6">
-            <h1 className="text-xl font-semibold text-gray-800 text-center">Log into your account</h1>
-            <p className="mt-2 text-sm text-gray-600 text-center">Welcome back! Please enter your details.</p>
+            <h1 className="text-xl font-semibold text-gray-800 text-center mb-5">Log into your account</h1>
+            <p className="mt-2 text-sm text-gray-600 text-center mb-5">Welcome back! Please enter your details.</p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-4">
               {error && (
