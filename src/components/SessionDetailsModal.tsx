@@ -346,16 +346,16 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
       <div 
         key={student.id} 
         onClick={() => toggleStudentSelection(student.id)}
-        className={`bg-white border rounded-2xl p-4 hover:shadow-sm transition-shadow overflow-visible cursor-pointer ${
+        className={`bg-gray-100 border border-gray-300  px-4 py-3 hover:shadow-sm transition cursor-pointer h-40 ${
           isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
         }`}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 text-center mt-5">
           <input
             type="checkbox"
             checked={isSelected}
             onChange={() => toggleStudentSelection(student.id)}
-            className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+            className="h-4 w-4 text-blue-600  border-gray-300 focus:blue-500"
             onClick={(e) => e.stopPropagation()}
           />
           {student.photo ? (
@@ -383,30 +383,30 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
             <div className="relative mt-3 group w-full max-w-xs">
               <button
                 onClick={(e) => e.stopPropagation()}
-                className={`w-full h-12 rounded-full border text-[15px] font-semibold transition-all ${
+                className={`w-full h-8  border text-[15px] font-semibold transition-all bg-gray-200 ${
                   student.status === "Present"
-                    ? "bg-green-100 text-green-700 border-green-300"
+                    ? "bg-gray-200 text-gray-700 border-gray-300 "
                     : student.status === "Absent"
-                    ? "bg-red-100 text-red-700 border-red-300"
+                    ? "bg-gray-200 text-gray-700 border-gray-300"
                     : student.status === "Late"
-                    ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                    ? "bg-gray-200 text-yellow-700 border-gray-300"
                     : student.status === "Excused"
                     ? "bg-gray-200 text-gray-600 border-gray-300 cursor-not-allowed"
-                    : "bg-white text-gray-700 border-gray-300"
+                    : "bg-gray-200  text-gray-700 border-gray-300"
                 }`}
                 disabled={student.status === "Excused" || updatingStudent === student.id}
               >
                 {updatingStudent === student.id ? (
-                  <Loader2 className="animate-spin w-5 h-5 mx-auto" />
+                  <Loader2 className="animate-spin w-5 h-5 mx-auto bg-gray-200" />
                 ) : (
                   student.status ?? "Take attendance"
                 )}
               </button>
               {student.status !== "Excused" && (
                 <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-                  <div className="w-full h-12 rounded-full border border-gray-300 bg-white overflow-hidden flex text-[15px] font-medium">
+                  <div className="w-full h-8 border border-gray-300 bg-white overflow-hidden flex text-[15px] font-medium">
                     <button
-                      className="flex-1 hover:bg-green-50 text-green-700"
+                      className="flex-1 hover:bg-gray-200 text-gray-700"
                       onClick={(e) => {
                         e.stopPropagation();
                         markAttendance(student.classId, student.id, "Present");
@@ -416,7 +416,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                     </button>
                     <div className="w-px bg-gray-300" />
                     <button
-                      className="flex-1 hover:bg-red-50 text-red-700"
+                      className="flex-1 hover:bg-gray-200 text-gray-700"
                       onClick={(e) => {
                         e.stopPropagation();
                         markAttendance(student.classId, student.id, "Absent");
@@ -426,7 +426,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                     </button>
                     <div className="w-px bg-gray-300" />
                     <button
-                      className="flex-1 hover:bg-yellow-50 text-yellow-700"
+                      className="flex-1 hover:bg-gray-200 text-gray-700"
                       onClick={(e) => {
                         e.stopPropagation();
                         markAttendance(student.classId, student.id, "Late");
@@ -507,8 +507,10 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
         className="w-full max-w-7xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+        <div className="relative flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div className="flex items-center gap-4">
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+
             {lesson.teacherNames.length > 0 && (
               <>
                 <div className="h-9 w-9 rounded-full bg-blue-500 text-white grid place-items-center text-sm font-semibold">
@@ -524,15 +526,42 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                 </div>
               </>
             )}
-            <div>
-              <div className="text-lg font-semibold text-gray-900">
-                {lesson.time} - {lesson.className} ({lesson.subject || lesson.classroom})
-              </div>
-              <div className="text-sm text-gray-600">
-                {context === "dashboard" ? "Today" : ""} #{lesson.id} {lesson.classroom}
-              </div>
-            </div>
-          </div>
+            <div className="flex items-start gap-4 flex-1 text-left">
+  <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+
+  {lesson.teacherNames.length > 0 && (
+    <div className="flex items-center gap-2">
+      <div className="h-9 w-9 rounded-full bg-blue-500 text-white grid place-items-center text-sm font-semibold">
+        {lesson.teacherNames[0]
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase()}
+      </div>
+      <div className="text-sm text-gray-700 truncate max-w-[180px]">
+        {lesson.teacherNames.join(", ")}
+      </div>
+    </div>
+  )}
+</div>
+  {/* ✅ TITLE BLOCK (NOW LEFT-ALIGNED) */}
+  <div>
+    <div className="flex items-center gap-2 text-lg font-semibold">
+      <span className="text-gray-800 ">{lesson.time}</span>
+      <span className="text-blue-500 ">{lesson.className}</span>
+      <span className="text-gray-400 font-normal">
+        ({lesson.subject || lesson.classroom})
+      </span>
+    </div>
+
+    <span className="text-sm text-gray-500 mt-0.5">
+      {context === "dashboard" ? "Today " : ""}
+      #{lesson.id} 📍 {lesson.classroom}
+    </span>
+  </div>
+</div>
+
           <button className="text-gray-500 hover:text-gray-700" onClick={onClose}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -548,7 +577,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     onClick={toggleSelectAll}
-                    className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50"
+                    className= "w-full h-9 px-3 bg-gray-200 border border-gray-100 text-gray-300 text-left text-xs text-gray-700 flex items-center gap-2  ring-1 ring-gray-300 hover:bg-gray-200  transition "
                   >
                     {selectedStudents.length === sessionStudents.length ? "Deselect all" : "Select all"} ({selectedStudents.length})
                   </button>
@@ -562,7 +591,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                           setShowAttendanceModal(true);
                         }
                       }}
-                      className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1"
+                      className="w-full h-9 px-3 bg-gray-200 border border-gray-100 text-gray-300 text-left text-xs text-gray-700 flex items-center gap-2  ring-1 ring-gray-300 hover:bg-gray-200  transition"
                     >
                       {label}
                       <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
@@ -580,7 +609,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
             </div>
           </div>
 
-          <aside className="border-l border-gray-200 p-4 bg-gray-50">
+          <aside className="border-l border-gray-200 p-3 bg-white">
             <div className="space-y-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -592,12 +621,20 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                     />
                   </svg>
-                  <h3 className="text-sm font-semibold text-gray-800">Edit</h3>
+                  <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Edit</h3>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-[2px]">
                   <button
                     onClick={() => navigate("/people/teachers")}
-                    className="w-full h-8 px-2 rounded-lg border border-gray-200 bg-white text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                    className="
+  w-full h-9 px-3
+  bg-gray-200 border border-gray-100 text-gray-300
+  text-left text-xs text-gray-700
+  flex items-center gap-2
+   ring-gray-300
+  hover:bg-gray-200
+  transition
+"
                   >
                     👩‍🏫 Teacher
                   </button>
@@ -615,13 +652,12 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
                     />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <h3 className="text-sm font-semibold text-gray-800">Actions</h3>
+                  <h3 className="text-xs font-semibold text-gray-800 uppercase tracking-wide ">Actions</h3>
                 </div>
                 <div className="space-y-1">
                   <button
                     onClick={() => setShowEnrollModal(true)}
-                    className="w-full h-8 px-2 rounded-lg border border-gray-200 bg-white text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                  >
+                    className= "w-full h-9 px-3  bg-gray-200 border border-gray-100 text-gray-300 text-left text-xs text-gray-700 flex items-center gap-2  ring-1 ring-gray-300 hover:bg-gray-200 transition-2">
                     👥 Add students
                   </button>
                 </div>

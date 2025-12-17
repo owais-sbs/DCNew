@@ -384,23 +384,45 @@ export default function Dashboard() {
             
             {/* Cards list */}
             {!isLoading && !error && (
-              <div className="relative pl-24  max-w-5xl">
+              <div className="relative pl-40  max-w-5xl overflow-visible">
+                {/* Straight timeline line */}
+             
+
+                {/* Global straight timeline */}
+
+
                 <div className="space-y-4">
                   {lessons.map((l, index) => {
                     const isSelected = selected === l.id
                     const isHovered = hovered === l.id
                     return (
-                      <div key={l.id} className="relative flex items-center gap-2">
+                      <div key={l.id} className="relative flex items-start gap-2">
                         {/* Vertical Timeline Line - matches card height */}
-                        <div className="absolute left-14 top-0 h-full w-px bg-gray-300"></div>
+                        <div className="absolute left-20 top-6 bottom-6 w-[3px] bg-gray-300 rounded-full"></div>
+
 
                         
                         {/* Blue Circle on Timeline - centered vertically with card */}
-                        <div className="absolute left-11 top-8 h-3 w-3 bg-blue-500 rounded-full border-2 border-white z-10"></div>
+                        {/*    <div className="absolute left-[4.75rem] top-1/2 -translate-y-1/2 h-3 w-3 bg-blue-500 rounded-full border-2 border-white z-10"></div>
+ */}
+                        <div className="absolute left-[4.75rem] top-1/2 -translate-y-1/2 z-10
+                h-4 w-4 rounded-full bg-white
+                border-4 border-blue-500"></div>{/* Connector line to next dot */}
+{index !== lessons.length - 1 && (
+  <div
+    className="absolute left-[5.10rem] top-1/2
+               h-full
+               w-[4px]
+               bg-gray-200
+               rounded-full">
+  </div>
+)}
+
+
 
                         
                         {/* Left: Time and Duration - OUTSIDE the card */}
-                        <div className="w-20 flex-shrink-0 flex items-center">
+                        <div className="w-20 flex-shrink-0 flex items-start pt-6">
                           <div>
                             <div className="text-gray-900 font-semibold text-sm">{l.time}</div>
                             <div className="text-xs text-gray-500 mt-0.5">{l.duration}</div>
