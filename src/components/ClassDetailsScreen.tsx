@@ -142,109 +142,120 @@ export default function ClassDetailsScreen() {
   return (
     <div>
       <div className="px-6 py-6">
-        {/* Class Overview */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm mb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <div className={`w-3 h-3 rounded-full ${classInfo.IsActive ? "bg-green-500" : "bg-red-500"}`}></div>
-              <h1 className="text-2xl font-bold text-gray-800">
-                {classInfo.ClassTitle || "Untitled Class"}
-              </h1>
-              <Edit className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
-            </div>
-            <div className="flex items-center gap-2">
-              <button className="px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Message
-                <ChevronDown className="h-3 w-3" />
-              </button>
-              <button className="px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-                <Printer className="h-4 w-4" />
-                Print
-                <ChevronDown className="h-3 w-3" />
-              </button>
-              <button className="px-3 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2">
-                <MoreHorizontal className="h-4 w-4" />
-                More
-                <ChevronDown className="h-3 w-3" />
-              </button>
-            </div>
-          </div>
 
-          <p className="text-gray-600 mb-6">
-            {classInfo.ClassDescription || `${classInfo.ClassSubject || ""}${classInfo.ClassLevel ? `, ${classInfo.ClassLevel}` : ""}`.trim() || "No description"}
-          </p>
+  {/* PAGE TITLE */}
+  <div className="mb-4 flex items-center justify-between">
+    <h1 className="text-xl font-semibold text-gray-900">
+      Class Details
+    </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Class code:</span>
-              <span className="text-sm font-medium">{classInfo.ClassId || "N/A"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Award className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Subject:</span>
-              <span className="text-sm font-medium">
-                {classInfo.ClassSubject || "N/A"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Schedule:</span>
-              <span className="text-sm font-medium">
-                {formatSchedule(classInfo.Sessions || [])}
-              </span>
-              <Edit className="h-3 w-3 text-gray-400 cursor-pointer hover:text-gray-600" />
-            </div>
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Price:</span>
-              <span className="text-sm font-medium">
-                {classInfo.TeacherHourlyFees ? `€${classInfo.TeacherHourlyFees}/hr` : "No fee"}
-              </span>
-              <Edit className="h-3 w-3 text-gray-400 cursor-pointer hover:text-gray-600" />
-            </div>
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Teacher:</span>
-              <span className="text-sm font-medium text-blue-600 cursor-pointer">
-                Teacher ID: {classInfo.TeacherId || "N/A"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Level:</span>
-              <span className="text-sm font-medium">{classInfo.ClassLevel || "N/A"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Start date:</span>
-              <span className="text-sm font-medium">
-                {classInfo.StartDate ? formatDate(classInfo.StartDate) : "N/A"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">End date:</span>
-              <span className="text-sm font-medium">
-                {classInfo.EndDate ? formatDate(classInfo.EndDate) : "N/A"}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-gray-400" />
-              <span className="text-sm text-gray-600">Status:</span>
-              <span className="text-sm font-medium">
-                {classInfo.IsActive ? "Active" : "Inactive"}
-              </span>
-            </div>
-          </div>
+    {/* ACTION BUTTONS */}
+    <div className="flex items-center gap-2">
+      <button className="px-3 py-1.5 border rounded text-sm flex items-center gap-1 text-gray-700 hover:bg-gray-50">
+        <MessageSquare size={14} />
+        Message
+        <ChevronDown size={12} />
+      </button>
+      <button className="px-3 py-1.5 border rounded text-sm flex items-center gap-1 text-gray-700 hover:bg-gray-50">
+        <Printer size={14} />
+        Print
+        <ChevronDown size={12} />
+      </button>
+      <button className="px-3 py-1.5 border rounded text-sm flex items-center gap-1 text-gray-700 hover:bg-gray-50">
+        <MoreHorizontal size={14} />
+        More
+        <ChevronDown size={12} />
+      </button>
+    </div>
+  </div>
 
-          {classInfo.StartDate && classInfo.EndDate && (
-            <p className="text-xs text-gray-500 mb-2">
-              {formatRepeats(classInfo.StartDate, classInfo.EndDate)}
-            </p>
-          )}
+  {/* DOTTED LINE */}
+  <div className="border-b border-dotted border-gray-300 mb-6" />
+
+  {/* CLASS TITLE */}
+  <div className="flex items-center gap-3 mb-4">
+    <span
+      className={`h-4 w-4 rounded-full ${
+        classInfo.IsActive ? "bg-red-500" : "bg-gray-400"
+      }`}
+    />
+    <h2 className="text-lg font-semibold text-gray-900">
+      {classInfo.ClassTitle}
+    </h2>
+    <span className="text-sm text-gray-600">
+      ({classInfo.ClassSubject}, {classInfo.ClassLevel})
+    </span>
+    <button className="text-blue-600 text-sm hover:underline">
+      (edit)
+    </button>
+  </div>
+
+  {/* INFO LIST */}
+  <ul className="space-y-2 text-sm text-gray-700">
+    <li className="flex items-center gap-2">
+      <span className="text-gray-500">▌▌▌</span>
+      <span>Class Code: {classInfo.ClassId}</span>
+    </li>
+
+    <li className="flex items-center gap-2">
+      ⭐ <span>Awarding Body: ELT</span>
+    </li>
+
+    <li className="flex items-start gap-2">
+      📅
+      <div>
+        <span className="font-medium">
+          {formatSchedule(classInfo.Sessions || [])}
+        </span>
+        <span className="text-blue-600 ml-1 cursor-pointer">(edit)</span>
+        <div className="text-gray-500 mt-0.5">
+          {formatRepeats(classInfo.StartDate, classInfo.EndDate)}
         </div>
+      </div>
+    </li>
+
+    <li className="flex items-center gap-2">
+      💰
+      <span>
+        Price: No Charge{" "}
+        <span className="text-blue-600 cursor-pointer">(edit)</span>
+      </span>
+    </li>
+
+    <li className="flex items-center gap-2">
+      👤
+      <span>
+        Teacher:{" "}
+        <span className="text-blue-600 cursor-pointer">
+          {classInfo.TeacherId}
+        </span>
+      </span>
+    </li>
+
+    <li className="flex items-center gap-2">
+      📍 <span>Classroom: {classInfo.ClassRoomName || "—"}</span>
+    </li>
+
+    <li className="flex items-center gap-2">
+      ✏️ <span>Total Lessons: {classInfo.TotalLessons}</span>
+    </li>
+
+    <li className="flex items-center gap-2">
+      ⏱️ <span>Total Lessons Hours: {classInfo.TotalLessonHours}</span>
+    </li>
+
+    <li className="flex items-center gap-2">
+      🕒 <span>Total Hours Taught: {classInfo.TotalHoursTaught}</span>
+    </li>
+  </ul>
+
+  {/* FOOTER */}
+  <div className="mt-4 text-xs text-gray-400">
+    Created By: Asif Omer &nbsp;&nbsp; Created Date:{" "}
+    {formatDate(classInfo.CreatedDate)}
+  </div>
+
+
 
         {/* Tabs - underline style */}
         <div className="flex items-center gap-6 border-b border-gray-200 mb-6">
@@ -466,156 +477,134 @@ function LessonsContent({
   // };
 
   return (
-    <>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">Lessons</h2>
-          <p className="text-gray-600">
-            View and manage lessons for this class
-          </p>
-        </div>
-        <button
-          onClick={() => setShowAddLessonModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add lesson
-        </button>
+  <>
+    {/* HEADER */}
+    <div className="flex items-center justify-between border-b border-gray-300 pb-3 mb-4">
+      <h2 className="text-lg font-semibold text-gray-900">Lessons</h2>
+
+      <button
+        onClick={() => setShowAddLessonModal(true)}
+        className="px-3 py-1.5 bg-gray-100 border border-gray-300 rounded text-sm flex items-center gap-1 hover:bg-gray-200"
+      >
+        <Plus size={14} />
+        Add a Lesson
+      </button>
+    </div>
+
+    {/* FILTERS */}
+    <div className="flex justify-end items-center gap-2 mb-6">
+      <div className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600">
+        DATE: <span className="font-medium">Most Relevant</span>
       </div>
 
-      <div className="flex items-center gap-4 mb-6">
-        <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-          <option>Date: Most relevant</option>
-        </select>
-        <select className="px-3 py-2 border border-gray-300 rounded-lg text-sm">
-          <option>Sort: Ascending</option>
-        </select>
-        <button className="p-2 text-gray-600 hover:text-gray-800">
-          <Clock className="h-4 w-4" />
-        </button>
+      <div className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600">
+        SORT: <span className="font-medium">Ascending</span>
       </div>
 
-      <div className="space-y-4">
-        {lessons.map((l, i) => (
-          <article
-            key={i}
+      <button className="p-2 border border-gray-300 rounded text-gray-600">
+        <Clock size={16} />
+      </button>
+    </div>
+
+    {/* LESSON LIST */}
+    <div className="space-y-6 relative">
+      {lessons.map((l, i) => (
+        <div key={i} className="relative pl-8">
+          {/* TIMELINE DOT */}
+          <span
+            className={`absolute left-0 top-5 h-4 w-4 rounded-full ${
+              i === 1 ? "bg-blue-500" : "bg-gray-300"
+            }`}
+          />
+
+          {/* CARD */}
+          <div
             onClick={() => setSelectedLessonIdx(i)}
-            className="group cursor-pointer bg-white border-t border-r border-b border-white border-l-2 border-l-red-500 rounded-xl transition-transform duration-150 flex items-center hover:shadow-sm"
+            className="border border-gray-300 bg-white cursor-pointer"
           >
-            <div className="py-2 px-3 grid grid-cols-[75px_1fr_auto] gap-3 items-center w-full">
-              {/* Left: Time and Duration */}
-              <div>
-                <div className="text-gray-900 font-semibold text-base">{l.time}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{l.duration}</div>
+            {/* TOP ROW */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+              <div className="text-sm text-gray-900 font-medium">
+                {l.date || "16-12-2025"} &nbsp;
+                <span className="uppercase text-gray-600">
+                  {l.day || "TUE"}
+                </span>
+                , {l.time}
               </div>
 
-              {/* Middle: Class Details */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 text-gray-900">
-                  <span className="font-semibold text-sm">{l.className}</span>
-                  {l.subject && <span className="text-xs text-gray-500">({l.subject})</span>}
-                </div>
-                <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
-                  <MapPin size={12} />
-                  <span>{l.classroom}</span>
-                </div>
-              </div>
-
-              {/* Right: Icons, Teacher, and Progress Bar */}
-              <div className="flex flex-col items-end gap-1.5">
-                {/* Top row: Stats icons */}
-                <div className="flex items-center gap-2.5 text-gray-600">
-                  <div className="flex items-center gap-1 text-xs">
-                    <Users2 size={14} className="text-gray-500" />
-                    {l.totalStudents}
-                  </div>
-                  <div className="flex items-center gap-1 text-xs">
-                    <Plus size={14} className="text-gray-500" />
-                    0
-                  </div>
-                  <div className="flex items-center gap-1 text-xs">
-                    <Copy size={14} className="text-gray-500" />
-                    0
-                  </div>
-                </div>
-
-                {/* Middle row: Teacher */}
-                {l.teacherNames.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className="text-xs text-gray-700 truncate max-w-[120px]">
-                      {l.teacherNames.join(", ")}
-                    </div>
-                    <div className="h-7 w-7 rounded-full grid place-items-center text-white text-[10px] font-semibold bg-blue-500 flex-shrink-0">
-                      {l.teacherNames[0].split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
-                    </div>
-                  </div>
-                )}
-
-                {/* Bottom row: More Stats and Progress Bar */}
-                <div className="flex items-center gap-2.5 text-gray-600">
-                  <div className="flex items-center gap-1 text-xs">
-                    <Star size={14} className="text-gray-500" />
-                    0
-                  </div>
-                  <div className="flex items-center gap-1 text-xs">
-                    <Flag size={14} className="text-gray-500" />
-                    0
-                  </div>
-                  <div className="flex items-center gap-1 text-xs">
-                    <StickyNote size={14} className="text-gray-500" />
-                    0
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ProgressBar 
-                      green={l.presentCount} 
-                      red={l.absentCount} 
-                      gray={l.totalStudents - l.presentCount - l.absentCount} 
-                    />
-                  </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-700">
+                  {l.teacherNames?.[0] || "Colm Delmar1"}
+                </span>
+                <div className="h-8 w-8 rounded-full border flex items-center justify-center text-gray-600">
+                  <Users size={16} />
                 </div>
               </div>
             </div>
-          </article>
-        ))}
-      </div>
 
-      {showAddLessonModal && (
-        <AddLessonModal
-          classId={classId}
-          onClose={() => setShowAddLessonModal(false)}
-          onSuccess={() => {
-            setShowAddLessonModal(false);
-            fetchLessons();
-          }}
-        />
-      )}
+            {/* BOTTOM ROW */}
+            <div className="flex items-center justify-between px-4 py-3 text-sm text-gray-600">
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-1">
+                  <Users2 size={16} />
+                  {l.totalStudents || 1}
+                </div>
 
-      {selectedLessonIdx !== null && lessons[selectedLessonIdx] && (
-        <SessionDetailsModal
-          context="class"
-          lesson={{
-            id: lessons[selectedLessonIdx].scheduleId?.toString() || "",
-            time: lessons[selectedLessonIdx].time || "",
-            duration: lessons[selectedLessonIdx].duration || "",
-            className: lessons[selectedLessonIdx].className || "",
-            subject: lessons[selectedLessonIdx].subject,
-            classroom: lessons[selectedLessonIdx].classroom,
-            teacherNames: lessons[selectedLessonIdx].teacherNames || [],
-            totalStudents: lessons[selectedLessonIdx].totalStudents || 0,
-            presentCount: lessons[selectedLessonIdx].presentCount || 0,
-            absentCount: lessons[selectedLessonIdx].absentCount || 0,
-          }}
-          sessionId={lessons[selectedLessonIdx].scheduleId || 0}
-          currentDate={currentDate}
-          onClose={() => setSelectedLessonIdx(null)}
-        />
-      )}
+                <div className="flex items-center gap-1 opacity-40">
+                  <Plus size={16} /> 0
+                </div>
 
+                <div className="flex items-center gap-1 opacity-40">
+                  <Copy size={16} /> 0
+                </div>
+              </div>
 
-      
-    </>
-    
-  );
+              <div className="flex items-center gap-4">
+                <Star size={16} className="opacity-30" />
+                <div className="h-5 w-32 bg-gray-100 rounded" />
+                <div className="h-5 w-32 bg-gray-100 rounded" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* MODALS */}
+    {showAddLessonModal && (
+      <AddLessonModal
+        classId={classId}
+        onClose={() => setShowAddLessonModal(false)}
+        onSuccess={() => {
+          setShowAddLessonModal(false);
+          fetchLessons();
+        }}
+      />
+    )}
+
+    {selectedLessonIdx !== null && lessons[selectedLessonIdx] && (
+      <SessionDetailsModal
+        context="class"
+        lesson={{
+          id: lessons[selectedLessonIdx].scheduleId?.toString() || "",
+          time: lessons[selectedLessonIdx].time || "",
+          duration: lessons[selectedLessonIdx].duration || "",
+          className: lessons[selectedLessonIdx].className || "",
+          subject: lessons[selectedLessonIdx].subject,
+          classroom: lessons[selectedLessonIdx].classroom,
+          teacherNames: lessons[selectedLessonIdx].teacherNames || [],
+          totalStudents: lessons[selectedLessonIdx].totalStudents || 0,
+          presentCount: lessons[selectedLessonIdx].presentCount || 0,
+          absentCount: lessons[selectedLessonIdx].absentCount || 0,
+        }}
+        sessionId={lessons[selectedLessonIdx].scheduleId || 0}
+        currentDate={currentDate}
+        onClose={() => setSelectedLessonIdx(null)}
+      />
+    )}
+  </>
+);
+
 }
 
 function StudentsContent({ classId }: { classId: number }) {
@@ -640,8 +629,7 @@ function StudentsContent({ classId }: { classId: number }) {
           setStudents([]);
         }
       } catch (err: any) {
-        console.error("Error loading students:", err);
-        setError(err.response?.data || "Failed to load students");
+        setError("Failed to load students");
         setStudents([]);
       } finally {
         setLoading(false);
@@ -650,142 +638,128 @@ function StudentsContent({ classId }: { classId: number }) {
     fetchStudents();
   }, [classId]);
 
-  const formatDate = (dateStr: string | null | undefined) => {
+  const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "";
-    const date = new Date(dateStr);
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    return new Date(dateStr).toLocaleDateString("en-GB");
   };
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-800">Students</h2>
-          <p className="text-gray-600">
-            View and manage students enrolled in this class
-          </p>
-        </div>
+      {/* HEADER */}
+      <div className="flex items-center justify-between border-b border-gray-300 pb-3 mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">Students</h2>
+
         <div className="flex items-center gap-3">
+          {/* TOGGLE */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Grouped by student</span>
-            <div className="w-10 h-6 bg-blue-600 rounded-full relative">
-              <div className="w-4 h-4 bg-white rounded-full absolute right-1 top-1"></div>
+            <div className="w-10 h-5 bg-gray-300 rounded-full relative">
+              <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-0.5 shadow" />
             </div>
           </div>
-          <button className="p-2 text-gray-600 hover:text-gray-800">
-            <BookOpen className="h-4 w-4" />
+
+          {/* ICON */}
+          <button className="p-2 border border-gray-300 rounded text-gray-600">
+            <BookOpen size={16} />
           </button>
+
+          {/* ENROLL BUTTON */}
           <button
             onClick={() => setShowEnrollModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+            className="px-3 py-1.5 bg-gray-100 border border-gray-300 rounded text-sm flex items-center gap-1 hover:bg-gray-200"
           >
-            <Plus className="h-4 w-4" />
-            Enroll students
+            <Plus size={14} />
+            Enroll Students
           </button>
         </div>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      {/* TABLE */}
+      <div className="bg-white border border-gray-300">
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="animate-spin text-blue-500" size={32} />
+          <div className="py-12 flex justify-center">
+            <Loader2 className="animate-spin text-gray-500" />
           </div>
         ) : error ? (
-          <div className="px-6 py-12 text-center text-red-600">{error}</div>
-        ) : students.length === 0 ? (
-          <div className="px-6 py-12 text-center text-gray-500">No students enrolled in this class</div>
+          <div className="py-12 text-center text-red-600">{error}</div>
         ) : (
-          <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                  Student name
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                  Student code
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                  Phone
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                  Email
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                  Enrolled
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-medium text-gray-700">
-                  Actions
-                </th>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-300">
+              <tr className="text-left text-gray-700">
+                <th className="px-4 py-2">Student name</th>
+                <th className="px-4 py-2">Phone</th>
+                <th className="px-4 py-2">Email</th>
+                <th className="px-4 py-2">Present hours</th>
+                <th className="px-4 py-2">Enrolled</th>
+                <th className="px-4 py-2">Status</th>
+                <th className="px-4 py-2 text-center">Actions</th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-gray-200">
-              {students.map((student) => {
-                const fullName = `${student.FirstName || ""} ${student.Surname || ""}`.trim() || "Unnamed Student";
-                const initials = fullName
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase();
+              {students.map((s) => {
+                const fullName =
+                  `${s.FirstName || ""} ${s.Surname || ""}`.trim();
+
                 return (
-                  <tr key={student.Id} className="hover:bg-gray-50">
+                  <tr key={s.Id} className="hover:bg-gray-50">
+                    {/* NAME */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-xs font-medium text-gray-600">
-                            {initials}
-                          </span>
+                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs">
+                          {fullName
+                            .split(" ")
+                            .map((n) => n[0])
+                            .slice(0, 2)
+                            .join("")}
                         </div>
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className="text-blue-600 font-medium cursor-pointer">
                             {fullName}
                           </div>
-                          {student.IdNumber && (
-                            <div className="text-sm text-gray-500">{student.IdNumber}</div>
-                          )}
+                          <div className="text-xs text-gray-500">
+                            {s.IdNumber}
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {student.IdNumber || "-"}
+
+                    {/* PHONE */}
+                    <td className="px-4 py-3">{s.MobilePhone || "-"}</td>
+
+                    {/* EMAIL */}
+                    <td className="px-4 py-3 text-blue-600">
+                      {s.Email || "-"}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {student.MobilePhone || "-"}
+
+                    {/* HOURS */}
+                    <td className="px-4 py-3">06:00</td>
+
+                    {/* ENROLLED */}
+                    <td className="px-4 py-3">
+                      {formatDate(s.RegistrationDate)}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {student.Email || "-"}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {formatDate(student.RegistrationDate)}
-                    </td>
+
+                    {/* STATUS */}
                     <td className="px-4 py-3">
                       <span
-                        className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          student.IsActive && !student.IsDeleted
-                            ? "bg-green-100 text-green-800"
-                            : student.IsDeleted
-                            ? "bg-red-100 text-red-800"
-                            : "bg-yellow-100 text-yellow-800"
+                        className={`px-2 py-0.5 text-xs rounded-full font-medium ${
+                          s.IsActive && !s.IsDeleted
+                            ? "bg-green-600 text-white"
+                            : "bg-orange-500 text-white"
                         }`}
                       >
-                        {student.IsActive && !student.IsDeleted
-                          ? "Active"
-                          : student.IsDeleted
-                          ? "Unenrolled"
-                          : "Inactive"}
+                        {s.IsActive && !s.IsDeleted
+                          ? "ACTIVE"
+                          : "UNENROLLED"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <button className="p-1 text-gray-600 hover:text-gray-800">
-                        <Edit className="h-4 w-4" />
-                      </button>
+
+                    {/* ACTIONS */}
+                    <td className="px-4 py-3 text-center text-gray-400">
+                      <div className="flex justify-center gap-2">
+                        <Edit size={16} className="cursor-pointer" />
+                        <X size={16} className="cursor-pointer" />
+                      </div>
                     </td>
                   </tr>
                 );
@@ -794,14 +768,10 @@ function StudentsContent({ classId }: { classId: number }) {
           </table>
         )}
       </div>
-      
-
-      {/* {showEnrollModal && (
-        <EnrollStudentsModal onClose={() => setShowEnrollModal(false)} />
-      )} */}
     </>
   );
 }
+
 
 function FeesContent() {
   const [showEditPriceModal, setShowEditPriceModal] = useState(false);
