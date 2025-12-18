@@ -170,615 +170,708 @@ export default function TeacherProfile() {
   ]
 
   const renderProfileContent = () => (
-    <div className="space-y-6">
+    <div className="">
       {/* Contact Details */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Mobile phone</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Home phone</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Email</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Online Lesson Link</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Date of birth</div>
-              <div className="text-sm text-gray-900 mt-1">02-06-2025</div>
-              <div className="text-xs text-gray-500">Birthday is in 7 months</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">ID number</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Address</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Country</div>
-              <div className="text-sm text-gray-900 mt-1">Ireland</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* ================= CONTACT DETAILS (IMAGE STYLE) ================= */}
+<div className="bg-white border border-gray-300">
 
-      {/* About Section */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">About</h3>
-        <div className="space-y-4">
-          <div>
-            <div className="text-sm text-gray-500">General notes</div>
-            <div className="text-sm text-gray-900 mt-1">-</div>
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">About</div>
-            <div className="text-sm text-gray-900 mt-1">-</div>
-          </div>
-        </div>
+  {/* ROW 1 */}
+  <div className="grid grid-cols-1 md:grid-cols-3 border-b border-gray-200">
+    <div className="p-4">
+      <div className="text-sm text-gray-600">Mobile Phone</div>
+      <div className="text-sm text-blue-600 mt-1">
+        {teacherData?.phone || "—"}
       </div>
+    </div>
 
-      {/* School Portal */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">School Portal</h3>
-        <p className="text-sm text-gray-600 mb-6">Enable or disable this teacher's access to your school portal.</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500 mb-2">Access to School Portal</div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-6 bg-blue-600 rounded-full relative">
-                  <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
-                </div>
-                <span className="text-sm text-gray-700">Enabled</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Username</div>
-              <div className="text-sm text-gray-900 mt-1">not set</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500 mb-2">Automatic reminders</div>
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-600 rounded border-2 border-blue-600 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-white rounded-full"></div>
-                </div>
-                <span className="text-sm text-gray-700">Enabled</span>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Invitation</div>
-              <div className="mt-1">
-                <button 
-                  onClick={handleSendInviteEmail}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  Invite to portal
-                </button>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                {teacherData?.name || "Teacher"} has not signed up yet!
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Password</div>
-              <div className="text-sm text-gray-900 mt-1">not set</div>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Last login</div>
-              <div className="text-sm text-gray-900 mt-1">never</div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <div className="text-xs text-gray-500">Created by: Asif Omer</div>
-          <div className="text-xs text-gray-500">Created date: 07-08-2025 16:56</div>
-        </div>
+    <div className="p-4 border-l border-gray-200">
+      <div className="text-sm text-gray-600">Home Phone</div>
+      <div className="text-sm text-gray-900 mt-1">—</div>
+    </div>
+
+    <div className="p-4 border-l border-gray-200">
+      <div className="text-sm text-gray-600">Email</div>
+      <div className="text-sm text-blue-600 mt-1">
+        {teacherData?.email || "—"}
       </div>
+    </div>
+  </div>
+
+  {/* ROW 2 */}
+  <div className="border-b border-gray-200 p-4">
+    <div className="text-sm text-gray-600">Online Lesson Link</div>
+    <div className="text-sm text-gray-900 mt-1">—</div>
+  </div>
+
+  {/* ROW 3 */}
+  <div className="grid grid-cols-1 md:grid-cols-2 border-b border-gray-200">
+    <div className="p-4">
+      <div className="text-sm text-gray-600">Date of Birth</div>
+      <div className="text-sm text-gray-900 mt-1">
+        {teacherData?.dob || "—"}
+      </div>
+    </div>
+
+    <div className="p-4 border-l border-gray-200">
+      <div className="text-sm text-gray-600">Id. Number</div>
+      <div className="text-sm text-gray-900 mt-1">—</div>
+    </div>
+  </div>
+
+  {/* ROW 4 */}
+  <div className="border-b border-gray-200 p-4">
+    <div className="text-sm text-gray-600">Address</div>
+    <div className="text-sm text-gray-900 mt-1">
+      {teacherData?.country || "Ireland"}
+    </div>
+  </div>
+
+  {/* ROW 5 */}
+  <div className="border-b border-gray-200 p-4">
+    <div className="text-sm text-gray-600">General Notes</div>
+    <div className="text-sm text-gray-900 mt-1">—</div>
+  </div>
+
+  {/* ROW 6 */}
+  <div className="border-b border-gray-200 p-4">
+    <div className="text-sm text-gray-600">About</div>
+    <div className="text-sm text-gray-900 mt-1">—</div>
+  </div>
+
+  {/* SCHOOL PORTAL HEADER */}
+  <div className="p-4 bg-gray-50 border-b border-gray-200">
+    <div className="font-medium text-gray-900">School Portal</div>
+    <div className="text-sm text-gray-600">
+      Enable or disable the Teacher's access to your school's portal.
+    </div>
+  </div>
+
+  {/* SCHOOL PORTAL ROW */}
+  <div className="grid grid-cols-1 md:grid-cols-3 border-b border-gray-200">
+    <div className="p-4">
+      <div className="text-sm text-gray-600 mb-2">Access to School Portal</div>
+      <div className="inline-flex items-center gap-2">
+        <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-xs">
+          ON
+        </span>
+      </div>
+    </div>
+
+    <div className="p-4 border-l border-gray-200">
+      <div className="text-sm text-gray-600">Invitation</div>
+      <div className="text-sm text-blue-600 mt-1 cursor-pointer">
+        Invite to Portal
+      </div>
+      <div className="text-xs text-gray-500 mt-1">
+        {teacherData?.name} has not signed up yet!
+      </div>
+    </div>
+
+    <div className="p-4 border-l border-gray-200">
+      <div className="text-sm text-gray-600">Last Login</div>
+      <div className="text-sm text-gray-400 italic mt-1">never</div>
+    </div>
+  </div>
+
+  {/* USERNAME / PASSWORD */}
+  <div className="grid grid-cols-1 md:grid-cols-2 border-b border-gray-200">
+    <div className="p-4">
+      <div className="text-sm text-gray-600">Username</div>
+      <div className="text-sm italic text-gray-500 mt-1">not set</div>
+    </div>
+
+    <div className="p-4 border-l border-gray-200">
+      <div className="text-sm text-gray-600">Password</div>
+      <div className="text-sm italic text-gray-500 mt-1">not set</div>
+    </div>
+  </div>
+
+  {/* AUTOMATIC REMINDERS */}
+  <div className="p-4 border-b border-gray-200">
+    <div className="text-sm text-gray-600 mb-2">Automatic Reminders</div>
+    <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-xs">
+      ON
+    </span>
+  </div>
+
+  {/* FOOTER */}
+  <div className="p-3 text-xs text-gray-500">
+    Created Date: 08-11-2022 17:27
+  </div>
+</div>
+
+
+      
     </div>
   )
 
   const renderClassesContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Classes taught</h2>
-          <p className="text-gray-600 mt-1">View and manage the classes that {teacherData?.name || "this teacher"} teaches in.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm">Classes</button>
-          <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Individual lessons</button>
-        </div>
-      </div>
-      
-      {loadingClasses ? (
-        <div className="py-12 text-center text-gray-500">
-          Loading classes...
-        </div>
-      ) : classesError ? (
-        <div className="py-12 text-center text-red-600">
-          {classesError}
-        </div>
-      ) : classes.length === 0 ? (
-        <div className="py-12 text-center text-gray-500">
-          No classes found.
-        </div>
-      ) : (
-        <>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class name</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Total lessons</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Total lesson hours</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Total teacher fees</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {classes.map((cls: any, idx: number) => {
-                  const formatDate = (dateString?: string | null) => {
-                    if (!dateString) return "—"
-                    const date = new Date(dateString)
-                    if (Number.isNaN(date.getTime())) return "—"
-                    return date.toLocaleDateString("en-GB")
-                  }
-                  
-                  return (
-                    <tr 
-                      key={cls.ClassId || idx} 
-                      className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => navigate(`/notes/class-details/${cls.ClassId}`)}
-                    >
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 w-2 rounded-full bg-red-500" />
-                          <div>
-                            <div className="font-medium text-gray-900">{cls.ClassTitle || "Unnamed Class"}</div>
-                            <div className="text-sm text-gray-500">{cls.ClassLevel || cls.ClassSubject || ""}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-gray-700">—</td>
-                      <td className="py-3 px-4 text-gray-700">—</td>
-                      <td className="py-3 px-4 text-gray-700">€0.00</td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs ${
-                          cls.IsActive !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                        }`}>
-                          {cls.IsActive !== false ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-          
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              <select className="h-8 px-2 rounded border border-gray-200 text-sm">
-                <option>25 entries per page</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-1">
-              <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">«</button>
-              <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">‹</button>
-              <button className="h-8 w-8 grid place-items-center rounded bg-blue-600 text-white">1</button>
-              <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">›</button>
-              <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">»</button>
-            </div>
-          </div>
-        </>
-      )}
-    </div>
-  )
+  <div className="bg-white border border-gray-300">
 
-  const renderEventsContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Events</h2>
-        </div>
+    {/* HEADER */}
+    <div className="flex items-center justify-between px-4 py-3 border-b border-gray-300">
+      <h2 className="text-lg font-semibold text-gray-800">Classes Taught</h2>
+
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-gray-600">View:</span>
+        <button className="px-3 py-1 rounded bg-blue-600 text-white">
+          Classes
+        </button>
+        <button className="px-3 py-1 rounded border border-gray-300 text-blue-600">
+          Individual Lessons
+        </button>
       </div>
-      
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-200">
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Event name</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Location</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Start date</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">End date</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">Start time</th>
-              <th className="text-left py-3 px-4 font-medium text-gray-700">End time</th>
-            </tr>
-          </thead>
-          <tbody>
+    </div>
+
+    {/* TABLE */}
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-300">
+            <th className="text-left px-4 py-2 font-semibold text-gray-700 border-r">
+              Class Name
+            </th>
+            <th className="text-left px-4 py-2 font-semibold text-gray-700 border-r">
+              Total Lessons
+            </th>
+            <th className="text-left px-4 py-2 font-semibold text-gray-700 border-r">
+              Total Lesson Hours
+            </th>
+            <th className="text-left px-4 py-2 font-semibold text-gray-700 border-r">
+              Total Teacher Fees
+            </th>
+            <th className="text-left px-4 py-2 font-semibold text-gray-700">
+              Status
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {loadingClasses ? (
             <tr>
-              <td colSpan={6} className="py-12 text-center text-gray-500">
-                No records found
+              <td colSpan={5} className="text-center py-8 text-gray-500">
+                Loading classes...
               </td>
             </tr>
-          </tbody>
-        </table>
+          ) : classesError ? (
+            <tr>
+              <td colSpan={5} className="text-center py-8 text-red-600">
+                {classesError}
+              </td>
+            </tr>
+          ) : classes.length === 0 ? (
+            <tr>
+              <td colSpan={5} className="text-center py-8 text-gray-500">
+                No data available
+              </td>
+            </tr>
+          ) : (
+            classes.map((cls: any, idx: number) => (
+              <tr
+                key={cls.ClassId || idx}
+                className="border-b border-gray-200 hover:bg-gray-50 cursor-pointer"
+                onClick={() =>
+                  navigate(`/notes/class-details/${cls.ClassId}`)
+                }
+              >
+                {/* CLASS NAME */}
+                <td className="px-4 py-3 border-r">
+                  <div className="flex items-start gap-2">
+                    <span className="h-3 w-3 mt-1 rounded-full bg-red-500" />
+                    <div>
+                      <div className="text-blue-600 hover:underline">
+                        {cls.ClassTitle || "Unnamed Class"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {cls.ClassLevel || cls.ClassSubject || ""}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+
+                {/* TOTAL LESSONS */}
+                <td className="px-4 py-3 border-r text-gray-700">
+                  {cls.TotalLessons ?? "—"}
+                </td>
+
+                {/* TOTAL HOURS */}
+                <td className="px-4 py-3 border-r text-gray-700">
+                  {cls.TotalHours ?? "—"}
+                </td>
+
+                {/* FEES */}
+                <td className="px-4 py-3 border-r text-gray-700">
+                  €0.00
+                </td>
+
+                {/* STATUS */}
+                <td className="px-4 py-3">
+                  <span className="inline-block px-3 py-1 text-xs rounded-full bg-green-600 text-white">
+                    Active
+                  </span>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+
+    {/* FOOTER */}
+    <div className="flex items-center justify-between px-4 py-3 text-sm text-gray-600">
+      <div className="flex items-center gap-2">
+        <select className="border border-gray-300 px-2 py-1 rounded">
+          <option>25</option>
+        </select>
+        <span>records per page</span>
       </div>
-      
-      <div className="flex items-center justify-between mt-4">
-        <div className="flex items-center gap-2">
-          <select className="h-8 px-2 rounded border border-gray-200 text-sm">
-            <option>25</option>
-          </select>
-          <span className="text-sm text-gray-500">entries per page</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">«</button>
-          <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">‹</button>
-          <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">›</button>
-          <button className="h-8 w-8 grid place-items-center rounded hover:bg-gray-100">»</button>
-        </div>
+
+      <div className="flex items-center gap-2">
+        <button className="px-2 py-1 border border-gray-300 rounded text-gray-400">
+          ← Previous
+        </button>
+        <span className="px-3 py-1 border border-gray-300 rounded bg-gray-100">
+          1
+        </span>
+        <button className="px-2 py-1 border border-gray-300 rounded text-gray-400">
+          Next →
+        </button>
       </div>
     </div>
-  )
+  </div>
+)
+
+
+ const renderEventsContent = () => (
+  <div className="bg-white border border-gray-300">
+
+    {/* TABLE */}
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-300">
+            <th className="text-left px-4 py-2 font-semibold text-gray-700 border-r">
+              Event Name
+            </th>
+            <th className="text-left px-4 py-2 font-semibold text-gray-700 border-r">
+              Location
+            </th>
+            <th className="text-left px-4 py-2 font-semibold text-gray-700 border-r">
+              Start Date
+            </th>
+            <th className="text-left px-4 py-2 font-semibold text-gray-700 border-r">
+              End Date
+            </th>
+            <th className="text-left px-4 py-2 font-semibold text-gray-700 border-r">
+              Start Time
+            </th>
+            <th className="text-left px-4 py-2 font-semibold text-gray-700">
+              End Time
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr>
+            <td
+              colSpan={6}
+              className="px-4 py-6 text-left text-gray-600 border-b border-gray-200"
+            >
+              No data available
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    {/* FOOTER */}
+    <div className="flex items-center justify-between px-4 py-3 text-sm text-gray-600 border-t border-gray-300">
+      <div className="flex items-center gap-2">
+        <select className="border border-gray-300 px-2 py-1 rounded">
+          <option>25</option>
+        </select>
+        <span>records per page</span>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button className="px-3 py-1 border border-gray-300 rounded text-gray-400">
+          ← Previous
+        </button>
+        <button className="px-3 py-1 border border-gray-300 rounded text-gray-400">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
+)
+
 
   const renderTeacherFeesContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Teacher fees</h2>
-          <p className="text-gray-600 mt-1">View and manage teacher fees</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm">Grouped</button>
-          <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Individual fees</button>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Class fees */}
-        <div className="text-center py-12">
-          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-            <DollarSign size={32} className="text-blue-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Class fees</h3>
-          <p className="text-gray-600 mb-4">Teacher fees for classes that {teacherData?.name || "this teacher"} teaches will show here.</p>
-        </div>
-        
-        {/* Additional fees */}
-        <div className="text-center py-12">
-          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-            <FileText size={32} className="text-blue-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Additional fees</h3>
-          <p className="text-gray-600 mb-4">Additional fees will show here, e.g. overtime, travel expenses, etc.</p>
-          <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
-            <Plus size={16} /> Add a fee
-          </button>
-        </div>
+  <div className="bg-white">
+
+    {/* HEADER */}
+    <div className="flex items-center justify-between pb-3 border-b border-gray-300 p-5">
+      <h2 className="text-lg font-semibold text-gray-900">Teacher Fees</h2>
+
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-gray-600">View:</span>
+        <button className="px-3 py-1 rounded bg-blue-600 text-white">
+          Grouped by Fee
+        </button>
+        <button className="px-3 py-1 rounded border border-gray-300 text-blue-600">
+          Individual Items
+        </button>
       </div>
     </div>
-  )
+
+    {/* CLASS FEES */}
+    <div className="p-5">
+      <div className="font-semibold text-gray-800">Class Fees</div>
+      <div className="text-sm text-gray-600">
+        Teacher fees for classes that {teacherData?.name || "this teacher"} teaches in.
+      </div>
+      <div className="mt-1 text-sm">
+        <span className="font-semibold">€0.00</span>{" "}
+        <span className="text-gray-600">Total Fees</span>
+      </div>
+    </div>
+
+    {/* TABLE */}
+    <div className="border border-gray-300 mt-3">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr className="bg-gray-50 border-b border-gray-300">
+            <th className="text-left px-4 py-2 font-semibold border-r">
+              Class
+            </th>
+            <th className="text-left px-4 py-2 font-semibold border-r">
+              Fee Type
+            </th>
+            <th className="text-left px-4 py-2 font-semibold border-r">
+              Paid / Total
+            </th>
+            <th className="text-left px-4 py-2 font-semibold border-r">
+              Status
+            </th>
+            <th className="text-left px-4 py-2 font-semibold">
+              Actions
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr className="border-b border-gray-200">
+            <td className="px-4 py-3">
+              <div className="flex items-start gap-2">
+                <span className="h-3 w-3 rounded-full bg-red-500 mt-1"></span>
+                <div>
+                  <div className="text-blue-600 cursor-pointer">
+                    Cork Classroom C1 AM ABAIGH/ANNE
+                  </div>
+                  <div className="text-xs text-gray-500">C1 am</div>
+                </div>
+              </div>
+            </td>
+
+            <td className="px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">⏳</span>
+                <div>
+                  <div>Hourly</div>
+                  <div className="text-xs text-gray-500">€0.00 per hour</div>
+                </div>
+              </div>
+            </td>
+
+            <td className="px-4 py-3">
+              <div className="mb-1">€0.00 / €0.00</div>
+              <div className="h-2 bg-gray-200 rounded">
+                <div className="h-2 bg-gray-300 rounded w-0"></div>
+              </div>
+            </td>
+
+            <td className="px-4 py-3">
+              <span className="px-2 py-1 text-xs rounded bg-blue-600 text-white">
+                FREE
+              </span>
+            </td>
+
+            <td className="px-4 py-3 text-gray-400">
+              ✏️ &nbsp; ☰
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    {/* ADDITIONAL FEES */}
+    <div className="mt-12 border-t border-dashed border-gray-300 pt-10 text-center">
+      <div className="mx-auto mb-3 h-14 w-14 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-2xl">
+        🏷️
+      </div>
+
+      <div className="font-semibold text-gray-700">
+        Additional Fees <span className="text-xs text-orange-500 ml-1">BETA</span>
+      </div>
+
+      <div className="text-sm text-gray-500 mt-1">
+        Additional fees will show here, e.g. overtime, travel expenses, etc.
+      </div>
+
+      <button className="mt-4 px-4 py-2 border border-gray-300 rounded bg-gray-100 text-sm">
+        + Add a Fee
+      </button>
+    </div>
+  </div>
+)
+
 
   const renderPayslipsContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Payslips</h2>
-        </div>
-      </div>
+  <div className="bg-white border border-gray-200 px-6 py-4 shadow-sm">
+    
+    {/* Header */}
+    <div className="pb-2 border-b border-gray-300 mb-6 flex items-center gap-2">
+      <h2 className="text-lg font-semibold text-gray-900">Payslips</h2>
+      <span className="text-[10px] font-semibold text-orange-500">BETA</span>
+    </div>
+
+    {/* Empty state */}
+    <div className="flex items-start gap-6 max-w-3xl mx-auto mt-10">
       
-      <div className="text-center py-12">
-        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-          <Receipt size={32} className="text-blue-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {teacherData?.name || "this teacher"}'s first payslip</h3>
-        <p className="text-gray-600 mb-4">{teacherData?.name || "This teacher"}'s payslips will appear here once they have been added.</p>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
-          <Plus size={16} /> New payslip
+      {/* Icon */}
+      <div className="h-14 w-14 rounded-lg bg-gray-200 flex items-center justify-center">
+        <Receipt size={28} className="text-gray-400" />
+      </div>
+
+      {/* Text */}
+      <div>
+        <h3 className="text-base font-semibold text-gray-900 mb-1">
+          Add {teacherData?.name || "this teacher"}'s first teacher payment
+        </h3>
+
+        <p className="text-sm text-gray-600 mb-4 max-w-xl">
+          {teacherData?.name || "This teacher"}'s payslips will appear here once a teacher payment is made.
+        </p>
+
+        <button className="h-9 px-4 rounded-md border border-gray-300 bg-gray-100 text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-200">
+          <Plus size={14} /> New Teacher Payment
         </button>
       </div>
     </div>
-  )
+
+  </div>
+)
+
 
   const renderNotesContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Notes</h2>
-        </div>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
-          <Plus size={16} /> New note
-        </button>
-      </div>
-      
-      <div className="text-center py-12">
-        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-          <StickyNote size={32} className="text-blue-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add notes about {teacherData?.name || "this teacher"}</h3>
-        <p className="text-gray-600 mb-4">Notes concerning {teacherData?.name || "this teacher"} will appear here.</p>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
-          <Plus size={16} /> New note
-        </button>
-      </div>
+  <div className="bg-white border border-gray-200 px-6 py-4 shadow-sm">
+    
+    {/* Header */}
+    <div className="pb-2 border-b border-gray-300 mb-6">
+      <h2 className="text-lg font-semibold text-gray-900">Notes</h2>
     </div>
-  )
 
-  const renderAttachmentsContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Attachments</h2>
-        </div>
-      </div>
+    {/* Empty state */}
+    <div className="flex items-start gap-6 max-w-3xl mx-auto mt-10">
       
-      <div className="text-center py-12">
-        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-          <Paperclip size={32} className="text-blue-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add attachments</h3>
-        <p className="text-gray-600 mb-4">You can add and store relevant documents and files here.</p>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
-          <Plus size={16} /> Add attachment
+      {/* Icon */}
+      <div className="h-14 w-14 rounded-lg bg-gray-200 flex items-center justify-center">
+        <StickyNote size={26} className="text-gray-400" />
+      </div>
+
+      {/* Text */}
+      <div>
+        <h3 className="text-base font-semibold text-gray-900 mb-1">
+          Add notes about {teacherData?.name || "this teacher"}
+        </h3>
+
+        <p className="text-sm text-gray-600 mb-4">
+          Notes concerning {teacherData?.name || "this teacher"} will appear here.
+        </p>
+
+        <button className="h-9 px-4 rounded-md border border-gray-300 bg-gray-100 text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-200">
+          <Plus size={14} /> New Note
         </button>
       </div>
     </div>
-  )
+
+  </div>
+)
+
+
+ const renderAttachmentsContent = () => (
+  <div className="bg-white border border-gray-200 px-6 py-4 shadow-sm">
+
+    {/* Header */}
+    <div className="pb-2 border-b border-gray-300 mb-6">
+      <h2 className="text-lg font-semibold text-gray-900">Attachments</h2>
+    </div>
+
+    {/* Empty state */}
+    <div className="flex items-start gap-6 max-w-3xl mx-auto mt-10">
+
+      {/* Icon (NO circle – image jaisa) */}
+      <div className="text-gray-300">
+        <Paperclip size={42} strokeWidth={1.5} />
+      </div>
+
+      {/* Content */}
+      <div>
+        <h3 className="text-base font-semibold text-gray-900 mb-1">
+          Add Attachments
+        </h3>
+
+        <p className="text-sm text-gray-600 mb-4">
+          You can add and store relevant documents and files here.
+        </p>
+
+        <button className="h-9 px-4 rounded-md border border-gray-300 bg-gray-100 text-gray-700 text-sm inline-flex items-center gap-2 hover:bg-gray-200">
+          <Plus size={14} /> Add Attachment
+        </button>
+      </div>
+    </div>
+
+  </div>
+)
 
   const renderPermissionsContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Choose what {teacherData?.name || "this teacher"} can view or do in the portal</h2>
-        <p className="text-gray-600">These permissions will only apply to {teacherData?.name || "this teacher"} and will not affect anyone else.</p>
-      </div>
-      
-      <div className="space-y-6">
-        {/* General access */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">General access</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="radio" name="general-access" className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">View all school information</div>
-                <div className="text-sm text-gray-600">Can view info about ALL Classes, Lessons, students and related contacts. The permissions below set out how much access they will have to this information.</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <input type="radio" name="general-access" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">View assigned information</div>
-                <div className="text-sm text-gray-600">Can only view information related to the Classes and students they are assigned to</div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <input type="checkbox" className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">View archived information</div>
-                <div className="text-sm text-gray-600">Note: This setting can only be changed for individual teachers</div>
-              </div>
-            </div>
-          </div>
-        </div>
+  <div className="bg-white border border-gray-200 shadow-sm">
 
-        {/* Teachers */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Teachers</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot view teacher profiles</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Students and related contacts */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Students and related contacts</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot view student profiles</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Prospects */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Prospects</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot view prospects</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Classes */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Classes</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot view classes</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Class Lessons */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Class Lessons</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">View lessons - Can view lessons and all related information</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Classrooms */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Classrooms</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">View Classrooms - Can view the schools classrooms but cannot add new ones</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Email and SMS notifications */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Email and SMS notifications</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot view or send Emails or SMS</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Library and attachments */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Library and attachments</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot view library or attachments</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Payments and receipts */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Payments and receipts</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot view student payments or receipts</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Reports and exports */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Reports and exports</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot export</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Staffs */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Staffs</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot view staff profiles</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* School management */}
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">School management</h3>
-          <div className="space-y-4">
-            <div className="flex items-start gap-3">
-              <input type="checkbox" defaultChecked className="mt-1" />
-              <div>
-                <div className="font-medium text-gray-900">Use default</div>
-                <div className="text-sm text-gray-600">None - Cannot view school management</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="flex items-center justify-end pt-6">
-        <button className="h-10 px-6 rounded-lg bg-blue-600 text-white text-sm">
-          Save changes
-        </button>
-      </div>
+    {/* Header */}
+    <div className="px-6 py-4 border-b border-gray-200">
+      <h2 className="text-lg font-semibold text-gray-900">
+        Choose what this teacher can view or do in the Teacher Portal
+      </h2>
+      <p className="text-sm text-gray-600 mt-1">
+        These permissions will only apply to this teacher and will not affect any other teacher.
+      </p>
     </div>
-  )
+
+    {/* Permissions list */}
+    <div className="divide-y divide-gray-200">
+
+      {/* GENERAL ACCESS */}
+      <div className="px-6 py-4">
+        <h3 className="text-sm font-semibold text-gray-900 mb-3 uppercase">
+          General Access
+        </h3>
+
+        <div className="space-y-3">
+          <label className="flex items-start gap-3 text-sm">
+            <input type="radio" name="general-access" />
+            <div>
+              <div className="font-medium text-gray-900">
+                View All School Information
+              </div>
+              <div className="text-gray-600">
+                Can view info about ALL Classes, Lessons, students and related contacts.
+              </div>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 text-sm">
+            <input type="radio" name="general-access" defaultChecked />
+            <div>
+              <div className="font-medium text-gray-900">
+                View Assigned Information
+              </div>
+              <div className="text-gray-600">
+                Can only view information related to assigned classes and students.
+              </div>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-3 text-sm">
+            <input type="checkbox" />
+            <div>
+              <div className="font-medium text-gray-900">
+                View Archived Information
+              </div>
+              <div className="text-gray-600">
+                NOTE: This setting can only be changed for individual teachers
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      {/* SIMPLE CHECKBOX SECTIONS */}
+      {[
+        ["Teachers", "None - Cannot view teacher profiles"],
+        ["Students and related contacts", "None - Cannot view student profiles"],
+        ["Prospects", "None - Cannot view prospects"],
+        ["Classes", "None - Cannot view classes"],
+        ["Class Lessons", "View lessons and related information"],
+        ["Classrooms", "Can view classrooms but cannot add new ones"],
+        ["Email and SMS notifications", "Cannot view or send Emails or SMS"],
+        ["Library and attachments", "Cannot view library or attachments"],
+        ["Payments and receipts", "Cannot view student payments or receipts"],
+        ["Reports and exports", "Cannot export"],
+        ["Staffs", "Cannot view staff profiles"],
+        ["School management", "Cannot view school management"],
+      ].map(([title, desc]) => (
+        <div key={title} className="px-6 py-4">
+          <label className="flex items-start gap-3 text-sm">
+            <input type="checkbox" defaultChecked />
+            <div>
+              <div className="font-medium text-gray-900">{title}</div>
+              <div className="text-gray-600">{desc}</div>
+            </div>
+          </label>
+        </div>
+      ))}
+    </div>
+
+    {/* Footer */}
+    <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+      <button className="h-9 px-5 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-700">
+        Save
+      </button>
+    </div>
+
+  </div>
+)
+
 
   const renderAvailabilityContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Teacher availability</h2>
-        <p className="text-gray-600">Set teacher availability to be used in the booking system when students book lessons.</p>
-      </div>
-      
-      <div className="text-center py-12">
-        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-          <Clock size={32} className="text-blue-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add a recurring availability time</h3>
-        <p className="text-gray-600 mb-4">If you are are using the lessons booking feature, please set teacher availability here. <span className="text-blue-600 cursor-pointer">Learn more</span></p>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
-          <Plus size={16} /> Add availability
-        </button>
-      </div>
+  <div className="bg-white border border-gray-200 shadow-sm">
+
+    {/* Header */}
+    <div className="px-6 py-4 border-b border-gray-200">
+      <h2 className="text-lg font-semibold text-gray-900">
+        Teacher Recurring Availability
+      </h2>
     </div>
-  )
+
+    {/* Empty State */}
+    <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+
+      {/* Icon */}
+      <div className="h-16 w-16 mb-6 rounded-full bg-gray-200 flex items-center justify-center">
+        <Clock size={28} className="text-gray-500" />
+      </div>
+
+      {/* Title */}
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        Add a Recurring Time
+      </h3>
+
+      {/* Description */}
+      <p className="text-gray-600 max-w-md mb-4 text-sm">
+        If you are using the Book Lessons feature, please set your teacher
+        availability here.{" "}
+        <span className="text-blue-600 cursor-pointer">Learn more</span>
+      </p>
+
+      {/* Button */}
+      <button className="h-9 px-4 rounded-md border border-gray-300 bg-gray-100 text-gray-800 text-sm hover:bg-gray-200 inline-flex items-center gap-2">
+        <Plus size={14} /> Add Time
+      </button>
+
+    </div>
+  </div>
+)
+
 
   const renderContent = () => {
     switch(activeTab.toLowerCase()) {
@@ -799,144 +892,120 @@ export default function TeacherProfile() {
     <div>
       <div className="px-6 py-6">
         {/* Header card */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="h-16 w-16 rounded-full bg-green-600 flex items-center justify-center">
-              <span className="text-white text-xl font-semibold">AT</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-semibold text-gray-900 truncate">{teacherData?.name || "Loading..."}</h1>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Teacher</span>
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <div>{teacherData?.gender || "—"}</div>
-                <div>{teacherData?.age || 0} years old</div>
-                <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add phone')}>+ add phone</button>
-                <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add email')}>+ add email</button>
-                <div className="inline-flex items-center gap-1 text-emerald-700">
-                  <span className="h-2 w-2 rounded-full bg-emerald-600" />
-                  2
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Message Dropdown */}
-              <div className="relative">
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'message' ? null : 'message')}
-                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
-                >
-                  Message <ChevronDown size={14} />
-                </button>
-                {openDropdown === 'message' && (
-                  <div className="dropdown-container absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div 
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                      onClick={() => {
-                        setOpenDropdown(null)
-                        setOpenModal('sms')
-                      }}
-                    >
-                      <Megaphone size={16} /> Send SMS
-                    </div>
-                    <div 
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                      onClick={() => {
-                        setOpenDropdown(null)
-                        setOpenModal('email')
-                      }}
-                    >
-                      <Mail size={16} /> Send email
-                    </div>
-                    <div 
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                      onClick={() => {
-                        setOpenDropdown(null)
-                        setOpenModal('announcement')
-                      }}
-                    >
-                      <Megaphone size={16} /> Send announcement
-                    </div>
-                  </div>
-                )}
-              </div>
+        <div className="bg-white border border-gray-200  p-5 shadow-sm">
+          {/* ================= TEACHER PROFILE HEADER ================= */}
+<div className="bg-white border border-gray-300">
 
-              {/* Print Dropdown */}
-              <div className="relative">
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'print' ? null : 'print')}
-                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
-                >
-                  Print <ChevronDown size={14} />
-                </button>
-                {openDropdown === 'print' && (
-                  <div className="dropdown-container absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">Print Profile</div>
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">Print Schedule</div>
-                    <div className="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">Print Reports</div>
-                  </div>
-                )}
-              </div>
+  {/* PAGE TITLE */}
+  <div className="px-5 py-3 border-b border-dotted border-gray-300 flex items-center justify-between">
+    <h1 className="text-lg font-semibold text-gray-800">
+      Teacher Profile
+    </h1>
 
-              {/* More Dropdown */}
-              <div className="relative">
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'more' ? null : 'more')}
-                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
-                >
-                  More <ChevronDown size={14} />
-                </button>
-                {openDropdown === 'more' && (
-                  <div className="dropdown-container absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
-                      <FileText size={16} /> Edit
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
-                      <Sun size={16} /> Set holiday
-                    </div>
-                    <div 
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                      onClick={handleSendInviteEmail}
-                    >
-                      <User size={16} /> Invite to portal
-                    </div>
-                    <div className="border-t border-gray-200 my-1"></div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
-                      <Archive size={16} /> Archive
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer">
-                      <Trash2 size={16} /> Delete
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+    <div className="flex items-center gap-2">
+      <button className="px-3 py-1.5 bg-gray-100 border border-gray-300 text-sm flex items-center gap-1">
+        Message
+      </button>
+      <button className="px-3 py-1.5 bg-gray-100 border border-gray-300 text-sm flex items-center gap-1">
+        Print
+      </button>
+      <button className="px-3 py-1.5 bg-gray-100 border border-gray-300 text-sm flex items-center gap-1">
+        More
+      </button>
+    </div>
+  </div>
+
+  {/* PROFILE ROW */}
+  <div className="px-5 py-5 flex items-start gap-4">
+
+    {/* AVATAR (SQUARE) */}
+    <div className="w-24 h-24 border border-gray-300 bg-gray-200 flex items-center justify-center">
+      <User size={48} className="text-gray-400" />
+    </div>
+
+    {/* DETAILS */}
+    <div className="flex-1">
+      <div className="text-xl font-semibold text-gray-900">
+        {teacherData?.name || "—"}
+      </div>
+
+      <div className="text-sm text-gray-600 mt-1">
+        {teacherData?.gender || "—"},
+      </div>
+
+      <div className="mt-3 space-y-2 text-sm">
+
+        {/* PHONE */}
+        <div className="flex items-center gap-2 text-blue-600">
+          <span className="text-gray-500">📞</span>
+          <span>{teacherData?.phone || "—"}</span>
+        </div>
+
+        {/* EMAIL */}
+        <div className="flex items-center gap-2 text-blue-600">
+          <span className="text-gray-500">✉</span>
+          <span>{teacherData?.email || "—"}</span>
+        </div>
+
+        {/* GREEN CHECK */}
+        <div className="flex items-center gap-2 text-green-700 font-medium">
+          <span className="w-4 h-4 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">
+            ✓
+          </span>
+          5
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 
           {/* Navigation tabs */}
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            {tabs.map((tab, i) => (
-              <button 
-                key={tab} 
-                onClick={() => setActiveTab(tab)}
-                className={`relative h-9 px-3 text-sm transition-colors ${
-                  activeTab === tab 
-                    ? 'text-blue-700 font-medium' 
-                    : 'text-gray-700 hover:text-gray-900'
-                }`}
-              >
-                {tab}
-                {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
-                )}
-              </button>
-            ))}
-          </div>
+          {/* ===== Tabs Navigation (Image Like) ===== */}
+<div className="mt-6 border-b border-gray-200">
+  <div className="flex items-center gap-6 text-sm">
+
+    {[
+      { key: "Profile", icon: <User size={16} /> },
+      { key: "Classes", icon: <BookOpen size={16} /> },
+      { key: "Events", icon: <Calendar size={16} /> },
+      { key: "Teacher fees", icon: <DollarSign size={16} /> },
+      { key: "Payslips", icon: <Receipt size={16} /> },
+      { key: "Notes", icon: <StickyNote size={16} /> },
+      { key: "Attachments", icon: <Paperclip size={16} /> },
+      { key: "Permissions", icon: <FileCheck size={16} /> },
+      { key: "Availability", icon: <Clock size={16} /> },
+    ].map(tab => {
+      const isActive = activeTab === tab.key
+
+      return (
+        <button
+          key={tab.key}
+          onClick={() => setActiveTab(tab.key)}
+          className={`relative flex items-center gap-2 px-1 py-3 font-medium transition-colors
+            ${isActive 
+              ? "text-blue-600" 
+              : "text-gray-500 hover:text-gray-800"
+            }`}
+        >
+          {tab.icon}
+          <span>{tab.key}</span>
+
+          {isActive && (
+            <span className="absolute left-0 right-0 -bottom-px h-0.5 bg-blue-600"></span>
+          )}
+        </button>
+      )
+    })}
+
+  </div>
+</div>
+
         </div>
 
         {/* Content based on active tab */}
-        <div className="mt-6">
+        <div className="">
           {renderContent()}
         </div>
       </div>
@@ -944,7 +1013,7 @@ export default function TeacherProfile() {
       {/* Modals */}
       {openModal === 'sms' && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
-          <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md bg-white  border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Send sms message</h3>
               <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
@@ -1016,7 +1085,7 @@ export default function TeacherProfile() {
 
       {openModal === 'email' && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
-          <div className="w-full max-w-lg bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg bg-white  border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Send email message</h3>
               <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
@@ -1070,7 +1139,7 @@ export default function TeacherProfile() {
 
       {openModal === 'announcement' && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
-          <div className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-2xl bg-white  border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Send announcement message</h3>
               <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
