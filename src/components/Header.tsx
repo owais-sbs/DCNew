@@ -34,6 +34,29 @@ export default function Header() {
   // Mock subscription check based on your image
   const subscriptionEnded = true; 
 
+
+  const [searchQuery, setSearchQuery] = useState(""); // Add this
+
+  // 1. Reusable search function
+const executeSearch = () => {
+  const trimmedQuery = searchQuery.trim();
+  if (trimmedQuery) {
+    // Redirect to the people page with the query param
+    navigate(`/people?search=${encodeURIComponent(trimmedQuery)}`);
+    setSearchQuery(""); // Clear the top bar
+  } else {
+    navigate('/people');
+  }
+};
+
+// 2. Updated Keyboard Handler
+const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    executeSearch();
+  }
+};
+
   const getUserInitials = () => {
     if (!user?.name) return "U";
     return user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
@@ -111,15 +134,27 @@ export default function Header() {
 
           {/* Center: Search Bar (Dark Theme) */}
           <div className="flex-1 max-w-sm mx-6">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search"
-                className="w-full pl-9 pr-4 py-1.5 rounded bg-[#3F4454] border border-transparent text-sm text-gray-200 placeholder:text-gray-400 focus:bg-white focus:text-gray-900 focus:outline-none transition-colors"
-              />
-            </div>
-          </div>
+  <div className="flex-1 max-w-sm mx-6">
+  <div className="relative group">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+    <input
+      type="text"
+      placeholder="Search"
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      onKeyDown={handleSearch}
+      className="w-full pl-9 pr-12 py-1.5 rounded bg-[#3F4454] border border-transparent text-sm text-gray-200 placeholder:text-gray-400 focus:bg-white focus:text-gray-900 focus:outline-none transition-colors"
+    />
+    {/* Clickable Search Button */}
+    <button 
+      onClick={() => executeSearch()}
+      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 px-2 rounded bg-gray-600 hover:bg-gray-700 text-white text-[10px] font-bold transition-colors"
+    >
+      Search
+    </button>
+  </div>
+</div>
+</div>
 
           {/* Right: Controls */}
           <div className="flex items-center gap-2 relative">

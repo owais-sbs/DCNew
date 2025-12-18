@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import Swal from "sweetalert2";
 
 import {
@@ -101,6 +101,7 @@ const prospectRows: ProspectRow[] = [
 const avatarPalette = ["bg-indigo-500","bg-rose-500","bg-purple-500","bg-emerald-500","bg-blue-500"]
 
 export default function PeopleDashboard() {
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabId>("students")
   const [students, setStudents] = useState<StudentRow[]>([])
@@ -202,13 +203,18 @@ const makePageButtons = (totalPages: number, current: number) => {
 
   // Debounce student search
   useEffect(() => {
+    const query = searchParams.get("search");
+    if (query) {
+      setStudentSearch(query); // This triggers your existing API/Filter logic
+      setActiveTab("students"); // Ensure the correct tab is active
+    }
     const timer = setTimeout(() => {
       setStudentSearchDebounced(studentSearch)
       setPageNumber(1) // Reset to first page on search
     }, 500) // 500ms delay
 
     return () => clearTimeout(timer)
-  }, [studentSearch])
+  }, [studentSearch, searchParams])
 
   // Debounce teacher search
   useEffect(() => {
