@@ -165,11 +165,16 @@ export default function StudentProfile() {
     }
   }, [activeTab])
 
-  // Helper function to convert image URL to base64
+  // Helper function to convert image URL to base64 using /Image/FetchImage API
   const imageUrlToBase64 = async (url: string): Promise<string | null> => {
+    if (!url) return null
+    
     try {
-      // Use axiosInstance to fetch the image (better CORS handling)
-      const response = await axiosInstance.get(url, {
+      // Use /Image/FetchImage API with fileId parameter (URL-encoded signature URL)
+      const response = await axiosInstance.get("/Image/FetchImage", {
+        params: {
+          fileId: url // The API will URL-encode this automatically
+        },
         responseType: 'blob',
         headers: {
           'Accept': 'image/*'
@@ -182,7 +187,7 @@ export default function StudentProfile() {
         reader.onloadend = () => {
           const base64String = reader.result as string
           // Return full data URL for img src (includes data:image/...;base64, prefix)
-          console.log("Image converted to base64 successfully, length:", base64String.length)
+          console.log("Image converted to base64 via FetchImage API, length:", base64String.length)
           resolve(base64String)
         }
         reader.onerror = (error) => {
@@ -192,8 +197,8 @@ export default function StudentProfile() {
         reader.readAsDataURL(blob)
       })
     } catch (error) {
-      console.error("Error converting image to base64:", error)
-      // Try fallback with fetch
+      console.error("Error fetching image via /Image/FetchImage:", error)
+      // Fallback: try direct fetch if API fails
       try {
         const response = await fetch(url, { mode: 'cors' })
         if (!response.ok) {
