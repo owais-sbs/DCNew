@@ -110,9 +110,22 @@ export default function StudentProfile() {
   const [loadingAttendanceStats, setLoadingAttendanceStats] = useState(false)
   const [attendanceStatsError, setAttendanceStatsError] = useState<string | null>(null)
 
+
+  const [openMoreMenu, setOpenMoreMenu] = useState(false)
+
   // Ref hooks
   const documentContentRef = useRef<HTMLDivElement | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+
+  useEffect(() => {
+    const close = () => setOpenMoreMenu(false)
+    if (openMoreMenu) {
+      document.addEventListener("click", close)
+    }
+    return () => document.removeEventListener("click", close)
+  }, [openMoreMenu])
+
 
   useEffect(() => {
     const fetchStudent = async () => {
@@ -2251,14 +2264,54 @@ export default function StudentProfile() {
   </h1>
 
   <div className="flex items-center gap-2">
-    {["Payment", "Message", "Reports", "More"].map((label) => (
-      <button
-        key={label}
-        className="h-9 px-3 border border-gray-300 bg-gray-100 text-sm text-gray-700 rounded hover:bg-gray-200"
+    <div className="flex items-center gap-2 relative">
+  <button className="h-9 px-3 border border-gray-300 bg-gray-100 text-sm text-gray-700 rounded hover:bg-gray-200">
+    Payment
+  </button>
+
+  <button className="h-9 px-3 border border-gray-300 bg-gray-100 text-sm text-gray-700 rounded hover:bg-gray-200">
+    Message
+  </button>
+
+  <button className="h-9 px-3 border border-gray-300 bg-gray-100 text-sm text-gray-700 rounded hover:bg-gray-200">
+    Reports
+  </button>
+
+  {/* MORE DROPDOWN */}
+  <div className="relative">
+    <button
+      onClick={(e) => {
+        e.stopPropagation()
+        setOpenMoreMenu((p) => !p)
+      }}
+      className="h-9 px-3 border border-gray-300 bg-gray-100 text-sm text-gray-700 rounded hover:bg-gray-200 flex items-center gap-1"
+    >
+      More
+      <ChevronDown size={14} />
+    </button>
+
+    {openMoreMenu && (
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="absolute right-0 mt-2 w-44 bg-white border border-gray-300 shadow-lg z-50"
       >
-        {label}
-      </button>
-    ))}
+        <button
+          onClick={() => {
+            setOpenMoreMenu(false)
+            navigate(`/people/students/edit/${id}`) // 👈 EDIT PAGE
+          }}
+          className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+        >
+          ✏️ Edit Student
+        </button>
+
+        
+        
+      </div>
+    )}
+  </div>
+</div>
+
   </div>
 </div>
 

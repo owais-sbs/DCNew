@@ -150,85 +150,150 @@ export default function EditStudent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const [showClassModal, setShowClassModal] = useState(false);
+   const [classes, setClasses] = useState<any[]>([]);
+   const [loadingClasses, setLoadingClasses] = useState(false);
+   const [classPageNumber, setClassPageNumber] = useState(1);
+   const [classPageSize] = useState(10);
+   const [classTotalCount, setClassTotalCount] = useState(0);
+   const [classSearchQuery, setClassSearchQuery] = useState("");
+   const [classSearchDebounced, setClassSearchDebounced] = useState("");
+
+   const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
+   const [selectedClassName, setSelectedClassName] = useState<string | null>(null);
+
+
+   useEffect(() => {
+  const t = setTimeout(() => {
+    setClassSearchDebounced(classSearchQuery);
+    setClassPageNumber(1);
+  }, 500);
+  return () => clearTimeout(t);
+}, [classSearchQuery]);
+
+
+
+useEffect(() => {
+  if (!showClassModal) return;
+
+  const fetchClasses = async () => {
+    setLoadingClasses(true);
+    try {
+      const res = await axiosInstance.get(
+        "/Class/GetAllClassesWithPagination",
+        {
+          params: {
+            pageNumber: classPageNumber,
+            pageSize: classPageSize,
+            search: classSearchDebounced?.trim() || undefined,
+          },
+        }
+      );
+
+      console.log("Classes API:", res.data);
+
+      if (res.data?.IsSuccess) {
+        setClasses(res.data.Data?.Data || []);
+        setClassTotalCount(res.data.Data?.TotalCount || 0);
+      } else {
+        setClasses([]);
+      }
+    } catch (e) {
+      console.error(e);
+      setClasses([]);
+    } finally {
+      setLoadingClasses(false);
+    }
+  };
+
+  fetchClasses();
+}, [showClassModal, classPageNumber, classSearchDebounced]);
+
   // --- LOAD STUDENT BY ID ---
   useEffect(() => {
-    const fetchStudent = async () => {
-      if (!id) return;
-      try {
-        setLoading(true);
-        const res = await axiosInstance.get(`/Student/GetById/${id}`);
-        const data = res.data?.Data;
+  const fetchStudent = async () => {
+    if (!id) return;
+    try {
+      setLoading(true);
+      const res = await axiosInstance.get(`/Student/GetById/${id}`);
+      const data = res.data?.Data;
 
-        if (!data) {
-          alert("Student not found");
-          navigate("/people");
-          return;
-        }
-
-        setForm({
-          id: data.Id ?? Number(id),
-          isActive: data.IsActive ?? true,
-          firstName: data.FirstName ?? "",
-          lastName: data.Surname ?? data.LastName ?? "",
-          gender: data.Gender ?? "",
-          dateOfBirth: toDateInput(data.DateOfBirth),
-          registrationDate: toDateInput(data.RegistrationDate),
-          idNumber: data.IdNumber ?? "",
-          preferredPaymentMethod: data.PreferredPaymentMethod ?? "",
-          discount: data.Discount?.toString() ?? "",
-          email: data.Email ?? "",
-          mobilePhone: data.MobilePhone ?? "",
-          homePhone: data.HomePhone ?? "",
-          streetAddress: data.StreetAddress ?? "",
-          city: data.City ?? "",
-          zipCode: data.ZipCode ?? "",
-          state: data.State ?? "",
-          country: data.Country ?? "",
-          timeZone: data.TimeZone ?? "",
-          nationality: data.Nationality ?? "",
-          passportNumber: data.PassportNumber ?? "",
-          passportExpiryDate: toDateInput(data.PassportExpiryDate),
-          gnibExpiryDate: toDateInput(data.GnibExpiryDate),
-          courseTitle: data.CourseTitle ?? "",
-          courseCode: data.CourseCode ?? "",
-          courseLevel: data.CourseLevel ?? "",
-          modeOfStudy: data.ModeOfStudy ?? "",
-          department: data.Department ?? "",
-          courseStartDate: toDateInput(data.CourseStartDate),
-          courseEndDate: toDateInput(data.CourseEndDate),
-          finishedCourseDate: toDateInput(data.FinishedCourseDate),
-          attendance: data.Attendance ?? "",
-          numberOfWeeks: data.NumberOfWeeks?.toString() ?? "",
-          hoursPerWeek: data.HoursPerWeek?.toString() ?? "",
-          tuitionFees: data.TuitionFees?.toString() ?? "",
-          externalExam: data.ExternalExam ?? "",
-          externalExamDate: toDateInput(data.ExternalExamDate),
-          scoreExternalExam: data.ScoreExternalExam ?? "",
-          dateOfPayment: toDateInput(data.DateOfPayment),
-          duration: data.Duration ?? "",
-          schedule: data.Schedule ?? "",
-          ilepReference: data.IlepReference ?? "",
-          endOfExamPaid: data.EndOfExamPaid ?? "",
-          generalNotes: data.GeneralNotes ?? "",
-          medicalNotes: data.MedicalNotes ?? "",
-          classSubject: data.ClassSubject ?? "",
-          classLevel: data.ClassLevel ?? "",
-          allowSubstituteLessons: data.AllowSubstituteLessons ?? false,
-          substituteLessonsPerMonth: data.SubstituteLessonsPerMonth?.toString() ?? "",
-          substituteStartDate: toDateInput(data.SubstituteStartDate),
-          substituteEndDate: toDateInput(data.SubstituteEndDate),
-        });
-      } catch (err) {
-        console.error("Failed to fetch student", err);
-        alert("Failed to load student");
+      if (!data) {
+        alert("Student not found");
         navigate("/people");
-      } finally {
-        setLoading(false);
+        return;
       }
-    };
 
-    fetchStudent();
-  }, [id, navigate]);
+      setForm({
+        id: data.Id ?? Number(id),
+        isActive: data.IsActive ?? true,
+        firstName: data.FirstName ?? "",
+        lastName: data.Surname ?? data.LastName ?? "",
+        gender: data.Gender ?? "",
+        dateOfBirth: toDateInput(data.DateOfBirth),
+        registrationDate: toDateInput(data.RegistrationDate),
+        idNumber: data.IdNumber ?? "",
+        preferredPaymentMethod: data.PreferredPaymentMethod ?? "",
+        discount: data.Discount?.toString() ?? "",
+        email: data.Email ?? "",
+        mobilePhone: data.MobilePhone ?? "",
+        homePhone: data.HomePhone ?? "",
+        streetAddress: data.StreetAddress ?? "",
+        city: data.City ?? "",
+        zipCode: data.ZipCode ?? "",
+        state: data.State ?? "",
+        country: data.Country ?? "",
+        timeZone: data.TimeZone ?? "",
+        nationality: data.Nationality ?? "",
+        passportNumber: data.PassportNumber ?? "",
+        passportExpiryDate: toDateInput(data.PassportExpiryDate),
+        gnibExpiryDate: toDateInput(data.GnibExpiryDate),
+        courseTitle: data.CourseTitle ?? "",
+        courseCode: data.CourseCode ?? "",
+        courseLevel: data.CourseLevel ?? "",
+        modeOfStudy: data.ModeOfStudy ?? "",
+        department: data.Department ?? "",
+        courseStartDate: toDateInput(data.CourseStartDate),
+        courseEndDate: toDateInput(data.CourseEndDate),
+        finishedCourseDate: toDateInput(data.FinishedCourseDate),
+        attendance: data.Attendance ?? "",
+        numberOfWeeks: data.NumberOfWeeks?.toString() ?? "",
+        hoursPerWeek: data.HoursPerWeek?.toString() ?? "",
+        tuitionFees: data.TuitionFees?.toString() ?? "",
+        externalExam: data.ExternalExam ?? "",
+        externalExamDate: toDateInput(data.ExternalExamDate),
+        scoreExternalExam: data.ScoreExternalExam ?? "",
+        dateOfPayment: toDateInput(data.DateOfPayment),
+        duration: data.Duration ?? "",
+        schedule: data.Schedule ?? "",
+        ilepReference: data.IlepReference ?? "",
+        endOfExamPaid: data.EndOfExamPaid ?? "",
+        generalNotes: data.GeneralNotes ?? "",
+        medicalNotes: data.MedicalNotes ?? "",
+        classSubject: data.ClassSubject ?? "",
+        classLevel: data.ClassLevel ?? "",
+        allowSubstituteLessons: data.AllowSubstituteLessons ?? false,
+        substituteLessonsPerMonth: data.SubstituteLessonsPerMonth?.toString() ?? "",
+        substituteStartDate: toDateInput(data.SubstituteStartDate),
+        substituteEndDate: toDateInput(data.SubstituteEndDate),
+      });
+
+      // ✅ ADD THIS PART
+      setSelectedClassId(data.ClassId ?? null);
+      setSelectedClassName(data.ClassTitle ?? null);
+
+    } catch (err) {
+      console.error("Failed to fetch student", err);
+      alert("Failed to load student");
+      navigate("/people");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchStudent();
+}, [id, navigate]);
+
 
   // --- Handlers ---
   const handleChange = (
@@ -302,6 +367,8 @@ export default function EditStudent() {
         SubstituteLessonsPerMonth: form.substituteLessonsPerMonth ? parseInt(form.substituteLessonsPerMonth) : null,
         SubstituteStartDate: form.substituteStartDate || null,
         SubstituteEndDate: form.substituteEndDate || null,
+        IsEnrollment: Boolean(selectedClassId),
+        ClassId: selectedClassId,
       };
 
       const res = await axiosInstance.post("/Student/AddStudent", payload);
@@ -611,8 +678,101 @@ export default function EditStudent() {
             </div>
           </div>
 
+
+          <SectionHeader title="Enroll in classes" />
+<div className="p-4">
+  <p className="text-[13px] text-gray-600 mb-3">
+    Enroll the student in a class
+  </p>
+
+  <div className="flex items-center gap-2">
+    <button
+      type="button"
+      onClick={() => setShowClassModal(true)}
+      className="h-[34px] px-3 border border-gray-300 bg-white text-[13px]"
+    >
+      {selectedClassName || "Select class"}
+    </button>
+
+    {selectedClassId && (
+      <button
+        type="button"
+        onClick={() => {
+          setSelectedClassId(null);
+          setSelectedClassName(null);
+        }}
+        className="h-[34px] px-3 border border-red-200 text-red-700 bg-white text-[13px]"
+      >
+        Clear
+      </button>
+    )}
+  </div>
+</div>
+
+
+{showClassModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
+       onClick={() => setShowClassModal(false)}>
+
+    <div className="bg-white w-full max-w-4xl border border-gray-300"
+         onClick={(e) => e.stopPropagation()}>
+
+      <div className="flex items-center justify-between px-4 py-3 border-b">
+        <h2 className="text-[16px] font-semibold">Select Class</h2>
+        <button onClick={() => setShowClassModal(false)}>×</button>
+      </div>
+
+      <div className="p-4 max-h-[60vh] overflow-y-auto">
+        {/* Search */}
+        <div className="mb-4 relative">
+          <input
+            value={classSearchQuery}
+            onChange={(e) => setClassSearchQuery(e.target.value)}
+            placeholder="Search classes..."
+            className="w-full h-[34px] px-3 border border-gray-300 text-[13px]"
+          />
+        </div>
+
+        {/* List */}
+        {loadingClasses ? (
+          <div className="py-12 text-center">Loading...</div>
+        ) : classes.length === 0 ? (
+          <div className="py-12 text-center text-gray-500">No classes found</div>
+        ) : (
+          <div className="space-y-2">
+            {classes.map((cls: any) => (
+              <div
+                key={cls.ClassId || cls.Id}
+
+                onClick={() => {
+                  setSelectedClassId(cls.ClassId || cls.Id);
+                  setSelectedClassName(cls.ClassTitle || "Unnamed Class");
+                  setShowClassModal(false);
+                }}
+                className={`p-3 border cursor-pointer ${
+                  selectedClassId === cls.ClassId
+                    ? "border-blue-500 bg-blue-50"
+                    : "border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                <div className="font-medium text-[14px]">
+                  {cls.ClassTitle}
+                </div>
+                <div className="text-[13px] text-gray-600">
+                  {cls.ClassSubject} {cls.ClassLevel && `- ${cls.ClassLevel}`}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+
           {/* 7. SUBSTITUTE LESSONS */}
-          <SectionHeader title="Substitute Lessons" />
+          {/* <SectionHeader title="Substitute Lessons" />
           <div className="p-4">
              <div className="flex items-center gap-2 mb-3">
                  <input 
@@ -660,7 +820,7 @@ export default function EditStudent() {
                     />
                  </div>
              </div>
-          </div>
+          </div> */}
 
           {/* ACTIONS */}
           <div className="flex items-center justify-end gap-3 px-4 py-3 border-t bg-white">

@@ -198,18 +198,40 @@ const initialFormData: FormDataState = {
 // Data Mapping Helpers (Repeated for context)
 // -------------------------------------------------------------
 const parseDate = (dateString: string): string | null => {
-    if (!dateString) return null;
-    // Attempt to parse DD-MM-YYYY format
-    const parts = dateString.split('-');
-    // fallback/direct attempt
-    try {
-        const date = new Date(dateString);
-        if (!isNaN(date.getTime())) return date.toISOString();
-    } catch (e) {
-        // Ignore
+  if (!dateString) return null;
+
+  // yyyy-mm-dd (from input[type="date"])
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return new Date(dateString).toISOString();
+  }
+
+  // dd-mm-yyyy (from DatePicker / manual input)
+  const parts = dateString.split("-");
+  if (parts.length === 3) {
+    const [dd, mm, yyyy] = parts.map(Number);
+    if (!isNaN(dd) && !isNaN(mm) && !isNaN(yyyy)) {
+      return new Date(yyyy, mm - 1, dd).toISOString();
     }
-    return null; 
+  }
+
+  return null;
 };
+
+
+
+const parseDDMMYYYYToDate = (value: string): Date | null => {
+  if (!value) return null;
+
+  const parts = value.split("-");
+  if (parts.length !== 3) return null;
+
+  const [dd, mm, yyyy] = parts.map(Number);
+  if (isNaN(dd) || isNaN(mm) || isNaN(yyyy)) return null;
+
+  return new Date(yyyy, mm - 1, dd);
+};
+
+
 
 const parseDecimal = (value: string): number | null => {
     if (!value) return null;
@@ -303,7 +325,7 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>, photoBase64?: s
         UpdatedBy: null,
         IsActive: true,
         IsDeleted: false,
-        IsEnrollment: formData.selectedClassId ? true : null,
+        IsEnrollment: !!formData.selectedClassId,
         ClassId: formData.selectedClassId || null,
     };
 };
@@ -692,13 +714,35 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                     <div className="p-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-[13px] text-gray-700 mb-1">Mobile Phone</label>
-                                <PhoneInput international defaultCountry="IE" value={formData.mobilePhone} onChange={(v) => handleInputChange('mobilePhone', v || '')} />
-                            </div>
-                            <div>
-                                <label className="block text-[13px] text-gray-700 mb-1">Home Phone</label>
-                                <PhoneInput international defaultCountry="IE" value={formData.homePhone} onChange={(v) => handleInputChange('homePhone', v || '')} />
-                            </div>
+  <label className="block text-[13px] text-gray-700 mb-1">
+    Mobile Phone
+  </label>
+
+  <PhoneInput
+    international
+    defaultCountry="IE"
+    value={formData.mobilePhone}
+    onChange={(v) => handleInputChange("mobilePhone", v || "")}
+    className="flex items-center h-[34px] border border-gray-300 rounded px-2"
+    inputClassName="flex-1 h-full text-[13px] outline-none border-none"
+  />
+</div>
+
+<div>
+  <label className="block text-[13px] text-gray-700 mb-1">
+    Home Phone
+  </label>
+
+  <PhoneInput
+    international
+    defaultCountry="IE"
+    value={formData.homePhone}
+    onChange={(v) => handleInputChange("homePhone", v || "")}
+    className="flex items-center h-[34px] border border-gray-300 rounded px-2"
+    inputClassName="flex-1 h-full text-[13px] outline-none border-none"
+  />
+</div>
+
                             <div>
                                 <label className="block text-[13px] text-gray-700 mb-1">Email address (recommended)</label>
                                 <input type="email" value={formData.email} onChange={(e) => handleInputChange('email', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" />
@@ -740,9 +784,9 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div><label className="block text-[13px] text-gray-700 mb-1">Nationality</label><input type="text" value={formData.nationality} onChange={(e)=>handleInputChange('nationality', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Passport Number</label><input type="text" value={formData.passportNumber} onChange={(e)=>handleInputChange('passportNumber', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Passport Expiry Date</label><input type="text" value={formData.passportExpiryDate} onChange={(e)=>handleInputChange('passportExpiryDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Passport Expiry Date</label><input type="date" value={formData.passportExpiryDate} onChange={(e)=>handleInputChange('passportExpiryDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 
-                            <div><label className="block text-[13px] text-gray-700 mb-1">GNIB Expiry Date</label><input type="text" value={formData.gnibExpiryDate} onChange={(e)=>handleInputChange('gnibExpiryDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">GNIB Expiry Date</label><input type="date" value={formData.gnibExpiryDate} onChange={(e)=>handleInputChange('gnibExpiryDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Course Start Date</label>
                                 <DatePicker
                                     selected={formData.courseStartDate ? (() => {
@@ -782,16 +826,16 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     className="w-full h-[34px] px-2 border border-gray-300 text-[13px]"
                                 /></div>
 
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Finished Course Date</label><input type="text" value={formData.finishedCourseDate} onChange={(e)=>handleInputChange('finishedCourseDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Finished Course Date</label><input type="date" value={formData.finishedCourseDate} onChange={(e)=>handleInputChange('finishedCourseDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Attendance</label><input type="text" value={formData.attendance} onChange={(e)=>handleInputChange('attendance', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Course Title</label><input type="text" value={formData.courseTitle} onChange={(e)=>handleInputChange('courseTitle', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">Course Level</label><input type="text" value={formData.courseLevel} onChange={(e)=>handleInputChange('courseLevel', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Mode of Study</label><input type="text" value={formData.modeOfStudy} onChange={(e)=>handleInputChange('modeOfStudy', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Number of Weeks</label><input type="text" value={formData.numberOfWeeks} onChange={(e)=>handleInputChange('numberOfWeeks', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Number of Weeks</label><input type="number" value={formData.numberOfWeeks} onChange={(e)=>handleInputChange('numberOfWeeks', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Hours Per Week</label><input type="text" value={formData.hoursPerWeek} onChange={(e)=>handleInputChange('hoursPerWeek', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Tuition Fees</label><input type="text" value={formData.tuitionFees} onChange={(e)=>handleInputChange('tuitionFees', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Hours Per Week</label><input type="number" value={formData.hoursPerWeek} onChange={(e)=>handleInputChange('hoursPerWeek', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Tuition Fees</label><input type="number" value={formData.tuitionFees} onChange={(e)=>handleInputChange('tuitionFees', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Department</label><input type="text" value={formData.department} onChange={(e)=>handleInputChange('department', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">External Exam</label><input type="text" value={formData.externalExam} onChange={(e)=>handleInputChange('externalExam', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
@@ -802,11 +846,11 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                     <SectionHeader title="Course Details & Payment Info" />
                     <div className="p-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Date of External Exam</label><input type="text" value={formData.externalExamDate} onChange={(e)=>handleInputChange('externalExamDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Date of External Exam</label><input type="date" value={formData.externalExamDate} onChange={(e)=>handleInputChange('externalExamDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Score External Exam</label><input type="text" value={formData.scoreExternalExam} onChange={(e)=>handleInputChange('scoreExternalExam', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Date of Payment</label><input type="text" value={formData.dateOfPayment} onChange={(e)=>handleInputChange('dateOfPayment', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Date of Payment</label><input type="date" value={formData.dateOfPayment} onChange={(e)=>handleInputChange('dateOfPayment', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Duration</label><input type="text" value={formData.duration} onChange={(e)=>handleInputChange('duration', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Duration</label><input type="number" value={formData.duration} onChange={(e)=>handleInputChange('duration', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Schedule</label><input type="text" value={formData.schedule} onChange={(e)=>handleInputChange('schedule', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">ILEP reference number</label>
                                 <select value={formData.ilepReference} onChange={(e)=>handleInputChange('ilepReference', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white">
@@ -818,7 +862,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 </select>
                             </div>
 
-                            <div className="md:col-span-2"><label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label><input type="text" value={formData.endOfExamPaid} onChange={(e)=>handleInputChange('endOfExamPaid', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div className="md:col-span-2"><label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label><input type="date" value={formData.endOfExamPaid} onChange={(e)=>handleInputChange('endOfExamPaid', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                         </div>
                     </div>
 
