@@ -744,9 +744,43 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">GNIB Expiry Date</label><input type="text" value={formData.gnibExpiryDate} onChange={(e)=>handleInputChange('gnibExpiryDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Course Start Date</label>
-                                <DatePicker selected={formData.courseStartDate ? new Date(formData.courseStartDate) : null} onChange={(date)=>{ if(date){ const f=date.toLocaleDateString('en-IE').replace(/\//g,'-'); handleInputChange('courseStartDate', f);} else handleInputChange('courseStartDate','');}} dateFormat="dd-MM-yyyy" className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" /></div>
+                                <DatePicker
+                                    selected={formData.courseStartDate ? (() => {
+                                        const parts = formData.courseStartDate.split('-');
+                                        if (parts.length === 3) {
+                                            const day = Number.parseInt(parts[0], 10);
+                                            const month = Number.parseInt(parts[1], 10);
+                                            const year = Number.parseInt(parts[2], 10);
+                                            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                                                return new Date(year, month - 1, day);
+                                            }
+                                        }
+                                        const date = new Date(formData.courseStartDate);
+                                        return isNaN(date.getTime()) ? null : date;
+                                    })() : null}
+                                    onChange={(date)=>{ if(date){ const f=date.toLocaleDateString('en-IE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g,'-'); handleInputChange('courseStartDate', f);} else handleInputChange('courseStartDate','');}}
+                                    dateFormat="dd-MM-yyyy"
+                                    className="w-full h-[34px] px-2 border border-gray-300 text-[13px]"
+                                /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Course End Date</label>
-                                <DatePicker selected={formData.courseEndDate ? new Date(formData.courseEndDate) : null} onChange={(date)=>{ if(date){ const f=date.toLocaleDateString('en-IE').replace(/\//g,'-'); handleInputChange('courseEndDate', f);} else handleInputChange('courseEndDate','');}} dateFormat="dd-MM-yyyy" className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" /></div>
+                                <DatePicker
+                                    selected={formData.courseEndDate ? (() => {
+                                        const parts = formData.courseEndDate.split('-');
+                                        if (parts.length === 3) {
+                                            const day = Number.parseInt(parts[0], 10);
+                                            const month = Number.parseInt(parts[1], 10);
+                                            const year = Number.parseInt(parts[2], 10);
+                                            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+                                                return new Date(year, month - 1, day);
+                                            }
+                                        }
+                                        const date = new Date(formData.courseEndDate);
+                                        return isNaN(date.getTime()) ? null : date;
+                                    })() : null}
+                                    onChange={(date)=>{ if(date){ const f=date.toLocaleDateString('en-IE', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g,'-'); handleInputChange('courseEndDate', f);} else handleInputChange('courseEndDate','');}}
+                                    dateFormat="dd-MM-yyyy"
+                                    className="w-full h-[34px] px-2 border border-gray-300 text-[13px]"
+                                /></div>
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">Finished Course Date</label><input type="text" value={formData.finishedCourseDate} onChange={(e)=>handleInputChange('finishedCourseDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Attendance</label><input type="text" value={formData.attendance} onChange={(e)=>handleInputChange('attendance', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
