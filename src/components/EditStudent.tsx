@@ -1,30 +1,25 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, Save, User, Mail, Phone, MapPin, 
-  Calendar, BookOpen, DollarSign, FileText, 
-  School, Clock, CheckCircle 
-} from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import axiosInstance from "./axiosInstance";
-import Swal from "sweetalert2"; // Ensure you have sweetalert2 installed
+import Swal from "sweetalert2";
 
 // ------------------------------------------------------------------
-// 1. Type Definitions (Expanded for Full Form)
+// 1. Type Definitions
 // ------------------------------------------------------------------
 
 type StudentFormState = {
   id: number | null;
-  isActive: boolean; // Added Status
+  isActive: boolean;
 
   // Basic
   firstName: string;
-  lastName: string; // Maps to Surname in API
+  lastName: string;
   gender: string;
   dateOfBirth: string;
   idNumber: string;
   preferredPaymentMethod: string;
   discount: string;
-
   registrationDate: string;
 
   // Contact
@@ -86,7 +81,6 @@ type StudentFormState = {
 const emptyForm: StudentFormState = {
   id: null,
   isActive: true,
-
   firstName: "",
   lastName: "",
   gender: "",
@@ -95,7 +89,6 @@ const emptyForm: StudentFormState = {
   preferredPaymentMethod: "",
   registrationDate: "",
   discount: "",
-
   email: "",
   mobilePhone: "",
   homePhone: "",
@@ -105,12 +98,10 @@ const emptyForm: StudentFormState = {
   state: "",
   country: "",
   timeZone: "",
-
   nationality: "",
   passportNumber: "",
   passportExpiryDate: "",
   gnibExpiryDate: "",
-
   courseTitle: "",
   courseCode: "",
   courseLevel: "",
@@ -123,7 +114,6 @@ const emptyForm: StudentFormState = {
   hoursPerWeek: "",
   tuitionFees: "",
   attendance: "",
-
   externalExam: "",
   externalExamDate: "",
   scoreExternalExam: "",
@@ -132,13 +122,10 @@ const emptyForm: StudentFormState = {
   schedule: "",
   ilepReference: "",
   endOfExamPaid: "",
-
   generalNotes: "",
   medicalNotes: "",
-
   classSubject: "",
   classLevel: "",
-
   allowSubstituteLessons: false,
   substituteLessonsPerMonth: "",
   substituteStartDate: "",
@@ -170,7 +157,7 @@ export default function EditStudent() {
       try {
         setLoading(true);
         const res = await axiosInstance.get(`/Student/GetById/${id}`);
-        const data = res.data?.Data; // Adjusted based on your snippet "res.data?.Data"
+        const data = res.data?.Data;
 
         if (!data) {
           alert("Student not found");
@@ -178,20 +165,17 @@ export default function EditStudent() {
           return;
         }
 
-        // Map API Data to Full Form State
         setForm({
           id: data.Id ?? Number(id),
-          isActive: data.IsActive ?? true, // Load Active Status
-
+          isActive: data.IsActive ?? true,
           firstName: data.FirstName ?? "",
-          lastName: data.Surname ?? data.LastName ?? "", // Handle Surname mapping
+          lastName: data.Surname ?? data.LastName ?? "",
           gender: data.Gender ?? "",
           dateOfBirth: toDateInput(data.DateOfBirth),
           registrationDate: toDateInput(data.RegistrationDate),
           idNumber: data.IdNumber ?? "",
           preferredPaymentMethod: data.PreferredPaymentMethod ?? "",
           discount: data.Discount?.toString() ?? "",
-
           email: data.Email ?? "",
           mobilePhone: data.MobilePhone ?? "",
           homePhone: data.HomePhone ?? "",
@@ -201,12 +185,10 @@ export default function EditStudent() {
           state: data.State ?? "",
           country: data.Country ?? "",
           timeZone: data.TimeZone ?? "",
-
           nationality: data.Nationality ?? "",
           passportNumber: data.PassportNumber ?? "",
           passportExpiryDate: toDateInput(data.PassportExpiryDate),
           gnibExpiryDate: toDateInput(data.GnibExpiryDate),
-
           courseTitle: data.CourseTitle ?? "",
           courseCode: data.CourseCode ?? "",
           courseLevel: data.CourseLevel ?? "",
@@ -219,7 +201,6 @@ export default function EditStudent() {
           numberOfWeeks: data.NumberOfWeeks?.toString() ?? "",
           hoursPerWeek: data.HoursPerWeek?.toString() ?? "",
           tuitionFees: data.TuitionFees?.toString() ?? "",
-
           externalExam: data.ExternalExam ?? "",
           externalExamDate: toDateInput(data.ExternalExamDate),
           scoreExternalExam: data.ScoreExternalExam ?? "",
@@ -228,13 +209,10 @@ export default function EditStudent() {
           schedule: data.Schedule ?? "",
           ilepReference: data.IlepReference ?? "",
           endOfExamPaid: data.EndOfExamPaid ?? "",
-
           generalNotes: data.GeneralNotes ?? "",
           medicalNotes: data.MedicalNotes ?? "",
-
           classSubject: data.ClassSubject ?? "",
           classLevel: data.ClassLevel ?? "",
-
           allowSubstituteLessons: data.AllowSubstituteLessons ?? false,
           substituteLessonsPerMonth: data.SubstituteLessonsPerMonth?.toString() ?? "",
           substituteStartDate: toDateInput(data.SubstituteStartDate),
@@ -257,7 +235,6 @@ export default function EditStudent() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-    // Handle Checkboxes
     const val = type === "checkbox" ? (e.target as HTMLInputElement).checked : value;
     setForm((prev) => ({ ...prev, [name]: val }));
   };
@@ -272,21 +249,18 @@ export default function EditStudent() {
 
     setSaving(true);
     try {
-      // Construct Payload
       const payload = {
         Id: form.id,
-        IsActive: Boolean(form.isActive), // Force Boolean
-        IsDeleted: false, // Force False
-
+        IsActive: Boolean(form.isActive),
+        IsDeleted: false,
         FirstName: form.firstName,
-        Surname: form.lastName, // Map back to API expected "Surname"
+        Surname: form.lastName,
         Gender: form.gender,
         DateOfBirth: form.dateOfBirth || null,
         RegistrationDate: form.registrationDate || null,
         IdNumber: form.idNumber || null,
         PreferredPaymentMethod: form.preferredPaymentMethod || null,
         Discount: form.discount ? parseFloat(form.discount) : null,
-
         Email: form.email || null,
         MobilePhone: form.mobilePhone || null,
         HomePhone: form.homePhone || null,
@@ -296,12 +270,10 @@ export default function EditStudent() {
         State: form.state || null,
         Country: form.country || null,
         TimeZone: form.timeZone || null,
-
         Nationality: form.nationality || null,
         PassportNumber: form.passportNumber || null,
         PassportExpiryDate: form.passportExpiryDate || null,
         GnibExpiryDate: form.gnibExpiryDate || null,
-
         CourseTitle: form.courseTitle || null,
         CourseCode: form.courseCode || null,
         CourseLevel: form.courseLevel || null,
@@ -314,7 +286,6 @@ export default function EditStudent() {
         NumberOfWeeks: form.numberOfWeeks ? parseInt(form.numberOfWeeks) : null,
         HoursPerWeek: form.hoursPerWeek ? parseFloat(form.hoursPerWeek) : null,
         TuitionFees: form.tuitionFees ? parseFloat(form.tuitionFees) : null,
-
         ExternalExam: form.externalExam || null,
         ExternalExamDate: form.externalExamDate || null,
         ScoreExternalExam: form.scoreExternalExam || null,
@@ -323,13 +294,10 @@ export default function EditStudent() {
         Schedule: form.schedule || null,
         IlepReference: form.ilepReference || null,
         EndOfExamPaid: form.endOfExamPaid || null,
-
         GeneralNotes: form.generalNotes || null,
         MedicalNotes: form.medicalNotes || null,
-
         ClassSubject: form.classSubject || null,
         ClassLevel: form.classLevel || null,
-
         AllowSubstituteLessons: form.allowSubstituteLessons,
         SubstituteLessonsPerMonth: form.substituteLessonsPerMonth ? parseInt(form.substituteLessonsPerMonth) : null,
         SubstituteStartDate: form.substituteStartDate || null,
@@ -368,389 +336,352 @@ export default function EditStudent() {
 
   const studentName = `${form.firstName} ${form.lastName}`.trim() || "Student";
 
+  // UI helper for the admin flat look
+  const SectionHeader = ({ title }: { title: string }) => (
+    <div className="bg-[#f2f2f2] px-4 py-2 border-t border-b text-[13px] font-semibold text-gray-800">
+      {title}
+    </div>
+  );
+
   return (
-    <div className="px-6 py-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-600"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Edit {studentName}
-            </h1>
-            <p className="text-sm text-gray-500">Update full student record.</p>
+    <div className="w-full min-h-screen bg-gray-50 py-8 px-6">
+      <div className="max-w-6xl mx-auto bg-white border border-gray-300 shadow-sm overflow-hidden">
+        
+        {/* Top dark title bar */}
+        <div className="bg-[#2b2b2e] px-4 py-2 text-white text-sm font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-3">
+             <button onClick={() => navigate(-1)} className="text-white opacity-80 hover:opacity-100">
+                <ArrowLeft size={16} />
+             </button>
+             <span>Edit {studentName}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] opacity-90">Active:</span>
+            <input 
+              type="checkbox" 
+              name="isActive" 
+              checked={form.isActive} 
+              onChange={handleChange} 
+              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
           </div>
         </div>
 
-        {/* Active Status Toggle */}
-        <div className="bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700">Status:</span>
-            <label className="inline-flex items-center cursor-pointer">
-                <input 
-                    type="checkbox" 
-                    name="isActive"
-                    className="sr-only peer" 
-                    checked={form.isActive}
-                    onChange={handleChange}
-                />
-                <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                <span className={`ms-2 text-sm font-medium ${form.isActive ? 'text-green-600' : 'text-gray-500'}`}>
-                    {form.isActive ? 'Active' : 'Inactive'}
-                </span>
-            </label>
-        </div>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        
-        {/* 1. BASIC INFORMATION */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <User size={18} className="text-blue-600" />
-                <h2 className="font-semibold text-gray-900">Personal Details</h2>
+        <form onSubmit={handleSubmit} className="p-0 space-y-0">
+          
+          {/* 1. BASIC INFORMATION */}
+          <SectionHeader title="Personal Details" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">First Name <span className="text-red-500">*</span></label>
+                  <input name="firstName" value={form.firstName} onChange={handleChange} required className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Last Name</label>
+                  <input name="lastName" value={form.lastName} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Gender</label>
+                  <select name="gender" value={form.gender} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]">
+                     <option value="">Select</option>
+                     <option value="Male">Male</option>
+                     <option value="Female">Female</option>
+                     <option value="Other">Other</option>
+                  </select>
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Date of Birth</label>
+                  <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Registration Date</label>
+                  <input 
+                    type="date" 
+                    name="registrationDate" 
+                    value={form.registrationDate} 
+                    readOnly 
+                    className="w-full h-[34px] px-2 border border-gray-300 bg-gray-100 text-gray-500 text-[13px] cursor-not-allowed" 
+                  />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">ID Number</label>
+                  <input name="idNumber" value={form.idNumber} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Payment Method</label>
+                  <select name="preferredPaymentMethod" value={form.preferredPaymentMethod} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]">
+                     <option value="">Select</option>
+                     <option value="cash">Cash</option>
+                     <option value="card">Card</option>
+                     <option value="bank">Bank Transfer</option>
+                  </select>
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Discount (%)</label>
+                  <input type="number" name="discount" value={form.discount} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
             </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                    <input name="firstName" value={form.firstName} onChange={handleChange} required className="w-full h-10 px-3 rounded-lg border border-gray-300 focus:border-blue-500 outline-none transition-colors" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                    <input name="lastName" value={form.lastName} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300 focus:border-blue-500 outline-none transition-colors" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-                    <select name="gender" value={form.gender} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white">
-                        <option value="">Select</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-                    <input type="date" name="dateOfBirth" value={form.dateOfBirth} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
+          </div>
 
-                {/* ✅ REGISTRATION DATE - READ ONLY */}
+          {/* 2. CONTACT DETAILS */}
+          <SectionHeader title="Contact Details" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Email</label>
+                  <input type="email" name="email" value={form.email} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Mobile Phone</label>
+                  <input name="mobilePhone" value={form.mobilePhone} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Home Phone</label>
+                  <input name="homePhone" value={form.homePhone} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div className="md:col-span-1"></div> {/* Spacer */}
+
+               <div className="md:col-span-2">
+                  <label className="block text-[13px] text-gray-700 mb-1">Street Address</label>
+                  <input name="streetAddress" value={form.streetAddress} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">City</label>
+                  <input name="city" value={form.city} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Postcode</label>
+                  <input name="zipCode" value={form.zipCode} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">State / Province</label>
+                  <input name="state" value={form.state} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Country</label>
+                  <input name="country" value={form.country} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Time Zone</label>
+                  <input name="timeZone" value={form.timeZone} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+            </div>
+          </div>
+
+          {/* 3. IDENTITY */}
+          <SectionHeader title="Identity Information" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Nationality</label>
+                  <input name="nationality" value={form.nationality} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Passport Number</label>
+                  <input name="passportNumber" value={form.passportNumber} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Passport Expiry</label>
+                  <input type="date" name="passportExpiryDate" value={form.passportExpiryDate} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">GNIB Expiry</label>
+                  <input type="date" name="gnibExpiryDate" value={form.gnibExpiryDate} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+            </div>
+          </div>
+
+          {/* 4. COURSE & PAYMENT */}
+          <SectionHeader title="Course & Payment Details" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+               <div className="md:col-span-2">
+                  <label className="block text-[13px] text-gray-700 mb-1">Course Title</label>
+                  <input name="courseTitle" value={form.courseTitle} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Course Code</label>
+                  <input name="courseCode" value={form.courseCode} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Department</label>
+                  <input name="department" value={form.department} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Start Date</label>
+                  <input type="date" name="courseStartDate" value={form.courseStartDate} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">End Date</label>
+                  <input type="date" name="courseEndDate" value={form.courseEndDate} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Finished Date</label>
+                  <input type="date" name="finishedCourseDate" value={form.finishedCourseDate} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Level</label>
+                  <input name="courseLevel" value={form.courseLevel} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Mode of Study</label>
+                  <input name="modeOfStudy" value={form.modeOfStudy} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Weeks</label>
+                  <input type="number" name="numberOfWeeks" value={form.numberOfWeeks} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Hours/Week</label>
+                  <input type="number" name="hoursPerWeek" value={form.hoursPerWeek} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Tuition Fees</label>
+                  <input type="number" name="tuitionFees" value={form.tuitionFees} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">External Exam</label>
+                  <input name="externalExam" value={form.externalExam} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Exam Date</label>
+                  <input type="date" name="externalExamDate" value={form.externalExamDate} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Exam Score</label>
+                  <input name="scoreExternalExam" value={form.scoreExternalExam} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Date of Payment</label>
+                  <input type="date" name="dateOfPayment" value={form.dateOfPayment} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">ILEP Ref</label>
+                  <input name="ilepReference" value={form.ilepReference} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Schedule</label>
+                  <input name="schedule" value={form.schedule} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Attendance</label>
+                  <input name="attendance" value={form.attendance} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+            </div>
+          </div>
+
+          {/* 5. NOTES */}
+          <SectionHeader title="Notes" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">General Notes</label>
+                  <textarea name="generalNotes" value={form.generalNotes} onChange={handleChange} className="w-full h-32 px-2 py-2 border border-gray-300 bg-white text-[13px] resize-none" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Medical Notes</label>
+                  <textarea name="medicalNotes" value={form.medicalNotes} onChange={handleChange} className="w-full h-32 px-2 py-2 border border-gray-300 bg-white text-[13px] resize-none" />
+               </div>
+            </div>
+          </div>
+
+          {/* 6. CLASS ENROLLMENT LIMITS */}
+          <SectionHeader title="Class Enrollment Limits" />
+          <div className="p-4">
+            <p className="text-[12px] text-gray-500 mb-3">Only fill this if you want to restrict the student to specific subjects/levels.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Registration Date</label>
+                   <label className="block text-[13px] text-gray-700 mb-1">Class Subject</label>
+                   <select name="classSubject" value={form.classSubject} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]">
+                      <option value="">Select</option>
+                      <option value="General English">General English</option>
+                      <option value="Business English">Business English</option>
+                   </select>
+                </div>
+                <div>
+                   <label className="block text-[13px] text-gray-700 mb-1">Class Level</label>
+                   <select name="classLevel" value={form.classLevel} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]">
+                      <option value="">Select</option>
+                      <option value="Beginner">Beginner</option>
+                      <option value="Intermediate">Intermediate</option>
+                      <option value="Advanced">Advanced</option>
+                   </select>
+                </div>
+            </div>
+          </div>
+
+          {/* 7. SUBSTITUTE LESSONS */}
+          <SectionHeader title="Substitute Lessons" />
+          <div className="p-4">
+             <div className="flex items-center gap-2 mb-3">
+                 <input 
+                   type="checkbox" 
+                   name="allowSubstituteLessons" 
+                   checked={form.allowSubstituteLessons} 
+                   onChange={handleChange} 
+                   className="h-4 w-4 rounded border-gray-300"
+                 />
+                 <span className="text-[13px] font-medium text-gray-700">Allow Substitute Lessons</span>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div>
+                    <label className="block text-[13px] text-gray-700 mb-1">Lessons per Month</label>
+                    <input 
+                        type="number" 
+                        name="substituteLessonsPerMonth" 
+                        value={form.substituteLessonsPerMonth} 
+                        onChange={handleChange} 
+                        disabled={!form.allowSubstituteLessons}
+                        className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px] disabled:bg-gray-100 disabled:text-gray-400" 
+                    />
+                 </div>
+                 <div>
+                    <label className="block text-[13px] text-gray-700 mb-1">Start Date</label>
                     <input 
                         type="date" 
-                        name="registrationDate" 
-                        value={form.registrationDate} 
-                        readOnly // User cannot edit
-                        className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-gray-100 text-gray-500 cursor-not-allowed" // Visual cue
+                        name="substituteStartDate" 
+                        value={form.substituteStartDate} 
+                        onChange={handleChange} 
+                        disabled={!form.allowSubstituteLessons}
+                        className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px] disabled:bg-gray-100 disabled:text-gray-400" 
                     />
-                </div>
-                
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ID Number</label>
-                    <input name="idNumber" value={form.idNumber} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                    <select name="preferredPaymentMethod" value={form.preferredPaymentMethod} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white">
-                        <option value="">Select</option>
-                        <option value="cash">Cash</option>
-                        <option value="card">Card</option>
-                        <option value="bank">Bank Transfer</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
-                    <input type="number" name="discount" value={form.discount} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-            </div>
-        </div>
+                 </div>
+                 <div>
+                    <label className="block text-[13px] text-gray-700 mb-1">End Date</label>
+                    <input 
+                        type="date" 
+                        name="substituteEndDate" 
+                        value={form.substituteEndDate} 
+                        onChange={handleChange} 
+                        disabled={!form.allowSubstituteLessons}
+                        className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px] disabled:bg-gray-100 disabled:text-gray-400" 
+                    />
+                 </div>
+             </div>
+          </div>
 
-        {/* 2. CONTACT DETAILS */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <Mail size={18} className="text-blue-600" />
-                <h2 className="font-semibold text-gray-900">Contact Details</h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" value={form.email} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Phone</label>
-                    <input name="mobilePhone" value={form.mobilePhone} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Home Phone</label>
-                    <input name="homePhone" value={form.homePhone} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                
-                {/* Full Width Address Row */}
-                <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Street Address</label>
-                        <input name="streetAddress" value={form.streetAddress} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                        <input name="city" value={form.city} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
-                        <input name="zipCode" value={form.zipCode} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">State / Province</label>
-                        <input name="state" value={form.state} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-                        <input name="country" value={form.country} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Time Zone</label>
-                        <input name="timeZone" value={form.timeZone} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {/* 3. IDENTITY */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <Calendar size={18} className="text-blue-600" />
-                <h2 className="font-semibold text-gray-900">Identity Information</h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Nationality</label>
-                    <input name="nationality" value={form.nationality} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Passport Number</label>
-                    <input name="passportNumber" value={form.passportNumber} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Passport Expiry</label>
-                    <input type="date" name="passportExpiryDate" value={form.passportExpiryDate} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">GNIB Expiry</label>
-                    <input type="date" name="gnibExpiryDate" value={form.gnibExpiryDate} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-            </div>
-        </div>
-
-        {/* 4. COURSE & PAYMENT */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <BookOpen size={18} className="text-blue-600" />
-                <h2 className="font-semibold text-gray-900">Course & Payment Details</h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Course Title</label>
-                    <input name="courseTitle" value={form.courseTitle} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Course Code</label>
-                    <input name="courseCode" value={form.courseCode} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
-                    <input name="department" value={form.department} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                    <input type="date" name="courseStartDate" value={form.courseStartDate} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                    <input type="date" name="courseEndDate" value={form.courseEndDate} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Finished Date</label>
-                    <input type="date" name="finishedCourseDate" value={form.finishedCourseDate} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Level</label>
-                    <input name="courseLevel" value={form.courseLevel} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mode of Study</label>
-                    <input name="modeOfStudy" value={form.modeOfStudy} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Weeks</label>
-                    <input type="number" name="numberOfWeeks" value={form.numberOfWeeks} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Hours/Week</label>
-                    <input type="number" name="hoursPerWeek" value={form.hoursPerWeek} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tuition Fees</label>
-                    <div className="relative">
-                        <DollarSign size={14} className="absolute left-3 top-3 text-gray-400" />
-                        <input type="number" name="tuitionFees" value={form.tuitionFees} onChange={handleChange} className="w-full h-10 pl-8 pr-3 rounded-lg border border-gray-300" />
-                    </div>
-                </div>
-                
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">External Exam</label>
-                    <input name="externalExam" value={form.externalExam} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Exam Date</label>
-                    <input type="date" name="externalExamDate" value={form.externalExamDate} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Exam Score</label>
-                    <input name="scoreExternalExam" value={form.scoreExternalExam} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Payment</label>
-                    <input type="date" name="dateOfPayment" value={form.dateOfPayment} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ILEP Ref</label>
-                    <input name="ilepReference" value={form.ilepReference} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
-                    <input name="schedule" value={form.schedule} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Attendance</label>
-                    <input name="attendance" value={form.attendance} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-            </div>
-        </div>
-
-        {/* 5. NOTES */}
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                <FileText size={18} className="text-blue-600" />
-                <h2 className="font-semibold text-gray-900">Notes</h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">General Notes</label>
-                    <textarea name="generalNotes" value={form.generalNotes} onChange={handleChange} className="w-full h-32 px-3 py-2 rounded-lg border border-gray-300 resize-none" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Medical Notes</label>
-                    <textarea name="medicalNotes" value={form.medicalNotes} onChange={handleChange} className="w-full h-32 px-3 py-2 rounded-lg border border-gray-300 resize-none" />
-                </div>
-            </div>
-        </div>
-
-        {/* 6. CLASS OPTIONS & SUBSTITUTES */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Class Options */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                    <School size={18} className="text-blue-600" />
-                    <h2 className="font-semibold text-gray-900">Class Enrollment Limits</h2>
-                </div>
-                <div className="p-6 space-y-4">
-                    <p className="text-xs text-gray-500">Only fill this if you want to restrict the student to specific subjects/levels.</p>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Class Subject</label>
-                        <select name="classSubject" value={form.classSubject} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white">
-                            <option value="">Select</option>
-                            <option value="General English">General English</option>
-                            <option value="Business English">Business English</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Class Level</label>
-                        <select name="classLevel" value={form.classLevel} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white">
-                            <option value="">Select</option>
-                            <option value="Beginner">Beginner</option>
-                            <option value="Intermediate">Intermediate</option>
-                            <option value="Advanced">Advanced</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            {/* Substitute Lessons */}
-            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-                    <Clock size={18} className="text-blue-600" />
-                    <h2 className="font-semibold text-gray-900">Substitute Lessons</h2>
-                </div>
-                <div className="p-6 space-y-4">
-                    <label className="flex items-center gap-2">
-                        <input type="checkbox" name="allowSubstituteLessons" checked={form.allowSubstituteLessons} onChange={handleChange} className="w-4 h-4 rounded border-gray-300" />
-                        <span className="text-sm font-medium text-gray-700">Allow Substitute Lessons</span>
-                    </label>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Lessons per Month</label>
-                            <input 
-                                type="number" 
-                                name="substituteLessonsPerMonth" 
-                                value={form.substituteLessonsPerMonth} 
-                                onChange={handleChange} 
-                                disabled={!form.allowSubstituteLessons}
-                                className="w-full h-10 px-3 rounded-lg border border-gray-300 disabled:bg-gray-100 disabled:text-gray-400" 
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                            <input 
-                                type="date" 
-                                name="substituteStartDate" 
-                                value={form.substituteStartDate} 
-                                onChange={handleChange} 
-                                disabled={!form.allowSubstituteLessons}
-                                className="w-full h-10 px-3 rounded-lg border border-gray-300 disabled:bg-gray-100 disabled:text-gray-400" 
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                            <input 
-                                type="date" 
-                                name="substituteEndDate" 
-                                value={form.substituteEndDate} 
-                                onChange={handleChange} 
-                                disabled={!form.allowSubstituteLessons}
-                                className="w-full h-10 px-3 rounded-lg border border-gray-300 disabled:bg-gray-100 disabled:text-gray-400" 
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {/* ACTIONS */}
-        <div className="pt-4 border-t border-gray-200 flex items-center justify-end gap-3 pb-12">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="h-11 px-6 rounded-xl border border-gray-200 bg-white text-gray-700 font-medium hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="h-11 px-6 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-60 inline-flex items-center gap-2"
-          >
-            <Save size={18} />
-            {saving ? "Saving..." : "Update Student"}
-          </button>
-        </div>
-      </form>
+          {/* ACTIONS */}
+          <div className="flex items-center justify-end gap-3 px-4 py-3 border-t bg-white">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="h-[34px] px-3 border border-gray-300 text-[13px] bg-white hover:bg-gray-50 text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="h-[34px] px-3 bg-blue-600 text-white text-[13px] hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2"
+            >
+              <Save size={14} />
+              {saving ? "Saving..." : "Update Student"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

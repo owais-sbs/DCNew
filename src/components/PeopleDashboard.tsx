@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import Swal from "sweetalert2";
 
 import {
-  LayoutDashboard,
   Users,
   GraduationCap,
   UserRoundCog,
@@ -16,7 +15,8 @@ import {
 } from "lucide-react"
 import axiosInstance from "./axiosInstance"
 
-type TabId = "dashboard" | "students" | "teachers" | "staff" | "related" | "prospects"
+// Tabs shown on People page – match design (no Dashboard tab)
+type TabId = "students" | "teachers" | "staff" | "related" | "prospects"
 
 type StudentRow = {
   Id: number
@@ -64,13 +64,13 @@ type ProspectRow = {
   status: string
 }
 
+// Base tab config – counts are overridden from API data below
 const tabs: Array<{ id: TabId; label: string; count?: number; icon: any }> = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "students", label: "Students", count: 999, icon: Users },
-  { id: "teachers", label: "Teachers", count: 41, icon: GraduationCap },
-  { id: "staff", label: "Staff", count: 2, icon: UserRoundCog },
-  { id: "related", label: "Related contacts", count: 6, icon: UserRoundCog },
-  { id: "prospects", label: "Prospects", count: 2, icon: UserPlus }
+  { id: "students", label: "Students", count: 0, icon: Users },
+  { id: "teachers", label: "Teachers", count: 0, icon: GraduationCap },
+  { id: "staff", label: "Staffs", count: 0, icon: UserRoundCog },
+  { id: "related", label: "Other Contacts", count: 0, icon: UserRoundCog },
+  { id: "prospects", label: "Prospects", count: 0, icon: UserPlus }
 ]
 
 const studentFilters = [
@@ -101,6 +101,7 @@ const prospectRows: ProspectRow[] = [
 const avatarPalette = ["bg-indigo-500","bg-rose-500","bg-purple-500","bg-emerald-500","bg-blue-500"]
 
 export default function PeopleDashboard() {
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabId>("students")
   const [students, setStudents] = useState<StudentRow[]>([])
@@ -120,6 +121,7 @@ export default function PeopleDashboard() {
   const [teacherTotalCount, setTeacherTotalCount] = useState(0)
   const [teacherSearch, setTeacherSearch] = useState("")
   const [teacherSearchDebounced, setTeacherSearchDebounced] = useState("")
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false)
 
   // derived pagination values
 const studentTotalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(totalCount / (pageSize as number)));
@@ -201,13 +203,18 @@ const makePageButtons = (totalPages: number, current: number) => {
 
   // Debounce student search
   useEffect(() => {
+    const query = searchParams.get("search");
+    if (query) {
+      setStudentSearch(query); // This triggers your existing API/Filter logic
+      setActiveTab("students"); // Ensure the correct tab is active
+    }
     const timer = setTimeout(() => {
       setStudentSearchDebounced(studentSearch)
       setPageNumber(1) // Reset to first page on search
     }, 500) // 500ms delay
 
     return () => clearTimeout(timer)
-  }, [studentSearch])
+  }, [studentSearch, searchParams])
 
   // Debounce teacher search
   useEffect(() => {
@@ -520,6 +527,7 @@ const handleStaffDelete = async (id: number) => {
   const resolvedTabs = tabs.map((tab) => {
     if (tab.id === "students") return { ...tab, count: totalCount }
     if (tab.id === "teachers") return { ...tab, count: teacherTotalCount }
+    // Staff / related / prospects are currently static
     return tab
   })
 
@@ -559,11 +567,14 @@ const handleStaffDelete = async (id: number) => {
       const initials = getInitials(student)
 
       return (
-        <tr key={student.Id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-          <td className="px-4 py-3">
+        <tr
+          key={student.Id}
+          className="border-b border-gray-300 last:border-b-0 hover:bg-[#f7f7f7]"
+        >
+          <td className="px-4 py-3 border-r border-gray-300">
             <input type="checkbox" aria-label={`Select ${studentName}`} />
           </td>
-          <td className="px-4 py-3 text-indigo-700">
+          <td className="px-4 py-3 text-indigo-700 border-r border-gray-300">
             <button
               type="button"
               onClick={() => navigate(`/people/students/${student.Id}`)}
@@ -600,8 +611,10 @@ const handleStaffDelete = async (id: number) => {
               </div>
             </button>
           </td>
-          <td className="px-4 py-3 text-gray-700">{student.MobilePhone || "—"}</td>
-          <td className="px-4 py-3 text-blue-600">
+          <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
+            {student.MobilePhone || "—"}
+          </td>
+          <td className="px-4 py-3 text-blue-600 border-r border-gray-300">
             {student.Email ? (
               <a href={`mailto:${student.Email}`} className="hover:underline">
                 {student.Email}
@@ -610,10 +623,16 @@ const handleStaffDelete = async (id: number) => {
               "—"
             )}
           </td>
-          <td className="px-4 py-3 text-gray-700">{formatDate(student.RegistrationDate)}</td>
-          <td className="px-4 py-3 text-gray-700">{student.IdNumber || "—"}</td>
-          <td className="px-4 py-3 text-emerald-600">{formatCurrency(student.TuitionFees)}</td>
-           <td className="px-4 py-3 relative">
+          <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
+            {formatDate(student.RegistrationDate)}
+          </td>
+          <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
+            {student.IdNumber || "—"}
+          </td>
+          <td className="px-4 py-3 text-emerald-600 border-r border-gray-300">
+            {formatCurrency(student.TuitionFees)}
+          </td>
+          <td className="px-4 py-3 relative">
   {/* More button */}
   <button
     type="button"
@@ -654,96 +673,175 @@ const handleStaffDelete = async (id: number) => {
   }
 
   return (
-    <div className="px-6 py-6">
-      <h1 className="text-2xl font-semibold text-gray-900">People</h1>
-
-      <div className="mt-4 flex items-center gap-6 border-b border-gray-200 pb-3">
-        {resolvedTabs.map(({ id, label, count, icon: Icon }) => (
+    <div className="px-6 py-6 relative">
+      {/* Top title + Add dropdown (right) */}
+      <div className="flex items-center justify-between mb-3">
+        <h1 className="text-2xl font-semibold text-gray-900">People</h1>
+        <div className="relative">
           <button
-            key={id}
-            onClick={() => setActiveTab(id)}
-            className={`relative inline-flex items-center gap-2 px-3 h-10 text-sm transition-colors ${
-              activeTab === id ? "text-blue-700 font-semibold" : "text-gray-600 hover:text-gray-800"
-            }`}
+            type="button"
+            onClick={() => setIsAddMenuOpen((open) => !open)}
+            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50"
           >
-            <Icon size={16} />
-            <span>{label}</span>
-            {typeof count === "number" && (
-              <span
-                className={`text-xs px-2 py-1 rounded-full ${
-                  activeTab === id ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
-                }`}
-              >
-                {count}
-              </span>
-            )}
-            {activeTab === id && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />}
+            Add <span className="text-xs text-gray-500">▾</span>
           </button>
-        ))}
+
+          {isAddMenuOpen && (
+            <div className="absolute right-0 mt-1 w-44 rounded-lg border border-gray-200 bg-white shadow-lg z-20">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddMenuOpen(false)
+                  navigate("/people/students/new")
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+              >
+                Add student
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddMenuOpen(false)
+                  navigate("/people/teachers/new")
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+              >
+                Add teacher
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddMenuOpen(false)
+                  navigate("/people/staffs/new")
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+              >
+                Add staff
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddMenuOpen(false)
+                  navigate("/people/related/new")
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+              >
+                Add related contact
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAddMenuOpen(false)
+                  navigate("/people/prospects/new")
+                }}
+                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50"
+              >
+                Add prospect
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
-      {activeTab === "dashboard" && (
-        <div className="mt-10 text-center text-gray-400 text-sm">
-          Dashboard widgets are not configured in this prototype.
-        </div>
-      )}
+      {/* Tabs row – match old app style with blue count pill on active tab */}
+      <div className="flex items-end gap-1 border-b border-gray-300 pb-0.5">
+        {resolvedTabs.map(({ id, label, count, icon: Icon }) => {
+          const isActive = activeTab === id
+          return (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`inline-flex items-center gap-2 px-3 h-8 rounded-t-md border ${
+                isActive
+                  ? "border-gray-400 border-b-white bg-white text-gray-900"
+                  : "border-gray-300 bg-[#f5f5f5] text-gray-700 hover:bg-gray-200"
+              }`}
+              style={{ marginBottom: -1 }}
+            >
+              <Icon size={16} className="text-gray-600" />
+              <span className="text-sm">{label}</span>
+              {typeof count === "number" && (
+                <span
+                  className={`min-w-[28px] px-2 py-0.5 rounded-full text-xs text-center ${
+                    isActive
+                      ? "bg-[#0060df] text-white"
+                      : "bg-white border border-gray-300 text-gray-700"
+                  }`}
+                >
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
 
       {activeTab === "students" && (
         <div className="mt-6">
-          <div className="flex items-center justify-between">
-            <div className="text-xl font-semibold text-gray-800">
-              {isLoadingStudents ? "Loading students..." : `${totalCount} Students`}
-            </div>
+          {/* Row under tabs: icon + 978/978 Students + Export (right) */}
+          <div className="mt-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                <Download size={16} /> Export
-              </button>
-              <button
-                onClick={() => navigate('/people/students/new')}
-                className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm"
-              >
-                + Add student
-              </button>
+              <div className="h-9 w-9 rounded bg-gray-100 grid place-items-center">
+                <Users size={20} className="text-gray-500" />
+              </div>
+              <div className="text-xl font-semibold text-gray-800">
+                {isLoadingStudents
+                  ? "Loading students..."
+                  : `${totalCount}/${totalCount} Students`}
+              </div>
             </div>
+            <button className="h-9 px-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50">
+              <Download size={16} /> Export
+            </button>
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
-            <div className="relative w-64">
-              <input
-                type="text"
-                placeholder="Search students"
-                value={studentSearch}
-                onChange={(e) => setStudentSearch(e.target.value)}
-                className="w-full h-10 pl-4 pr-3 rounded-xl border border-gray-200 bg-white text-sm placeholder:text-gray-400"
-              />
-            </div>
-            <div className="flex items-center gap-2 ml-auto">
-              {studentFilters.map((filter) => (
-                <button
-                  key={filter.label}
-                  className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50"
-                >
-                  {filter.label}: {filter.value}
-                  <ChevronDown size={14} className="text-gray-500" />
+          {/* Filters row + table combined in one retro header bar */}
+          <div className="mt-4 border border-gray-400 rounded-sm overflow-hidden bg-white">
+            {/* Toolbar row above table */}
+            <div className="flex items-center gap-3 px-4 py-2 bg-[#f1f1f1] border-b border-gray-400">
+              <div className="flex-1 max-w-sm">
+                <input
+                  type="text"
+                  placeholder="Search in columns in view"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  className="w-full h-9 px-3 rounded border border-gray-300 bg-white text-sm placeholder:text-gray-400"
+                />
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                {studentFilters.map((filter) => (
+                  <button
+                    key={filter.label}
+                    className="h-9 px-3 inline-flex items-center gap-2 rounded border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50"
+                  >
+                    {filter.label}: {filter.value}
+                    <ChevronDown size={14} className="text-gray-500" />
+                  </button>
+                ))}
+                <button className="h-9 w-9 grid place-items-center rounded border border-gray-300 bg-white text-gray-600">
+                  ⟳
                 </button>
-              ))}
-              <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">⟳</button>
-              <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">⋯</button>
+                <button className="h-9 w-9 grid place-items-center rounded border border-gray-300 bg-white text-gray-600">
+                  ⋯
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500">
+            {/* Table – retro grid look with strong lines */}
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-[#f1f1f1] text-gray-700">
                 <tr>
                   {["", "Name", "Phone", "Email", "Registration date", "ID Number", "Payments", "Actions"].map((heading, idx) => (
-                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                    <th
+                      key={idx}
+                      className="px-4 py-2.5 font-medium text-left border-b border-gray-400 border-r last:border-r-0"
+                    >
+                      {heading}
+                    </th>
                   ))}
                 </tr>
               </thead>
-              <tbody>
-              {renderStudentTableBody()}
-              </tbody>
+              <tbody>{renderStudentTableBody()}</tbody>
             </table>
             <div className="flex items-center justify-between px-4 py-4 bg-white border border-t-0 border-gray-200 rouded-b-xl">
   <div className="text-sm text-gray-600">
@@ -815,37 +913,43 @@ Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min
             <div className="text-xl font-semibold text-gray-800">
               {isLoadingTeachers ? "Loading teachers..." : `${teacherTotalCount} Teachers`}
             </div>
-            <div className="flex items-center gap-3">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                <Download size={16} /> Export
-              </button>
-              <button onClick={() => navigate('/people/teachers/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm">
-                + Add teacher
-              </button>
-            </div>
+            <button className="h-9 px-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50">
+              <Download size={16} /> Export
+            </button>
           </div>
 
-          <div className="mt-4 flex items-center gap-3">
-            <div className="relative w-64">
-              <input
-                placeholder="Search teachers"
-                value={teacherSearch}
-                onChange={(e) => setTeacherSearch(e.target.value)}
-                className="w-full h-10 pl-4 pr-3 rounded-xl border border-gray-200 bg-white text-sm placeholder:text-gray-400"
-              />
+          {/* Teachers: retro container + toolbar row + grid table */}
+          <div className="mt-4 border border-gray-400 rounded-sm overflow-hidden bg-white">
+            {/* Toolbar row */}
+            <div className="flex items-center gap-3 px-4 py-2 bg-[#f1f1f1] border-b border-gray-400">
+              <div className="flex-1 max-w-sm">
+                <input
+                  placeholder="Search teachers"
+                  value={teacherSearch}
+                  onChange={(e) => setTeacherSearch(e.target.value)}
+                  className="w-full h-9 px-3 rounded border border-gray-300 bg-white text-sm placeholder:text-gray-400"
+                />
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <button className="h-9 w-9 grid place-items-center rounded border border-gray-300 bg-white text-gray-600">
+                  ⟳
+                </button>
+                <button className="h-9 w-9 grid place-items-center rounded border border-gray-300 bg-white text-gray-600">
+                  ⋯
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">⟳</button>
-              <button className="h-10 w-10 grid place-items-center rounded-xl border border-gray-200 bg-white text-gray-500">⋯</button>
-            </div>
-          </div>
 
-          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500">
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-[#f1f1f1] text-gray-700">
                 <tr>
                   {["", "Name", "Phone", "Email", "Actions"].map((heading, idx) => (
-                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                    <th
+                      key={idx}
+                      className="px-4 py-2.5 font-medium text-left border-b border-gray-400 border-r last:border-r-0"
+                    >
+                      {heading}
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -879,11 +983,14 @@ Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min
                       .join("") || "NA"
 
                     return (
-                      <tr key={teacher.Id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                        <td className="px-4 py-3">
+                      <tr
+                        key={teacher.Id}
+                        className="border-b border-gray-300 last:border-b-0 hover:bg-[#f7f7f7]"
+                      >
+                        <td className="px-4 py-3 border-r border-gray-300">
                           <input type="checkbox" aria-label={`Select ${teacherName}`} />
                         </td>
-                        <td className="px-4 py-3 text-indigo-700">
+                        <td className="px-4 py-3 text-indigo-700 border-r border-gray-300">
                           <button
                             type="button"
                             onClick={() => navigate(`/people/teachers/${teacher.Id}`)}
@@ -920,8 +1027,10 @@ Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min
                             </div>
                           </button>
                         </td>
-                        <td className="px-4 py-3 text-gray-700">{teacher.Mobile || "—"}</td>
-                        <td className="px-4 py-3 text-blue-600">
+                        <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
+                          {teacher.Mobile || "—"}
+                        </td>
+                        <td className="px-4 py-3 text-blue-600 border-r border-gray-300">
                           {teacher.Email ? (
                             <a href={`mailto:${teacher.Email}`} className="hover:underline">
                               {teacher.Email}
@@ -930,7 +1039,7 @@ Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min
                             "—"
                           )}
                         </td>
-                         <td className="px-4 py-3 relative">
+                        <td className="px-4 py-3 relative">
   {/* More button */}
   <button
     type="button"
@@ -1042,30 +1151,36 @@ Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min
         <div className="mt-6">
           <div className="flex items-center justify-between">
             <div className="text-xl font-semibold text-gray-800">2 Staff</div>
-            <div className="flex items-center gap-3">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                <Download size={16} /> Export
-              </button>
-              <button onClick={() => navigate('/people/staffs/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm">
-                + Add staff
-              </button>
-            </div>
+            <button className="h-9 px-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50">
+              <Download size={16} /> Export
+            </button>
           </div>
 
-          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500">
+          {/* Staff table – retro grid style */}
+          <div className="mt-4 border border-gray-400 rounded-sm overflow-hidden bg-white">
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-[#f1f1f1] text-gray-700">
                 <tr>
                   {["", "Name", "Email", "Actions"].map((heading, idx) => (
-                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                    <th
+                      key={idx}
+                      className="px-4 py-2.5 font-medium text-left border-b border-gray-400 border-r last:border-r-0"
+                    >
+                      {heading}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {staffRows.map((staff, idx) => (
-                  <tr key={staff.email} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3"><input type="checkbox" /></td>
-                    <td className="px-4 py-3 text-indigo-700 flex items-center gap-3">
+                  <tr
+                    key={staff.email}
+                    className="border-b border-gray-300 last:border-b-0 hover:bg-[#f7f7f7]"
+                  >
+                    <td className="px-4 py-3 border-r border-gray-300">
+                      <input type="checkbox" />
+                    </td>
+                    <td className="px-4 py-3 text-indigo-700 flex items-center gap-3 border-r border-gray-300">
                       <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}>
                         {staff.name.split(" ").map(w=>w[0]).slice(0,2).join("")}
                       </div>
@@ -1074,9 +1189,9 @@ Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min
                         <div className="text-xs text-gray-500">Staff</div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-blue-600">{staff.email}</td>
+                    <td className="px-4 py-3 text-blue-600 border-r border-gray-300">{staff.email}</td>
 
-<td className="px-4 py-3 relative">
+                    <td className="px-4 py-3 relative">
   {/* More button */}
   <button
     type="button"
@@ -1123,25 +1238,35 @@ Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min
         <div className="mt-6">
           <div className="flex items-center justify-between">
             <div className="text-xl font-semibold text-gray-800">6 Related contacts</div>
-            <button onClick={() => navigate('/people/related/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm">
-              + Add related contact
+            <button className="h-9 px-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50">
+              <Download size={16} /> Export
             </button>
           </div>
 
-          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500">
+          <div className="mt-4 border border-gray-400 rounded-sm overflow-hidden bg-white">
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-[#f1f1f1] text-gray-700">
                 <tr>
                   {["", "Name", "Email"].map((heading, idx) => (
-                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                    <th
+                      key={idx}
+                      className="px-4 py-2.5 font-medium text-left border-b border-gray-400 border-r last:border-r-0"
+                    >
+                      {heading}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {relatedRows.map((person, idx) => (
-                  <tr key={person.email} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3"><input type="checkbox" /></td>
-                    <td className="px-4 py-3 text-indigo-700 flex items-center gap-3">
+                  <tr
+                    key={person.email}
+                    className="border-b border-gray-300 last:border-b-0 hover:bg-[#f7f7f7]"
+                  >
+                    <td className="px-4 py-3 border-r border-gray-300">
+                      <input type="checkbox" />
+                    </td>
+                    <td className="px-4 py-3 text-indigo-700 flex items-center gap-3 border-r border-gray-300">
                       <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}>
                         {person.name.split(" ").map(w=>w[0]).slice(0,2).join("")}
                       </div>
@@ -1160,38 +1285,58 @@ Showing {totalCount === 0 ? 0 : 1} - {pageSize === "all" ? totalCount : Math.min
         <div className="mt-6">
           <div className="flex items-center justify-between">
             <div className="text-xl font-semibold text-gray-800">2 Prospects</div>
-            <div className="flex items-center gap-3">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-                <Download size={16} /> Export
-              </button>
-              <button onClick={() => navigate('/people/prospects/new')} className="h-10 px-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm text-sm">
-                + Add prospect
-              </button>
-            </div>
+            <button className="h-9 px-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50">
+              <Download size={16} /> Export
+            </button>
           </div>
 
-          <div className="mt-4 bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500">
+          <div className="mt-4 border border-gray-400 rounded-sm overflow-hidden bg-white">
+            <table className="w-full text-sm border-collapse">
+              <thead className="bg-[#f1f1f1] text-gray-700">
                 <tr>
                   {["", "Name", "Phone", "Email", "First contact", "Last action", "Subject", "Level", "Status"].map((heading, idx) => (
-                    <th key={idx} className="px-4 py-3 font-medium text-left border-b border-gray-200">{heading}</th>
+                    <th
+                      key={idx}
+                      className="px-4 py-2.5 font-medium text-left border-b border-gray-400 border-r last:border-r-0"
+                    >
+                      {heading}
+                    </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {prospectRows.map((prospect, idx) => (
-                  <tr key={prospect.email} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3"><input type="checkbox" /></td>
-                    <td className="px-4 py-3 text-indigo-700">{prospect.name}</td>
-                    <td className="px-4 py-3 text-gray-700">{prospect.phone || '—'}
+                  <tr
+                    key={prospect.email}
+                    className="border-b border-gray-300 last:border-b-0 hover:bg-[#f7f7f7]"
+                  >
+                    <td className="px-4 py-3 border-r border-gray-300">
+                      <input type="checkbox" />
                     </td>
-                    <td className="px-4 py-3 text-blue-600">{prospect.email}</td>
-                    <td className="px-4 py-3 text-gray-700">{prospect.firstContact}</td>
-                    <td className="px-4 py-3 text-gray-700">{prospect.lastAction}</td>
-                    <td className="px-4 py-3 text-gray-700">{prospect.subject}</td>
-                    <td className="px-4 py-3 text-gray-700">{prospect.level}</td>
-                    <td className="px-4 py-3 text-gray-700">{prospect.status}</td>
+                    <td className="px-4 py-3 text-indigo-700 border-r border-gray-300">
+                      {prospect.name}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
+                      {prospect.phone || '—'}
+                    </td>
+                    <td className="px-4 py-3 text-blue-600 border-r border-gray-300">
+                      {prospect.email}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
+                      {prospect.firstContact}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
+                      {prospect.lastAction}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
+                      {prospect.subject}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700 border-r border-gray-300">
+                      {prospect.level}
+                    </td>
+                    <td className="px-4 py-3 text-gray-700">
+                      {prospect.status}
+                    </td>
                   </tr>
                 ))}
               </tbody>

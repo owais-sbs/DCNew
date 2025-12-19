@@ -730,7 +730,7 @@ export default function StudentProfile() {
   ]
 
   const renderActivityContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Activity</h2>
@@ -754,7 +754,7 @@ export default function StudentProfile() {
           { date: "13-10-2025", time: "11:15", recorded: "11:25, Oct 13 2025" },
           { date: "13-10-2025", time: "09:00", recorded: "09:00, Oct 13 2025" }
         ].map((activity, i) => (
-          <div key={i} className="flex items-start gap-4 p-4 border border-gray-200 rounded-xl">
+          <div key={i} className="flex items-start gap-4 p-4 border border-gray-200 ">
             <div className="flex flex-col items-center">
               <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
                 <CheckCircle size={16} className="text-blue-600" />
@@ -778,379 +778,161 @@ export default function StudentProfile() {
 
 
   const renderClassesContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Classes</h2>
-          <p className="text-gray-600 mt-1">The classes that {studentName} is enrolled in</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <button 
-              onClick={() => setClassesSubTab('classes')}
-              className={`h-8 px-3 rounded-lg text-sm transition-colors ${
-                classesSubTab === 'classes' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Classes
-            </button>
-            <button 
-              onClick={() => setClassesSubTab('lessons')}
-              className={`h-8 px-3 rounded-lg text-sm transition-colors ${
-                classesSubTab === 'lessons' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Lessons
-            </button>
-            <button 
-              onClick={() => setClassesSubTab('events')}
-              className={`h-8 px-3 rounded-lg text-sm transition-colors ${
-                classesSubTab === 'events' 
-                  ? 'bg-blue-600 text-white' 
-                  : 'text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Events
-            </button>
-          </div>
-          <button 
-            onClick={() => setOpenModal('enroll-event')}
-            className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-1"
-          >
-            <Plus size={14} /> Enroll
-          </button>
-        </div>
+  <div className="bg-white p-5">
+
+    {/* HEADER */}
+    {/* HEADER ROW */}
+<div className="flex items-center justify-between pb-3">
+  <h2 className="text-lg font-semibold text-gray-900">Classes</h2>
+
+  {/* View switch */}
+  <div className="flex items-center gap-1 text-sm">
+    <span className="text-gray-600 mr-1">View:</span>
+
+    {[
+      { id: "classes", label: "Classes" },
+      { id: "lessons", label: "Individual Lessons" },
+      { id: "events", label: "Events" },
+    ].map((tab) => (
+      <button
+        key={tab.id}
+        onClick={() => setClassesSubTab(tab.id)}
+        className={`px-3 py-1.5 border text-sm ${
+          classesSubTab === tab.id
+            ? "bg-blue-600 text-white border-blue-600"
+            : "bg-white text-blue-600 border-gray-300 hover:bg-gray-50"
+        }`}
+      >
+        {tab.label}
+      </button>
+    ))}
+  </div>
+</div>
+
+{/* 🔹 BORDER LINE (SEPARATOR) */}
+<div className="border-b border-gray-300 mb-4" />
+
+{/* SUB HEADER ROW */}
+<div className="flex items-center justify-between mb-4">
+  <p className="text-sm text-gray-500">
+    The classes this student is enrolled in.
+  </p>
+
+  <div className="flex items-center gap-3">
+    {/* Toggle */}
+    <label className="inline-flex items-center cursor-pointer">
+      <input type="checkbox" className="sr-only peer" />
+      <div className="w-10 h-5 bg-gray-300 rounded-full peer-checked:bg-blue-600 relative transition">
+        <div className="absolute left-1 top-0.5 h-4 w-4 bg-white rounded-full peer-checked:translate-x-5 transition" />
       </div>
-      
-      {classesSubTab === 'classes' && (
-        <>
-          {loadingClasses ? (
-            <div className="py-12 text-center text-gray-500">
-              Loading classes...
-            </div>
-          ) : classesError ? (
-            <div className="py-12 text-center text-red-600">
-              {classesError}
-            </div>
-          ) : classes.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">
-              No classes found.
-            </div>
-          ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Teacher</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Date & time</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Enrolled</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Unenrolled</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-                  {classes.map((cls: any, i: number) => {
-                    const formatDate = (dateString?: string | null) => {
-                      if (!dateString) return "—"
-                      const date = new Date(dateString)
-                      if (Number.isNaN(date.getTime())) return "—"
-                      return date.toLocaleDateString("en-GB")
-                    }
-                    
-                    const isUnenrolled = cls.EndDate && new Date(cls.EndDate) < new Date()
-                    
-                    return (
-                      <tr 
-                        key={cls.ClassId || i} 
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
-                  <td className="py-3 px-4">
+    </label>
+
+    {/* Enroll */}
+    <button
+      onClick={() => setOpenModal("enroll-event")}
+      className="px-3 py-1.5 bg-gray-100 border border-gray-300 text-sm flex items-center gap-1 hover:bg-gray-200"
+    >
+      <Plus size={14} /> Enroll Student
+    </button>
+  </div>
+</div>
+
+
+    {/* TABLE */}
+    {classesSubTab === "classes" && (
+      <div className="overflow-x-auto mt-4">
+        <table className="w-full border border-gray-300 text-sm">
+          <thead className="bg-gray-50">
+            <tr className="border-b border-gray-300">
+              <th className="text-left px-4 py-2">Class</th>
+              <th className="text-left px-4 py-2">Teacher</th>
+              <th className="text-left px-4 py-2">Recurring Time</th>
+              <th className="text-left px-4 py-2">Enrolled</th>
+              <th className="text-left px-4 py-2">Unenrolled</th>
+              <th className="text-left px-4 py-2">Status</th>
+              <th className="text-left px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {classes.map((cls: any, i: number) => {
+              const formatDate = (d?: string | null) =>
+                d ? new Date(d).toLocaleDateString("en-GB") : "—"
+
+              const isUnenrolled =
+                cls.EndDate && new Date(cls.EndDate) < new Date()
+
+              return (
+                <tr
+                  key={cls.ClassId || i}
+                  className="border-b border-gray-200 hover:bg-gray-50"
+                >
+                  {/* Class */}
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full bg-red-500" />
+                      <span className="h-3 w-3 rounded-full bg-red-500" />
                       <div>
-                              <div className="font-medium text-gray-900">{cls.ClassTitle || "Unnamed Class"}</div>
-                              <div className="text-sm text-gray-500">{cls.ClassLevel || cls.ClassSubject || ""}</div>
+                        <div className="font-medium text-blue-600">
+                          {cls.ClassTitle}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {cls.ClassLevel}
+                        </div>
                       </div>
                     </div>
                   </td>
-                        <td className="py-3 px-4 text-gray-700">—</td>
-                        <td className="py-3 px-4 text-gray-700">
-                          {cls.StartDate && cls.EndDate 
-                            ? `${formatDate(cls.StartDate)} - ${formatDate(cls.EndDate)}`
-                            : "—"}
-                        </td>
-                        <td className="py-3 px-4 text-gray-700">{formatDate(cls.StartDate)}</td>
-                        <td className="py-3 px-4 text-gray-700">{formatDate(cls.EndDate)}</td>
-                  <td className="py-3 px-4">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            isUnenrolled ? "bg-red-100 text-red-800" : cls.IsActive !== false ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                          }`}>
-                            {isUnenrolled ? "Unenrolled" : cls.IsActive !== false ? "Active" : "Inactive"}
+
+                  {/* Teacher */}
+                  <td className="px-4 py-3 text-blue-600">
+                    2 teachers
+                  </td>
+
+                  {/* Recurring */}
+                  <td className="px-4 py-3 text-gray-700">
+                    Monday (13:00–15:00), Thursday (13:00–15:00){" "}
+                    <span className="text-blue-600 cursor-pointer">and more</span>
+                  </td>
+
+                  {/* Enrolled */}
+                  <td className="px-4 py-3">
+                    {formatDate(cls.StartDate)}
+                  </td>
+
+                  {/* Unenrolled */}
+                  <td className="px-4 py-3">
+                    {formatDate(cls.EndDate)}
+                  </td>
+
+                  {/* Status */}
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 text-xs rounded-full ${
+                      isUnenrolled
+                        ? "bg-gray-200 text-gray-700"
+                        : "bg-green-600 text-white"
+                    }`}>
+                      {isUnenrolled ? "INACTIVE" : "ACTIVE"}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                          <div className="relative class-menu-container">
-                            <button 
-                              className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setOpenClassMenu(openClassMenu === cls.ClassId ? null : cls.ClassId)
-                              }}
-                            >
-                      <MoreHorizontal size={16} />
-                    </button>
-                            {openClassMenu === cls.ClassId && (
-                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
-                                <button
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setOpenClassMenu(null)
-                                    fetchLessons(cls.ClassId)
-                                  }}
-                                >
-                                  <FileText size={16} />
-                                  View lessons
-                                </button>
-                                <button
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setOpenClassMenu(null)
-                                    // TODO: Implement view grades
-                                  }}
-                                >
-                                  <Award size={16} />
-                                  View grades
-                                </button>
-                                <button
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setOpenClassMenu(null)
-                                    // TODO: Implement print report
-                                  }}
-                                >
-                                  <Download size={16} />
-                                  Print report
-                                </button>
-                                <button
-                                  className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    setOpenClassMenu(null)
-                                    // TODO: Implement unenroll
-                                    Swal.fire({
-                                      title: "Unenroll Student",
-                                      text: `Are you sure you want to unenroll ${studentName} from ${cls.ClassTitle}?`,
-                                      icon: "warning",
-                                      showCancelButton: true,
-                                      confirmButtonColor: "#ef4444",
-                                      cancelButtonColor: "#6b7280",
-                                      confirmButtonText: "Yes, unenroll",
-                                    }).then(async (result) => {
-                                      if (result.isConfirmed) {
-                                        try {
-                                          const response = await axiosInstance.post("/Class/UnenrollStudentFromClass", null, {
-                                            params: {
-                                              studentId: parseInt(id!),
-                                              classId: cls.ClassId
-                                            }
-                                          })
-                                          if (response.data?.IsSuccess) {
-                                            Swal.fire("Success", "Student unenrolled successfully", "success")
-                                            // Refresh classes
-                                            const refreshResponse = await axiosInstance.get("/Class/GetClassesByStudent", {
-                                              params: { studentId: parseInt(id!) }
-                                            })
-                                            if (refreshResponse.data?.IsSuccess) {
-                                              setClasses(refreshResponse.data.Data || [])
-                                            }
-                                          } else {
-                                            Swal.fire("Error", response.data?.Message || "Failed to unenroll student", "error")
-                                          }
-                                        } catch (error: any) {
-                                          console.error("Error unenrolling:", error)
-                                          Swal.fire("Error", "Failed to unenroll student. Please try again.", "error")
-                                        }
-                                      }
-                                    })
-                                  }}
-                                >
-                                  <Trash2 size={16} />
-                                  Unenroll
-                                </button>
-                              </div>
-                            )}
-                          </div>
+
+                  {/* Actions */}
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-3 text-gray-400">
+                      <FileText size={16} />
+                      <Award size={16} />
+                      <Printer size={16} />
+                      <X size={16} />
+                    </div>
                   </td>
                 </tr>
-                    )
-                  })}
-            </tbody>
-          </table>
-        </div>
-          )}
-        </>
-      )}
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    )}
+  </div>
+)
 
-      {classesSubTab === 'lessons' && (
-        <div>
-          {selectedClassId && (
-            <div className="mb-4 flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setClassesSubTab('classes')
-                  setSelectedClassId(null)
-                  setLessons([])
-                }}
-                className="text-sm text-blue-600 hover:text-blue-700"
-              >
-                ← Back to classes
-              </button>
-            </div>
-          )}
-          <div className="flex items-center gap-4 mb-4">
-            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
-              <option>Attendance: All</option>
-            </select>
-            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
-              <option>Class: All</option>
-            </select>
-            <div className="relative">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
-                Date: 01-01-2013 - 01-01-2030 <ChevronDown size={14} />
-              </button>
-            </div>
-            <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center">
-              <Clock size={16} className="text-gray-500" />
-            </button>
-          </div>
-          {loadingLessons ? (
-            <div className="py-12 text-center text-gray-500">
-              Loading lessons...
-            </div>
-          ) : lessons.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">
-              {selectedClassId ? "No lessons found for this class." : "Select a class and click 'View lessons' to see lessons."}
-            </div>
-          ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Day</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                  {lessons.map((lesson, i) => {
-                    const formatLessonDate = (dateString?: string) => {
-                      if (!dateString) return "—"
-                      const date = new Date(dateString)
-                      if (Number.isNaN(date.getTime())) return "—"
-                      const dateStr = date.toLocaleDateString("en-GB")
-                      const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-                      return `${dateStr} ${timeStr}`
-                    }
-                    
-                    const getAttendanceColor = (status: string | null) => {
-                      if (!status) return ""
-                      switch (status.toLowerCase()) {
-                        case "present": return "bg-green-100 text-green-800"
-                        case "absent": return "bg-red-100 text-red-800"
-                        case "late": return "bg-orange-100 text-orange-800"
-                        case "nottaken": return "bg-gray-100 text-gray-500"
-                        case "excused": return "bg-blue-100 text-blue-800"
-                        default: return "bg-gray-100 text-gray-800"
-                      }
-                    }
-                    
-                    const lessonDate = formatLessonDate(lesson.date || lesson.startTime)
-                    const lessonTime = lesson.startTime && lesson.endTime 
-                      ? `${new Date(lesson.startTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}-${new Date(lesson.endTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
-                      : ""
-                    
-                    // Get attendance data from the lesson object (already mapped from API)
-                    const attendanceStatus = lesson.attendance || null
-                    
-                    // Format attendance status for display (exclude "NotTaken")
-                    const displayAttendanceStatus = attendanceStatus && attendanceStatus.toLowerCase() !== "nottaken" 
-                      ? attendanceStatus 
-                      : null
-                    
-                    return (
-                      <tr key={lesson.scheduleId || i} className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-3 px-4 text-gray-700">
-                          <div>{lessonDate}</div>
-                          {lessonTime && <div className="text-xs text-gray-500">{lessonTime}</div>}
-                        </td>
-                        <td className="py-3 px-4 text-gray-700">
-                          {lesson.dayOfWeek || "—"}
-                        </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-red-500" />
-                            <div>
-                              <div className="font-medium text-gray-900">{lesson.className || "Unnamed Class"}</div>
-                            </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                          {displayAttendanceStatus ? (
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAttendanceColor(displayAttendanceStatus)}`}>
-                              {displayAttendanceStatus}
-                      </span>
-                          ) : (
-                            <span className="text-gray-400">—</span>
-                          )}
-                    </td>
-                    <td className="py-3 px-4">
-                          <button 
-                            className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
-                            onClick={() => {
-                              setSelectedLesson(lesson)
-                              setShowAttendanceModal(true)
-                            }}
-                          >
-                        <FileText size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                    )
-                  })}
-              </tbody>
-            </table>
-          </div>
-          )}
-        </div>
-      )}
-
-      {classesSubTab === 'events' && (
-        <div className="text-center py-12">
-          <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-            <BookOpen size={32} className="text-blue-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Enroll {studentName} in an Event</h3>
-          <button 
-            onClick={() => setOpenModal('enroll-event')}
-            className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2"
-          >
-            <Plus size={16} /> Register for an event
-          </button>
-        </div>
-      )}
-    </div>
-  )
 
   // Helper function to get status color
   const getStatusColor = (status: string) => {
@@ -1191,7 +973,7 @@ export default function StudentProfile() {
     const overallStatus = presentStat?.Status || "Present"
 
     return (
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+      <div className="bg-white border border-gray-200  p-6 shadow-sm">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Attendance</h2>
@@ -1287,7 +1069,7 @@ export default function StudentProfile() {
 
 
   const renderFeesContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Fees</h2>
@@ -1319,7 +1101,7 @@ export default function StudentProfile() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Class fees</h3>
             <p className="text-gray-600 mb-4">Class fees will appear here when you enroll {studentName} in a class.</p>
-            <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+            <button className="h-10 px-4  bg-blue-600 text-white text-sm inline-flex items-center gap-2">
               <Plus size={16} /> Enroll student
             </button>
           </div>
@@ -1331,7 +1113,7 @@ export default function StudentProfile() {
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Additional fees</h3>
             <p className="text-gray-600 mb-4">Add any other fees here, such as registration fees, exam fees, books, bus service etc.</p>
-            <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+            <button className="h-10 px-4  bg-blue-600 text-white text-sm inline-flex items-center gap-2">
               <Plus size={16} /> Add fee
             </button>
           </div>
@@ -1364,15 +1146,15 @@ export default function StudentProfile() {
   )
 
   const renderReceiptsContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Receipts</h2>
         </div>
         <div className="flex items-center gap-2">
-          <button className="h-8 px-3 rounded-lg bg-blue-600 text-white text-sm">Receipts</button>
-          <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Invoices</button>
-          <button className="h-8 px-3 rounded-lg text-gray-700 hover:bg-gray-50 text-sm">Refund</button>
+          <button className="h-8 px-3  bg-blue-600 text-white text-sm">Receipts</button>
+          <button className="h-8 px-3  text-gray-700 hover:bg-gray-50 text-sm">Invoices</button>
+          <button className="h-8 px-3  text-gray-700 hover:bg-gray-50 text-sm">Refund</button>
         </div>
       </div>
       
@@ -1382,7 +1164,7 @@ export default function StudentProfile() {
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {studentName}'s first payment.</h3>
         <p className="text-gray-600 mb-4">{studentName}'s receipts will appear here once a payment is made.</p>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+        <button className="h-10 px-4  bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> New payment
         </button>
       </div>
@@ -1390,14 +1172,14 @@ export default function StudentProfile() {
   )
 
   const renderRelatedContactsContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="text-center py-12">
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Users size={32} className="text-blue-600" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Add {studentName}'s relationships</h3>
         <p className="text-gray-600 mb-4">Add {studentName}'s mother, father and any other related contacts here.</p>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+        <button className="h-10 px-4  bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> Add relationship
         </button>
       </div>
@@ -1405,7 +1187,7 @@ export default function StudentProfile() {
   )
 
   const renderNotesContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Notes</h2>
@@ -1417,7 +1199,7 @@ export default function StudentProfile() {
           <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
             Note privacy: All <ChevronDown size={14} />
           </button>
-          <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+          <button className="h-10 px-4  bg-blue-600 text-white text-sm inline-flex items-center gap-2">
             <Plus size={16} /> New note
           </button>
         </div>
@@ -1505,7 +1287,7 @@ export default function StudentProfile() {
   }
 
   const renderAttachmentsContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Attachments</h2>
@@ -1513,7 +1295,7 @@ export default function StudentProfile() {
         </div>
         <button
           onClick={() => setShowAddAttachmentModal(true)}
-          className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2 hover:bg-blue-700"
+          className="h-10 px-4  bg-blue-600 text-white text-sm inline-flex items-center gap-2 hover:bg-blue-700"
         >
           <Plus size={16} /> Add attachment
         </button>
@@ -1536,7 +1318,7 @@ export default function StudentProfile() {
           {attachments.map((attachment) => (
             <div
               key={attachment.Id}
-              className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+              className="border border-gray-200  p-4 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2">
@@ -1572,7 +1354,7 @@ export default function StudentProfile() {
   )
 
   const renderAssignmentsContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">Assignments</h2>
         <p className="text-gray-600">View this student's assignments.</p>
@@ -1589,7 +1371,7 @@ export default function StudentProfile() {
   )
 
   const renderGradesContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="text-center py-12">
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Award size={32} className="text-blue-600" />
@@ -1603,7 +1385,7 @@ export default function StudentProfile() {
   const renderCreateDocumentsContent = () => (
     <div className="space-y-6">
       {/* Documents List */}
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="mb-6">
         <h2 className="text-xl font-semibold text-gray-900">Create documents</h2>
       </div>
@@ -1624,7 +1406,7 @@ export default function StudentProfile() {
               <button
                 key={doc.Id}
                 onClick={() => setSelectedDocument(doc)}
-                className="h-12 px-3 rounded-lg bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left"
+                className="h-12 px-3  bg-blue-50 text-blue-700 text-sm hover:bg-blue-100 transition-colors text-left"
               >
                 {doc.Title || "Untitled Document"}
           </button>
@@ -1982,10 +1764,10 @@ export default function StudentProfile() {
 
     return (
       <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setSelectedDocument(null)}>
-        <div className="w-full max-w-3xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="w-full max-w-3xl bg-white  border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">Create document</h3>
-            <button onClick={() => setSelectedDocument(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+            <button onClick={() => setSelectedDocument(null)} className="h-8 w-8 grid place-items-center  hover:bg-gray-100">
               <span className="text-gray-500">×</span>
             </button>
           </div>
@@ -2012,7 +1794,7 @@ export default function StudentProfile() {
               </div>
 
               {/* Student Details Table */}
-              <div className="border border-gray-300 rounded-lg overflow-hidden">
+              <div className="border border-gray-300  overflow-hidden">
                 <table className="w-full text-sm">
                   <tbody>
                     {defaultFieldKeys.map((fieldKey) => (
@@ -2091,7 +1873,7 @@ export default function StudentProfile() {
                         <div
                           key={signature.id}
                           onClick={() => setSelectedSignatureId(signature.id)}
-                          className={`relative cursor-pointer border-2 rounded-lg p-3 transition-all ${
+                          className={`relative cursor-pointer border-2  p-3 transition-all ${
                             isSelected
                               ? "border-blue-500 bg-blue-50 shadow-md"
                               : "border-gray-200 bg-white opacity-50 hover:opacity-75"
@@ -2133,7 +1915,7 @@ export default function StudentProfile() {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <button className="h-10 px-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2">
+            <button className="h-10 px-4  border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2">
               <FilePlus size={16} /> Save to students profile
             </button>
             <button
@@ -2145,13 +1927,13 @@ export default function StudentProfile() {
             </button>
             <button
               onClick={handlePrintDocument}
-              className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2"
+              className="h-10 px-4  border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2"
             >
               <Download size={16} /> Print
             </button>
             <button
               onClick={() => setSelectedDocument(null)}
-              className="h-10 px-4 rounded-lg bg-gray-800 text-white text-sm"
+              className="h-10 px-4  bg-gray-800 text-white text-sm"
             >
               Close
             </button>
@@ -2162,244 +1944,274 @@ export default function StudentProfile() {
   }
 
   const renderHolidaysContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+    <div className="bg-white border border-gray-200  p-6 shadow-sm">
       <div className="text-center py-12">
         <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
           <Sun size={32} className="text-blue-600" />
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">Add a holiday for {studentName}</h3>
         <p className="text-gray-600 mb-4">Holidays for {studentName} will appear here.</p>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+        <button className="h-10 px-4  bg-blue-600 text-white text-sm inline-flex items-center gap-2">
           <Plus size={16} /> Add holiday
         </button>
       </div>
     </div>
   )
 
-  const renderProfileContent = () => (
-    <div className="space-y-6">
-      {/* Contact Details */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Email</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.Email}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Phone</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.MobilePhone}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Address</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.StreetAddress}</div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">City</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.City}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Country</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.Country}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Postcode</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.ZipCode}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Identity Information */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Identity Information</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Nationality</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.Nationality}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Passport Number</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.PassportNumber?.split('T')[0]}</div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Passport Expiry Date</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.PassportExpiryDate?.split('T')[0]}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">GNIB Expiry Date</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.GnibExpiryDate?.split('T')[0] || '-'}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Course Details */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Course Details</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Course Title</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseTitle}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Course Start Date</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseStartDate?.split('T')[0]}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Course End Date</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseEndDate?.split('T')[0]}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Attendance</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.Attendance}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Course Level</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseLevel}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Mode of Study</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseLevel}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Number of Weeks</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.NumberOfWeeks}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Hours Per Week</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.HoursPerWeek}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Tuition Fees</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.TuitionFees}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Course Code</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.CourseCode}</div>
-            </div>
-          </div>
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Date of External Exam</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.ExternalExam}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Duration</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">End of Exam paid</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Department</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">External Exam</div>
-              <div className="text-sm text-gray-900 mt-1">-</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Score External Exam</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.ScoreExternalExam}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Date of Payment</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.DateOfPayment?.split('T')[0]}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Schedule</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.Schedule}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">ILEP reference number</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.IlepReference}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* School Portal */}
-      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">School Portal</h3>
-        <p className="text-sm text-gray-600 mb-6">Enable or disable this student's access to your school portal.</p>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500 mb-2">Access to School Portal</div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-6 bg-blue-600 rounded-full relative">
-                  <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
+  const renderProfileContent = () => {
+  const Row3 = ({
+    label1,
+    value1,
+    sub1,
+    label2,
+    value2,
+    sub2,
+    label3,
+    value3,
+    sub3,
+  }: {
+    label1: string
+    value1?: React.ReactNode
+    sub1?: React.ReactNode
+    label2?: string
+    value2?: React.ReactNode
+    sub2?: React.ReactNode
+    label3?: string
+    value3?: React.ReactNode
+    sub3?: React.ReactNode
+  }) => (
+    <div className="grid grid-cols-1 md:grid-cols-3 border-b border-gray-200">
+      {[{ label: label1, value: value1, sub: sub1 },
+        { label: label2, value: value2, sub: sub2 },
+        { label: label3, value: value3, sub: sub3 }].map(
+        (col, i) => (
+          <div key={i} className="px-6 py-4">
+            {col.label && (
+              <>
+                <div className="text-sm text-gray-500">
+                  {col.label}
                 </div>
-                <span className="text-sm text-gray-700">Enabled</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Username</div>
-              <div className="text-sm text-gray-900 mt-1">{studentName}</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500 mb-2">Automatic reminders</div>
-              <div className="flex items-center gap-2">
-                <div className="w-12 h-6 bg-blue-600 rounded-full relative">
-                  <div className="w-5 h-5 bg-white rounded-full absolute right-0.5 top-0.5"></div>
+                <div className="text-sm text-gray-900 mt-1">
+                  {col.value ?? "-"}
                 </div>
-                <span className="text-sm text-gray-700">Enabled</span>
-              </div>
-            </div>
+                {col.sub && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    {col.sub}
+                  </div>
+                )}
+              </>
+            )}
           </div>
-          
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Invitation</div>
-              <div className="mt-1">
-                <button
-                  onClick={handleOpenInviteModal}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  Invite to portal
-                </button>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">Abdurrakhim has created an account</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Password</div>
-              <div className="mt-1">
-                <button className="text-sm text-blue-600 hover:text-blue-700">Change password</button>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <div className="text-sm text-gray-500">Last login</div>
-              <div className="text-sm text-gray-900 mt-1">never</div>
-            </div>
-            <div>
-              <div className="text-sm text-gray-500">Delete account</div>
-              <div className="mt-1">
-                <button className="text-sm text-blue-600 hover:text-blue-700">Delete portal account</button>
-              </div>
-            </div>
-          </div>
+        )
+      )}
+    </div>
+  )
+
+  return (
+    <div className="bg-white border border-gray-200">
+
+      {/* CONTACT */}
+      <Row3
+        label1="Mobile Phone"
+        value1={studentdetails?.MobilePhone}
+        label2="Home Phone"
+        value2={studentdetails?.HomePhone}
+        label3="Email"
+        value3={studentdetails?.Email}
+      />
+
+      {/* DATES */}
+      <Row3
+        label1="Registration Date"
+        value1={studentdetails?.RegistrationDate?.split("T")[0]}
+        label2="Date of Birth"
+        value2={studentdetails?.DateOfBirth?.split("T")[0]}
+        sub2="Birthday is in 8 days"
+        label3="Id. Number"
+        value3={studentdetails?.IdNumber}
+      />
+
+      {/* ADDRESS / PAYMENT */}
+      <Row3
+        label1="Address"
+        value1={[
+          studentdetails?.StreetAddress,
+          studentdetails?.City,
+          studentdetails?.ZipCode,
+          studentdetails?.Country,
+        ].filter(Boolean).join(", ")}
+        label2="Preferred Payment Method"
+        value2={studentdetails?.PreferredPaymentMethod}
+        label3="Discount"
+        value3={
+          studentdetails?.Discount !== null
+            ? `${studentdetails?.Discount}%`
+            : "0%"
+        }
+      />
+
+      {/* NOTES */}
+      <Row3
+        label1="General Notes"
+        value1={studentdetails?.GeneralNotes}
+        label2="Medical Notes"
+        value2={studentdetails?.MedicalNotes}
+      />
+
+      {/* CLASS */}
+      <Row3
+        label1="Class Subjects"
+        value1={studentdetails?.ClassSubject}
+        label2="Class Levels"
+        value2={studentdetails?.ClassLevel}
+      />
+
+      {/* IDENTITY */}
+      <Row3
+        label1="Nationality"
+        value1={studentdetails?.Nationality}
+        label2="Passport Number"
+        value2={studentdetails?.PassportNumber}
+        label3="Passport Expiry Date"
+        value3={studentdetails?.PassportExpiryDate?.split("T")[0]}
+      />
+
+      {/* COURSE DATES */}
+      <Row3
+        label1="GNIB Expiry Date"
+        value1={studentdetails?.GnibExpiryDate?.split("T")[0]}
+        label2="Course Start Date"
+        value2={studentdetails?.CourseStartDate?.split("T")[0]}
+        label3="Course End Date"
+        value3={studentdetails?.CourseEndDate?.split("T")[0]}
+      />
+
+      {/* COURSE INFO */}
+      <Row3
+        label1="Finished Course Date"
+        value1={studentdetails?.FinishedCourseDate?.split("T")[0]}
+        label2="Attendance"
+        value2={studentdetails?.Attendance}
+        label3="Course Title"
+        value3={studentdetails?.CourseTitle}
+      />
+
+      <Row3
+        label1="Course Level"
+        value1={studentdetails?.CourseLevel}
+        label2="Mode of Study"
+        value2={studentdetails?.ModeOfStudy}
+        label3="Number of Weeks"
+        value3={
+          studentdetails?.NumberOfWeeks
+            ? `${studentdetails.NumberOfWeeks} Weeks`
+            : "-"
+        }
+      />
+
+      <Row3
+        label1="Hours Per Week"
+        value1={studentdetails?.HoursPerWeek}
+        label2="Tuition Fees"
+        value2={studentdetails?.TuitionFees}
+        label3="Department"
+        value3={studentdetails?.Department}
+      />
+
+      <Row3
+        label1="Course Code"
+        value1={studentdetails?.CourseCode}
+        label2="External Exam"
+        value2={studentdetails?.ExternalExam}
+      />
+
+      {/* EXAM */}
+      <Row3
+        label1="Date of External Exam"
+        value1={studentdetails?.ExternalExamDate?.split("T")[0]}
+        label2="Score External Exam"
+        value2={studentdetails?.ScoreExternalExam}
+        label3="Date of Payment"
+        value3={studentdetails?.DateOfPayment?.split("T")[0]}
+      />
+
+      <Row3
+        label1="Duration"
+        value1={studentdetails?.Duration}
+        label2="Schedule"
+        value2={studentdetails?.Schedule}
+        label3="ILEP reference number"
+        value3={studentdetails?.IlepReference}
+      />
+
+      <Row3
+        label1="End of Exam paid"
+        value1={studentdetails?.EndOfExamPaid}
+      />
+
+      {/* SCHOOL PORTAL HEADER */}
+      <div className="px-6 py-4 border-b border-gray-200">
+        <div className="text-sm font-semibold text-gray-800">
+          School Portal
         </div>
-        
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <div className="text-xs text-gray-500">Created by: Asif Omer</div>
-          <div className="text-xs text-gray-500">Created date: 04-04-2025 15:25</div>
+        <div className="text-xs text-gray-500">
+          Enable or disable the student's access to your portal.
         </div>
+      </div>
+
+      {/* SCHOOL PORTAL */}
+      <Row3
+        label1="Access to School Portal"
+        value1={
+          <span className="inline-flex items-center gap-2">
+            <span className="w-10 h-5 bg-blue-600 rounded-full relative">
+              <span className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
+            </span>
+            ON
+          </span>
+        }
+        label2="Invitation"
+        value2={
+          <button
+            onClick={handleOpenInviteModal}
+            className="text-blue-600 hover:underline"
+          >
+            Invite to Portal
+          </button>
+        }
+        sub2="Abdullah has not signed up yet!"
+        label3="Last Login"
+        value3="never"
+      />
+
+      <Row3
+        label1="Username"
+        value1={studentdetails?.Username || "not set"}
+        label2="Password"
+        value2="not set"
+      />
+
+      <Row3
+        label1="Automatic Reminders"
+        value1={
+          <span className="inline-flex items-center gap-2">
+            <span className="w-10 h-5 bg-blue-600 rounded-full relative">
+              <span className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
+            </span>
+            ON
+          </span>
+        }
+      />
+
+      {/* FOOTER */}
+      <div className="px-6 py-3 text-xs text-gray-500 bg-gray-50">
+        Created By: {studentdetails?.CreatedByName || "Asif Omer"} <br />
+        Created Date: {studentdetails?.CreatedOn?.split("T")[0]}
       </div>
     </div>
   )
+}
+
 
   const renderContent = () => {
     switch(activeTab.toLowerCase()) {
@@ -2427,198 +2239,114 @@ export default function StudentProfile() {
       <div className="px-6 py-6">
         
         {/* Header card */}
-        <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-start gap-4">
-            {(studentdetails?.Photo || studentdetails?.ProfilePicture) && !profileImageError ? (
-              <img 
-                src={studentdetails.Photo || studentdetails.ProfilePicture} 
-                className="h-16 w-16 rounded-full object-cover border border-gray-200" 
-                alt={studentName}
-                onError={() => setProfileImageError(true)}
-              />
-            ) : (
-              <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
-                <User className="h-8 w-8 text-gray-400" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl font-semibold text-gray-900 truncate">{studentName}</h1>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Student</span>
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                <div>{studentdetails?.Gender || "-"}</div>
-                  <div>{age ? `${age} years old` : "-"}</div>
+        {/* PAGE TITLE + ACTIONS */}
+<div className="flex items-center justify-between mb-4">
+  <h1 className="text-2xl font-semibold text-gray-800">
+    Student Profile
+  </h1>
 
-                  {studentdetails?.MobilePhone ? (
-                    <div>{studentdetails.MobilePhone}</div>
-                  ) : (
-                    <button className="inline-flex items-center gap-1 text-indigo-600" onClick={() => alert('Add phone')}>
-                      + add phone
-                    </button>
-                  )}
+  <div className="flex items-center gap-2">
+    {["Payment", "Message", "Reports", "More"].map((label) => (
+      <button
+        key={label}
+        className="h-9 px-3 border border-gray-300 bg-gray-100 text-sm text-gray-700 rounded hover:bg-gray-200"
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+</div>
 
-                  <a className="text-blue-700" href={`mailto:${studentdetails?.Email || ''}`}>
-                    {studentdetails?.Email || ''}
-                  </a>
+{/* DOTTED DIVIDER */}
+<div className="border-b border-dotted border-gray-300 mb-6" />
 
-                <div className="inline-flex items-center gap-1 text-emerald-700">
-                  <span className="h-2 w-2 rounded-full bg-emerald-600" />
-                  1
-                </div>
-                <div className="text-emerald-700">€0</div>
-              </div>
-              <div className="mt-2 flex flex-wrap items-center gap-6 text-sm text-gray-600">
-                <div>Joined April 2025</div>
-                <div>Attended 3 days ago</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Payment Dropdown */}
-              <div className="relative">
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'payment' ? null : 'payment')}
-                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
-                >
-                  Payment <ChevronDown size={14} />
-                </button>
-                {openDropdown === 'payment' && (
-                  <div className="absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={()=>{setOpenDropdown(null); navigate('/payments/add-payment')}}>
-                      <CreditCard size={16} /> New payment
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={()=>{setOpenDropdown(null); navigate('/payments/add-invoice')}}>
-                      <FileText size={16} /> New invoice
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer" onClick={()=>{setOpenDropdown(null); navigate('/payments/add-refund')}}>
-                      <Archive size={16} /> New refund
-                    </div>
-                  </div>
-                )}
-              </div>
+{/* PROFILE HEADER */}
+<div className="flex items-start gap-6 mb-6">
+  {/* Avatar */}
+  <div className="h-32 w-32 border border-gray-300 bg-gray-100 flex items-center justify-center">
+    {(studentdetails?.Photo || studentdetails?.ProfilePicture) && !profileImageError ? (
+      <img
+        src={studentdetails.Photo || studentdetails.ProfilePicture}
+        alt={studentName}
+        className="h-full w-full object-cover"
+        onError={() => setProfileImageError(true)}
+      />
+    ) : (
+      <User className="h-16 w-16 text-gray-400" />
+    )}
+  </div>
 
-              {/* Message Dropdown */}
-              <div className="relative">
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'message' ? null : 'message')}
-                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
-                >
-                  Message <ChevronDown size={14} />
-                </button>
-                {openDropdown === 'message' && (
-                  <div className="dropdown-container absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div 
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                      onClick={() => {
-                        setOpenDropdown(null)
-                        setOpenModal('sms')
-                      }}
-                    >
-                      <Megaphone size={16} /> Send SMS
-                    </div>
-                    <div 
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                      onClick={() => {
-                        setOpenDropdown(null)
-                        setOpenModal('email')
-                      }}
-                    >
-                      <Mail size={16} /> Send email
-                    </div>
-                    <div 
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                      onClick={() => {
-                        setOpenDropdown(null)
-                        setOpenModal('announcement')
-                      }}
-                    >
-                      <Megaphone size={16} /> Send announcement
-                    </div>
-                  </div>
-                )}
-              </div>
+  {/* Info */}
+  <div>
+    <h2 className="text-xl font-semibold text-gray-800">
+      {studentName}
+    </h2>
 
-              {/* Reports Dropdown */}
-              <div className="relative">
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'reports' ? null : 'reports')}
-                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
-                >
-                  Reports <ChevronDown size={14} />
-                </button>
-                {openDropdown === 'reports' && (
-                  <div className="absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
-                      <BarChart3 size={16} /> Student report
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
-                      <CalendarIcon size={16} /> Student schedule
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
-                      <FileCheck size={16} /> Student transcript
-                    </div>
-                  </div>
-                )}
-              </div>
+    <div className="text-sm text-gray-600 mt-1">
+      {studentdetails?.Gender || "-"}, {age ? `${age} years old` : "-"}
+    </div>
 
-              {/* More Dropdown */}
-              <div className="relative">
-                <button 
-                  onClick={() => setOpenDropdown(openDropdown === 'more' ? null : 'more')}
-                  className="h-9 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
-                >
-                  More <ChevronDown size={14} />
-                </button>
-                {openDropdown === 'more' && (
-                  <div className="absolute z-50 mt-2 w-48 bg-white border border-gray-200 rounded-2xl shadow-lg p-2 right-0 top-full">
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
-                      <FileText size={16} /> Edit
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
-                      <Sun size={16} /> Set holiday
-                    </div>
-                    <div 
-                      onClick={handleOpenInviteModal}
-                      className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                    >
-                      <User size={16} /> Invite to portal
-                    </div>
-                    <div className="border-t border-gray-200 my-1"></div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer">
-                      <Archive size={16} /> Archive
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer">
-                      <Trash2 size={16} /> Delete
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+    <div className="mt-2 space-y-1 text-sm">
+      <div className="flex items-center gap-2">
+        <span className="text-gray-500">📞</span>
+        <a
+          href={`tel:${studentdetails?.MobilePhone}`}
+          className="text-blue-600"
+        >
+          {studentdetails?.MobilePhone || "-"}
+        </a>
+      </div>
 
-          {/* Navigation tabs */}
-          <div className="mt-5 flex flex-wrap items-center gap-3">
-            {tabs.map((tab, i) => (
-              <button 
-                key={tab} 
-                onClick={() => setActiveTab(tab)}
-                className={`relative h-9 px-3 text-sm transition-colors ${
-                  activeTab === tab 
-                    ? 'text-blue-700 font-medium' 
-                    : 'text-gray-700 hover:text-gray-900'
-                }`}
-              >
-                {tab}
-                {activeTab === tab && (
-                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full"></div>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
+      <div className="flex items-center gap-2">
+        <span className="text-gray-500">✉️</span>
+        <a
+          href={`mailto:${studentdetails?.Email}`}
+          className="text-blue-600"
+        >
+          {studentdetails?.Email || "-"}
+        </a>
+      </div>
+    </div>
+
+    <div className="mt-3 space-y-1 text-sm">
+      <div className="flex items-center gap-2 text-green-700">
+        <span className="h-4 w-4 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">
+          ✓
+        </span>
+        1
+      </div>
+      <div className="flex items-center gap-2 text-green-700">
+        <span className="h-4 w-4 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">
+          ✓
+        </span>
+        €0
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* TABS (SEPARATE ROW, LIKE IMAGE) */}
+<div className="border-b border-gray-300">
+  <div className="flex flex-wrap gap-1">
+    {tabs.map((tab) => (
+      <button
+        key={tab}
+        onClick={() => setActiveTab(tab)}
+        className={`px-4 py-2 text-sm border border-b-0 ${
+          activeTab === tab
+            ? "bg-white border-gray-300 font-semibold"
+            : "bg-gray-100 border-gray-300 text-gray-600 hover:bg-gray-200"
+        }`}
+      >
+        {tab}
+      </button>
+    ))}
+  </div>
+</div>
+
 
         {/* Content based on active tab */}
-        <div className="mt-6">
+        <div className="mt-0">
           {renderContent()}
         </div>
       </div>
@@ -2626,10 +2354,10 @@ export default function StudentProfile() {
       {/* Modals */}
       {openModal === 'sms' && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
-          <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md bg-white  border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Send sms message</h3>
-              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center  hover:bg-gray-100">
                 <span className="text-gray-500">×</span>
               </button>
             </div>
@@ -2676,18 +2404,18 @@ export default function StudentProfile() {
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <span>Remaining SMS credits: 0</span>
                 </div>
-                <button className="h-8 px-3 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-1">
+                <button className="h-8 px-3  border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-1">
                   <CreditCard size={14} /> Add credit
                 </button>
               </div>
               <div className="flex items-center justify-end gap-3 pt-4">
                 <button 
                   onClick={() => setOpenModal(null)}
-                  className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm"
+                  className="h-10 px-4  border border-gray-200 bg-white text-gray-700 text-sm"
                 >
                   Cancel
                 </button>
-                <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
+                <button className="h-10 px-4  bg-blue-600 text-white text-sm">
                   Send
                 </button>
               </div>
@@ -2698,10 +2426,10 @@ export default function StudentProfile() {
 
       {openModal === 'email' && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
-          <div className="w-full max-w-lg bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-lg bg-white  border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Send email message</h3>
-              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center  hover:bg-gray-100">
                 <span className="text-gray-500">×</span>
               </button>
             </div>
@@ -2737,11 +2465,11 @@ export default function StudentProfile() {
               <div className="flex items-center justify-end gap-3 pt-4">
                 <button 
                   onClick={() => setOpenModal(null)}
-                  className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm"
+                  className="h-10 px-4  border border-gray-200 bg-white text-gray-700 text-sm"
                 >
                   Cancel
                 </button>
-                <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
+                <button className="h-10 px-4  bg-blue-600 text-white text-sm">
                   Send
                 </button>
               </div>
@@ -2752,10 +2480,10 @@ export default function StudentProfile() {
 
       {openModal === 'announcement' && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
-          <div className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-2xl bg-white  border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Send announcement message</h3>
-              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center  hover:bg-gray-100">
                 <span className="text-gray-500">×</span>
               </button>
             </div>
@@ -2855,11 +2583,11 @@ export default function StudentProfile() {
               <div className="flex items-center justify-end gap-3 pt-4">
                 <button 
                   onClick={() => setOpenModal(null)}
-                  className="h-10 px-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm"
+                  className="h-10 px-4  border border-blue-200 bg-blue-50 text-blue-700 text-sm"
                 >
                   Cancel
                 </button>
-                <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
+                <button className="h-10 px-4  bg-blue-600 text-white text-sm">
                   Send
                 </button>
               </div>
@@ -2871,20 +2599,20 @@ export default function StudentProfile() {
       {/* Register for Event Modal */}
       {openModal === 'enroll-event' && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setOpenModal(null)}>
-          <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md bg-white  border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">Enroll Student</h3>
-              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100">
+              <button onClick={() => setOpenModal(null)} className="h-8 w-8 grid place-items-center  hover:bg-gray-100">
                 <span className="text-gray-500">×</span>
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div className="flex items-center gap-3 border-b border-gray-200 pb-3">
-                <button className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-700 rounded-lg">
+                <button className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 text-blue-700 ">
                   <CalendarIcon size={16} />
                   Select a event
                 </button>
-                <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">
+                <button className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 ">
                   <BarChart3 size={16} />
                   Select by event type
                 </button>
@@ -2911,11 +2639,11 @@ export default function StudentProfile() {
               <div className="flex items-center justify-end gap-3 pt-4">
                 <button 
                   onClick={() => setOpenModal(null)}
-                  className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm"
+                  className="h-10 px-4  border border-gray-200 bg-white text-gray-700 text-sm"
                 >
                   Cancel
                 </button>
-                <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm">
+                <button className="h-10 px-4  bg-blue-600 text-white text-sm">
                   Enroll
                 </button>
               </div>
@@ -2951,7 +2679,7 @@ export default function StudentProfile() {
             </div>
 
             <div className="p-6 space-y-8 bg-gray-50 overflow-y-auto">
-              <div className="bg-white border border-indigo-200 rounded-2xl shadow-sm p-6">
+              <div className="bg-white border border-indigo-200  shadow-sm p-6">
                 <h2 className="text-2xl font-semibold text-gray-900 text-center mb-4">How to invite people to Teach 'n Go</h2>
                 <p className="text-sm text-gray-700">
                   Teach 'n Go is great for managing your classes and students. It gets better when teachers, students and related contacts are involved too!
@@ -2960,7 +2688,7 @@ export default function StudentProfile() {
                   You can send email invites or print out invitations to hand out. If an email is available, we recommend emailing the link to your school members for a smoother sign up. Links to download the mobile app are also included in the email.
                 </p>
 
-                <div className="mt-6 border border-indigo-200 rounded-2xl overflow-hidden">
+                <div className="mt-6 border border-indigo-200  overflow-hidden">
                   <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-indigo-200">
                     <div className="p-4">
                       <h3 className="text-center text-sm font-semibold text-gray-900 mb-3">Send email invitations</h3>
@@ -2982,7 +2710,7 @@ export default function StudentProfile() {
                 <p className="text-center text-xs text-gray-500 mt-3">Print invitations start on the page below</p>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 space-y-6">
+              <div className="bg-white border border-gray-200  shadow-sm p-6 space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">You're invited to our school portal</h3>
@@ -3001,7 +2729,7 @@ export default function StudentProfile() {
                   </p>
                 </div>
 
-                <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                <div className="border border-gray-200  overflow-hidden">
                   <div className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 text-sm">Join DCE English Language School</div>
                   <div className="p-4 text-sm text-gray-700 space-y-2">
                     <ol className="list-decimal space-y-2 pl-5">
@@ -3017,7 +2745,7 @@ export default function StudentProfile() {
                 </div>
 
                 <div>
-                  <div className="border border-gray-200 rounded-2xl overflow-hidden">
+                  <div className="border border-gray-200  overflow-hidden">
                     <div className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 text-sm">Activation Codes</div>
                     <div className="p-4 text-sm text-gray-700">
                       <div className="grid grid-cols-2 gap-4">
@@ -3034,7 +2762,7 @@ export default function StudentProfile() {
                   </div>
                 </div>
 
-                <div className="border border-gray-200 rounded-2xl p-4 flex gap-3 items-start">
+                <div className="border border-gray-200  p-4 flex gap-3 items-start">
                   <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xl">💡</div>
                   <div className="space-y-2 text-sm text-gray-600">
                     <div>
@@ -3317,7 +3045,7 @@ function StudentAttendanceModal({
           <h2 className="text-xl font-semibold text-gray-900">Student attendance and behaviour</h2>
           <button
             onClick={onClose}
-            className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 text-gray-500"
+            className="h-8 w-8 grid place-items-center  hover:bg-gray-100 text-gray-500"
           >
             <X size={20} />
           </button>
@@ -3462,7 +3190,7 @@ function StudentAttendanceModal({
                           prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
                         )
                       }}
-                      className={`p-3 rounded-lg border-2 transition-colors ${
+                      className={`p-3  border-2 transition-colors ${
                         selectedGoldStars.includes(option)
                           ? "border-yellow-400 bg-yellow-50"
                           : "border-gray-200 hover:border-gray-300"
@@ -3485,7 +3213,7 @@ function StudentAttendanceModal({
                           prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
                         )
                       }}
-                      className={`p-3 rounded-lg border-2 transition-colors ${
+                      className={`p-3  border-2 transition-colors ${
                         selectedRedFlags.includes(option)
                           ? "border-red-400 bg-red-50"
                           : "border-gray-200 hover:border-gray-300"
@@ -3514,7 +3242,7 @@ function StudentAttendanceModal({
               value={grade}
               onChange={(e) => setGrade(e.target.value)}
               placeholder="Enter grade in percentage"
-              className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+              className="w-full h-10 px-3  border border-gray-200 bg-white text-sm"
             />
           </div>
 
@@ -3529,7 +3257,7 @@ function StudentAttendanceModal({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Note"
               rows={4}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm resize-none"
+              className="w-full px-3 py-2  border border-gray-200 bg-white text-sm resize-none"
             />
           </div>
         </div>
@@ -3538,7 +3266,7 @@ function StudentAttendanceModal({
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
           <button
             onClick={onClose}
-            className="h-10 px-4 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="h-10 px-4  border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             Cancel
           </button>
@@ -3549,7 +3277,7 @@ function StudentAttendanceModal({
               onSuccess()
               onClose()
             }}
-            className="h-10 px-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+            className="h-10 px-4  bg-blue-600 text-white hover:bg-blue-700"
           >
             Save
           </button>
@@ -3643,7 +3371,7 @@ function AddAttachmentModal({
           <h2 className="text-xl font-semibold text-gray-900">Add Attachment</h2>
           <button
             onClick={onClose}
-            className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 text-gray-500"
+            className="h-8 w-8 grid place-items-center  hover:bg-gray-100 text-gray-500"
             disabled={uploading}
           >
             <X size={20} />
@@ -3654,7 +3382,7 @@ function AddAttachmentModal({
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4">
             {/* Student Info */}
-            <div className="flex items-center gap-3 text-sm p-3 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3 text-sm p-3 bg-gray-50 ">
               <User size={16} className="text-gray-500" />
               <span className="text-gray-600">Student:</span>
               <span className="font-medium text-gray-900">{studentName}</span>
@@ -3668,7 +3396,7 @@ function AddAttachmentModal({
                   <span className="ml-2 text-xs text-gray-500">({selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected)</span>
                 )}
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-300  p-6 text-center hover:border-blue-400 transition-colors">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -3698,7 +3426,7 @@ function AddAttachmentModal({
                   {selectedFiles.map((file, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                      className="flex items-center justify-between p-2 bg-gray-50 "
                     >
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <Paperclip size={16} className="text-gray-400 flex-shrink-0" />
@@ -3731,7 +3459,7 @@ function AddAttachmentModal({
                 value={folderName}
                 onChange={(e) => setFolderName(e.target.value)}
                 placeholder="Enter folder name"
-                className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+                className="w-full h-10 px-3  border border-gray-200 bg-white text-sm"
                 disabled={uploading}
               />
             </div>
@@ -3746,7 +3474,7 @@ function AddAttachmentModal({
                 value={folderId || ""}
                 onChange={(e) => setFolderId(e.target.value ? parseInt(e.target.value) : null)}
                 placeholder="Enter folder ID"
-                className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+                className="w-full h-10 px-3  border border-gray-200 bg-white text-sm"
                 disabled={uploading}
               />
             </div>
@@ -3757,14 +3485,14 @@ function AddAttachmentModal({
             <button
               type="button"
               onClick={onClose}
-              className="h-10 px-4 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="h-10 px-4  border border-gray-300 text-gray-700 hover:bg-gray-50"
               disabled={uploading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="h-10 px-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="h-10 px-4  bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               disabled={uploading || selectedFiles.length === 0}
             >
               {uploading ? "Uploading..." : `Upload ${selectedFiles.length > 0 ? `(${selectedFiles.length})` : ''}`}

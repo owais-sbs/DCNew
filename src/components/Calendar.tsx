@@ -455,44 +455,44 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
   return (
     <div className="bg-[#f8fafc] min-h-screen">
       <div className="px-6 py-4">
-        {/* Tabs */}
-        <div className="flex items-center gap-3 mb-3 bg-white border border-gray-200 rounded-xl p-2 shadow-sm">
-          {["Default", "Teacher", "Classroom"].map((t) => (
-            <button
-              key={t}
-              onClick={() => handleTabChange(t)}
-              className={`px-4 h-10 rounded-xl text-sm font-medium transition-colors ${
-                tab === t ? "bg-blue-50 text-blue-600 border border-blue-300 shadow-sm" : "text-gray-700 hover:bg-gray-50 border border-transparent"
-              }`}
-            >
-              {t}
-            </button>
-          ))}
-          <button className="ml-auto flex items-center gap-2 px-4 h-10 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
-            <Printer size={16} /> Print
+        {/* Top header: title + Print Calendar */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-gray-900">Calendar</h1>
+          <button className="inline-flex items-center gap-2 h-9 px-4 rounded border border-gray-300 bg-white text-sm text-gray-700 hover:bg-gray-50">
+            <Printer size={16} /> Print Calendar
           </button>
         </div>
 
-        {/* Filter Bar */}
-        <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-xl p-3 shadow-sm mb-3">
-          <div className="flex items-center gap-2">
-            <button onClick={handlePrevDay} className="h-10 w-10 grid place-items-center rounded-full border border-gray-200 bg-white hover:bg-gray-100 text-gray-600">
-              <ChevronLeft size={18} />
-            </button>
-            <button onClick={handleNextDay} className="h-10 w-10 grid place-items-center rounded-full border border-gray-200 bg-white hover:bg-gray-100 text-gray-600">
-              <ChevronRight size={18} />
-            </button>
-            <button onClick={handleToday} className="h-10 px-4 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-100">
-              Today
-            </button>
+        {/* Dotted separator */}
+        <div className="mt-3 border-t border-dotted border-gray-300" />
+
+        {/* Tabs + filter buttons in a single retro row */}
+        <div className="mt-4 flex flex-wrap items-center gap-3 bg-white border border-gray-300 rounded-sm px-3 py-2 ">
+          {/* View tabs (Default / Teacher / Classroom) */}
+          <div className="flex items-end gap-1">
+            {["Default", "Teacher", "Classroom"].map((t) => (
+              <button
+                key={t}
+                onClick={() => handleTabChange(t)}
+                className={`px-3 h-8 rounded-t-md border text-sm ${
+                  tab === t
+                    ? "border-gray-400 border-b-white bg-white text-gray-900"
+                    : "border-gray-300 bg-[#f5f5f5] text-gray-700 hover:bg-gray-200"
+                }`}
+                style={{ marginBottom: -1 }}
+              >
+                {t}
+              </button>
+            ))}
           </div>
 
+          {/* Filter Bar – retro style, same row as tabs */}
           <div className="flex flex-wrap items-center gap-2 ml-auto">
             {["Student","Teacher","Class","Level","Subject","Classroom","Type"].map((f) => (
               <div key={f} className="relative">
                 <button
                   onClick={() => { setQuery(""); setOpenFilter(o => o === f ? null : f)}}
-                  className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
+                  className="h-9 px-3 rounded border border-gray-300 bg-white text-gray-700 text-sm inline-flex items-center gap-1 hover:bg-gray-50"
                   aria-expanded={openFilter === f}
                 >
                   {f}: All <ChevronDown size={14} className="text-gray-500" />
@@ -521,14 +521,58 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
           </div>
         </div>
 
-        {/* View Buttons */}
-        <div className="flex justify-end mb-3">
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden inline-flex">
+        {/* Navigation header row: arrows, Today, centered date, Month/Week/Day */}
+        <div className=" border border-gray-300 rounded-sm bg-white flex items-stretch">
+          {/* Back / Forward / Today (left) */}
+          <div className="flex items-stretch">
+            <button
+              onClick={handlePrevDay}
+              className="h-8 w-8 grid place-items-center border-r border-gray-300 text-gray-600 hover:bg-gray-100"
+            >
+              <ChevronLeft size={16} />
+            </button>
+            <button
+              onClick={handleNextDay}
+              className="h-8 w-8 grid place-items-center border-r border-gray-300 text-gray-600 hover:bg-gray-100"
+            >
+              <ChevronRight size={16} />
+            </button>
+            <button
+              onClick={handleToday}
+              className="h-8 px-3 border-r border-gray-300 text-gray-700 text-sm hover:bg-gray-100"
+            >
+              Today
+            </button>
+          </div>
+
+          {/* Center date label */}
+          <div className="flex-1 flex items-center justify-center text-sm font-semibold text-gray-800">
+            {viewMode === "Day" && dayString}
+            {viewMode === "Week" && (
+              <>
+                {weekStart.toLocaleDateString("en-US", { month: 'short', day: 'numeric' })}{" "}
+                –{" "}
+                {addDays(weekStart,6).toLocaleDateString("en-US", {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+              </>
+            )}
+            {viewMode === "Month" && (
+              <>{currentDate.toLocaleString('default', { month: 'short', year: 'numeric' })}</>
+            )}
+          </div>
+
+          {/* View mode buttons (right) */}
+          <div className="flex items-stretch">
             {(["Month","Week","Day"] as const).map((v) => (
               <button
                 key={v}
                 onClick={() => setViewMode(v)}
-                className={`px-4 h-10 text-sm font-medium ${ viewMode === v ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-50" }`}
+                className={`px-4 h-8 text-sm font-medium border-l border-gray-300 ${
+                  viewMode === v ? "bg-indigo-600 text-white" : "text-gray-700 hover:bg-gray-50"
+                }`}
               >
                 {v}
               </button>
@@ -536,38 +580,25 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
           </div>
         </div>
 
-        {/* Date Header */}
-        <div className="text-center mb-1 text-xl font-semibold text-gray-800 -mt-2">
-          {viewMode === "Day" && dayString}
-          {viewMode === "Week" && (
-            <div>
-              Week of {weekStart.toLocaleDateString("en-US", { month: 'long', day: 'numeric' })} — {addDays(weekStart,6).toLocaleDateString("en-US", { month: 'long', day: 'numeric', year: 'numeric' })}
-            </div>
-          )}
-          {viewMode === "Month" && (
-            <div>{currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}</div>
-          )}
-        </div>
-
         {/* ---------------- VIEWS ---------------- */}
         
         {/* Loading / No Events Common State */}
         {isLoading && (
-          <div className="flex items-center justify-center h-96 bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="flex items-center justify-center h-96 bg-white border border-gray-200 rounded-sm shadow-sm">
             <Loader2 className="animate-spin text-blue-500" size={32} />
             <div className="text-gray-500 text-sm ml-3">Loading events...</div>
           </div>
         )}
 
         {!isLoading && events.length === 0 && tab === "Default" && !showTeacher && (
-          <div className="flex items-center justify-center h-96 bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div className="flex items-center justify-center h-96 bg-white border border-gray-200 rounded-sm shadow-sm">
             <div className="text-gray-500 text-sm">No events scheduled for this {viewMode.toLowerCase()}.</div>
           </div>
         )}
         
         {/* DAY (unchanged) */}
         {viewMode === "Day" && !isLoading && events.length > 0 && tab === "Default" && !showTeacher && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
             <div className="grid grid-cols-[60px_1fr]">
               <div className="bg-white">
                 {hours.map((h) => (
@@ -605,7 +636,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                       onClick={() => setSelected(ev.id)} // open full modal on click
                       role="button"
                       tabIndex={0}
-                      className={`absolute rounded-md text-white text-xs p-2 shadow-md transition-all ${color} cursor-pointer`}
+                      className={`absolute rounded-sm text-white text-xs p-2 shadow-md transition-all ${color} cursor-pointer`}
                       style={{ top, left, height, width: 120 }}
                       onKeyDown={(e) => { if (e.key === "Enter") setSelected(ev.id) }}
                     >
@@ -615,7 +646,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
 
                       {/* Hover Pop-up */}
                       {hoverId === ev.id && (
-                        <div className="absolute left-full ml-2 top-0 w-60 bg-white text-gray-700 rounded-xl border border-gray-200 shadow-lg p-3 z-10">
+                        <div className="absolute left-full ml-2 top-0 w-60 bg-white text-gray-700 rounded-sm border border-gray-200 shadow-lg p-3 z-10">
                           <div className="flex items-center gap-2 mb-2">
                             <span className={`h-3 w-3 rounded-full ${color}`} />
                             <div className="font-semibold text-blue-700">{ev.title}</div>
@@ -640,7 +671,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
 
         {/* WEEK VIEW */}
         {viewMode === "Week" && !isLoading && events.length > 0 && tab === "Default" && !showTeacher && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden">
             <div className="grid grid-cols-[60px_1fr]">
               <div className="bg-white">
                 {/* Hour labels */}
@@ -704,7 +735,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                       onMouseEnter={() => setHoverId(ev.id)}
                       onMouseLeave={() => setHoverId(null)}
                       onClick={() => setSelected(ev.id)}
-                      className={`absolute rounded-md text-white text-xs p-2 shadow-md transition-all ${color} cursor-pointer overflow-hidden`}
+                      className={`absolute rounded-sm text-white text-xs p-2 shadow-md transition-all ${color} cursor-pointer overflow-hidden`}
                       style={{ 
                         top: top + 48, // 48px for h-12 header
                         left: `calc(${dayIndex * colWidthPercent}% + 2px)`, 
@@ -718,7 +749,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                       
                       {/* *** NEW: Hover Pop-up for Week View *** */}
                       {hoverId === ev.id && (
-                        <div className="absolute left-full ml-2 top-0 w-60 bg-white text-gray-700 rounded-xl border border-gray-200 shadow-lg p-3 z-30">
+                        <div className="absolute left-full ml-2 top-0 w-60 bg-white text-gray-700 rounded-sm border border-gray-200 shadow-lg p-3 z-30">
                           <div className="flex items-center gap-2 mb-2">
                             <span className={`h-3 w-3 rounded-full ${color}`} />
                             <div className="font-semibold text-blue-700">{ev.title}</div>
@@ -752,7 +783,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
 
         {/* MONTH VIEW */}
         {viewMode === "Month" && !isLoading && events.length > 0 && tab === "Default" && !showTeacher && (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden p-4">
+          <div className="bg-white border border-gray-200 rounded-sm shadow-sm overflow-hidden p-4">
             <div className="grid grid-cols-7 gap-1 text-xs text-gray-600 mb-2">
               {["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].map(d => (
                 <div key={d} className="text-center font-medium">{d}</div>
@@ -782,7 +813,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                         {cellEvents.slice(0,3).map(ev => (
                           <div 
                             key={ev.id} 
-                            className="truncate text-[11px] bg-blue-50 text-blue-700 rounded-md px-2 py-0.5 cursor-pointer hover:bg-blue-100"
+                            className="truncate text-[11px] bg-blue-50 text-blue-700 rounded-sm px-2 py-0.5 cursor-pointer hover:bg-blue-100"
                             onClick={(e) => { e.stopPropagation(); setSelected(ev.id); }}
                           >
                             {ev.start} {ev.title}
@@ -855,7 +886,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setShowEnrollModal(true)}
-                              className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50"
+                              className="px-3 h-9 rounded-sm border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50"
                             >
                               Add students
                             </button>
@@ -863,7 +894,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                             {["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
                               <button
                                 key={label}
-                                className="px-3 h-9 rounded-xl border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1"
+                                className="px-3 h-9 rounded-sm border border-gray-200 bg-white text-[13px] text-gray-700 hover:bg-gray-50 inline-flex items-center gap-1"
                               >
                                 {label}
                                 <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
@@ -936,12 +967,12 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                                   </div>
 
                                   <div className="flex items-center gap-2">
-                                    <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
+                                    <button className="h-9 w-9 grid place-items-center rounded-sm border border-gray-200 bg-white hover:bg-gray-50">
                                       <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                       </svg>
                                     </button>
-                                    <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">⋯</button>
+                                    <button className="h-9 w-9 grid place-items-center rounded-sm border border-gray-200 bg-white hover:bg-gray-50">⋯</button>
                                   </div>
                                 </div>
                               </div>
@@ -1088,7 +1119,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                               onClick={() => !disabled && setSelectedToEnroll(prev =>
                                 prev.includes(s.Id) ? prev.filter(id => id !== s.Id) : [...prev, s.Id]
                               )}
-                              className={`p-2 rounded-md flex justify-between cursor-pointer ${ disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : selectedFlag ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50" }`}
+                              className={`p-2 rounded-sm flex justify-between cursor-pointer ${ disabled ? "bg-gray-100 text-gray-400 cursor-not-allowed" : selectedFlag ? "bg-blue-50 text-blue-700 font-medium" : "hover:bg-gray-50" }`}
                             >
                               {s.FirstName} {s.Surname}
                               {disabled && <span className="text-xs">(Enrolled)</span>}
