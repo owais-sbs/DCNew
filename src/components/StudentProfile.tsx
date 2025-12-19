@@ -606,11 +606,28 @@ export default function StudentProfile() {
     "Tuition Fees": () => {
       const fees = studentdetails?.TuitionFees;
       if (fees === null || fees === undefined || fees === "") return "—";
-      // Check if fully paid (you may need to adjust this logic based on your data)
+      // Check if it's a string that says "Fully Paid" or similar
+      if (typeof fees === "string" && fees.toLowerCase().includes("paid")) {
+        return fees;
+      }
+      // Otherwise format as currency
       return formatCurrency(fees);
     },
     "Course Code": () => studentdetails?.CourseCode || "—",
     "ILEP programme reference": () => studentdetails?.IlepReference || "—",
+    "End of the Course Exam Fee": () => {
+      const examFees = studentdetails?.EndOfExamPaid;
+      if (examFees === null || examFees === undefined || examFees === "") return "—";
+      // Check if it says "Fully Paid" or similar, otherwise format as currency
+      if (typeof examFees === "string" && examFees.toLowerCase().includes("paid")) {
+        return examFees;
+      }
+      const numeric = Number(examFees);
+      if (!isNaN(numeric)) {
+        return formatCurrency(numeric);
+      }
+      return examFees.toString();
+    },
     "End of the course exam fees": () => {
       const examFees = studentdetails?.EndOfExamPaid;
       if (examFees === null || examFees === undefined || examFees === "") return "—";
@@ -642,7 +659,14 @@ export default function StudentProfile() {
       .replace(/\{ModeOfStudy\}/g, studentdetails.ModeOfStudy || "—")
       .replace(/\{NumberOfWeeks\}/g, String(studentdetails.NumberOfWeeks ?? "—"))
       .replace(/\{HoursPerWeek\}/g, String(studentdetails.HoursPerWeek ?? "—"))
-      .replace(/\{TuitionFees\}/g, formatCurrency(studentdetails.TuitionFees))
+      .replace(/\{TuitionFees\}/g, (() => {
+        const fees = studentdetails?.TuitionFees;
+        if (fees === null || fees === undefined || fees === "") return "—";
+        if (typeof fees === "string" && fees.toLowerCase().includes("paid")) {
+          return fees;
+        }
+        return formatCurrency(fees);
+      })())
       .replace(/\{CourseCode\}/g, studentdetails.CourseCode || "—")
       .replace(/\{Attendance\}/g, (() => {
         if (attendanceStats && attendanceStats.length > 0) {
@@ -673,6 +697,21 @@ export default function StudentProfile() {
       .replace(/\{EndOfCourseExamFees\}/g, (() => {
         const examFees = studentdetails?.EndOfExamPaid;
         if (examFees === null || examFees === undefined || examFees === "") return "—";
+        if (typeof examFees === "string" && examFees.toLowerCase().includes("paid")) {
+          return examFees;
+        }
+        const numeric = Number(examFees);
+        if (!isNaN(numeric)) {
+          return formatCurrency(numeric);
+        }
+        return examFees.toString();
+      })())
+      .replace(/\{EndOfCourseExamFee\}/g, (() => {
+        const examFees = studentdetails?.EndOfExamPaid;
+        if (examFees === null || examFees === undefined || examFees === "") return "—";
+        if (typeof examFees === "string" && examFees.toLowerCase().includes("paid")) {
+          return examFees;
+        }
         const numeric = Number(examFees);
         if (!isNaN(numeric)) {
           return formatCurrency(numeric);
@@ -1743,6 +1782,195 @@ export default function StudentProfile() {
     }
   }
 
+  const handleSendDocument = async () => {
+    if (!documentContentRef.current || !selectedDocument || !id) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Missing required information to send document.",
+        confirmButtonColor: "#2563eb"
+      })
+      return
+    }
+
+    try {
+      // Show loading alert
+      Swal.fire({
+        title: "Generating PDF...",
+        text: "Please wait while we prepare your document.",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading()
+        }
+      })
+
+      // Ensure signature image is converted to base64 if not already
+      if (selectedSignatureId && signatures.length > 0) {
+        const selectedSignature = signatures.find((sig) => sig.id === selectedSignatureId)
+        if (selectedSignature && selectedSignature.signatureUrl) {
+          let base64ToUse = signatureBase64Map[selectedSignature.id]
+          
+          if (!base64ToUse) {
+            console.log("Converting signature image to base64 before PDF generation...")
+            const base64 = await imageUrlToBase64(selectedSignature.signatureUrl)
+            if (base64) {
+              base64ToUse = base64
+              setSignatureBase64Map(prev => ({ ...prev, [selectedSignature.id]: base64 }))
+            }
+          }
+          
+          if (base64ToUse && documentContentRef.current) {
+            const signatureImages = documentContentRef.current.querySelectorAll('img')
+            signatureImages.forEach(img => {
+              const parentText = img.closest('div')?.textContent || ''
+              if (parentText.includes(selectedSignature.name) || img.alt === selectedSignature.name) {
+                console.log("Updating signature image src directly in DOM")
+                img.src = base64ToUse
+                img.style.display = 'none'
+                img.offsetHeight
+                img.style.display = 'block'
+              }
+            })
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+        }
+      }
+
+      // Preload all images in the document
+      const images = documentContentRef.current.querySelectorAll('img')
+      console.log("Found images to preload:", images.length)
+      
+      const imagePromises = Array.from(images).map((img, index) => {
+        return new Promise((resolve) => {
+          if (img.complete && img.naturalHeight !== 0) {
+            console.log(`Image ${index} already loaded, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
+            resolve(img)
+            return
+          }
+          
+          const loadHandler = () => {
+            console.log(`Image ${index} loaded successfully, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
+            resolve(img)
+          }
+          
+          const errorHandler = () => {
+            console.warn(`Image ${index} failed to load:`, img.src.substring(0, 100))
+            resolve(img)
+          }
+          
+          img.addEventListener('load', loadHandler, { once: true })
+          img.addEventListener('error', errorHandler, { once: true })
+          
+          if (img.src && !img.complete) {
+            // Image is loading, wait for events
+          } else if (!img.src) {
+            resolve(img)
+          }
+        })
+      })
+
+      await Promise.all(imagePromises)
+      console.log("All images preloaded")
+
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Generate PDF
+      const canvas = await html2canvas(documentContentRef.current, {
+        scale: 2,
+        useCORS: false,
+        allowTaint: false,
+        logging: true,
+        backgroundColor: "#ffffff",
+        imageTimeout: 30000,
+        removeContainer: false,
+        onclone: (clonedDoc) => {
+          const clonedImages = clonedDoc.querySelectorAll('img')
+          clonedImages.forEach((img, idx) => {
+            console.log(`Cloned image ${idx}: src=${img.src.substring(0, 50)}..., complete=${img.complete}, naturalHeight=${img.naturalHeight}`)
+          })
+        }
+      })
+      
+      const imgData = canvas.toDataURL("image/png")
+      const pdf = new jsPDF("p", "mm", "a4")
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const margin = 12
+      const maxWidth = pageWidth - margin * 2
+      const maxHeight = pageHeight - margin * 2
+
+      let renderWidth = maxWidth
+      let renderHeight = (canvas.height * renderWidth) / canvas.width
+
+      if (renderHeight > maxHeight) {
+        const scale = maxHeight / renderHeight
+        renderHeight = maxHeight
+        renderWidth = renderWidth * scale
+      }
+
+      const offsetX = (pageWidth - renderWidth) / 2
+      const offsetY = (pageHeight - renderHeight) / 2
+
+      pdf.addImage(imgData, "PNG", offsetX, offsetY, renderWidth, renderHeight)
+
+      // Convert PDF to Blob
+      const pdfBlob = pdf.output('blob')
+      const sanitizedTitle = (selectedDocument.Title || "student-document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()
+      const pdfFile = new File([pdfBlob], `${sanitizedTitle}.pdf`, { type: 'application/pdf' })
+
+      // Create FormData
+      const formData = new FormData()
+      formData.append("Id", "0")
+      formData.append("FileDetails", pdfFile)
+      formData.append("FileType", "pdf")
+      formData.append("FolderName", "documents")
+      formData.append("StudentName", studentName || "")
+      formData.append("StudentID", String(id))
+      formData.append("IsDeleted", "false")
+
+      // Update loading message
+      Swal.fire({
+        title: "Sending document...",
+        text: "Please wait while we send the document via email.",
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading()
+        }
+      })
+
+      // Send to API
+      const response = await axiosInstance.post("/Account/UploadPdfAndSendEmail", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+
+      if (response.data?.IsSuccess) {
+        Swal.fire({
+          icon: "success",
+          title: "Success",
+          text: response.data?.Message || "Document sent successfully via email.",
+          confirmButtonColor: "#2563eb"
+        })
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: response.data?.Message || "Failed to send document via email.",
+          confirmButtonColor: "#2563eb"
+        })
+      }
+    } catch (error: any) {
+      console.error("Failed to send document", error)
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error.response?.data?.Message || error.message || "Unable to send document. Please try again.",
+        confirmButtonColor: "#2563eb"
+      })
+    }
+  }
+
   const renderDocumentModal = () => {
     if (!selectedDocument) return null
     const todayDisplay = formatDateValue(new Date().toISOString())
@@ -1908,7 +2136,11 @@ export default function StudentProfile() {
             <button className="h-10 px-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2">
               <FilePlus size={16} /> Save to students profile
             </button>
-            <button className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2">
+            <button
+              onClick={handleSendDocument}
+              className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2"
+              disabled={!selectedDocument || !id}
+            >
               <Mail size={16} /> Send document
             </button>
             <button
