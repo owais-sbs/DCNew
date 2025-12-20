@@ -350,7 +350,7 @@ useEffect(() => {
         Attendance: form.attendance || null,
         NumberOfWeeks: form.numberOfWeeks ? parseInt(form.numberOfWeeks) : null,
         HoursPerWeek: form.hoursPerWeek ? parseFloat(form.hoursPerWeek) : null,
-        TuitionFees: form.tuitionFees ? parseFloat(form.tuitionFees) : null,
+        TuitionFees: form.tuitionFees || null,
         ExternalExam: form.externalExam || null,
         ExternalExamDate: form.externalExamDate || null,
         ScoreExternalExam: form.scoreExternalExam || null,
@@ -605,7 +605,7 @@ useEffect(() => {
                </div>
                <div>
                   <label className="block text-[13px] text-gray-700 mb-1">Tuition Fees</label>
-                  <input type="number" name="tuitionFees" value={form.tuitionFees} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+                  <input type="text" name="tuitionFees" value={form.tuitionFees} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
                </div>
                <div>
                   <label className="block text-[13px] text-gray-700 mb-1">External Exam</label>
@@ -654,29 +654,58 @@ useEffect(() => {
           </div>
 
           {/* 6. CLASS ENROLLMENT LIMITS */}
-          <SectionHeader title="Class Enrollment Limits" />
-          <div className="p-4">
-            <p className="text-[12px] text-gray-500 mb-3">Only fill this if you want to restrict the student to specific subjects/levels.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                   <label className="block text-[13px] text-gray-700 mb-1">Class Subject</label>
-                   <select name="classSubject" value={form.classSubject} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]">
-                      <option value="">Select</option>
-                      <option value="General English">General English</option>
-                      <option value="Business English">Business English</option>
-                   </select>
-                </div>
-                <div>
-                   <label className="block text-[13px] text-gray-700 mb-1">Class Level</label>
-                   <select name="classLevel" value={form.classLevel} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]">
-                      <option value="">Select</option>
-                      <option value="Beginner">Beginner</option>
-                      <option value="Intermediate">Intermediate</option>
-                      <option value="Advanced">Advanced</option>
-                   </select>
-                </div>
-            </div>
-          </div>
+          {/* 6. CLASS ENROLLMENT LIMITS */}
+<SectionHeader title="Class Enrollment Limits" />
+<div className="p-4">
+  <p className="text-[12px] text-gray-500 mb-3">Only fill this if you want to restrict the student to specific subjects/levels.</p>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+         <label className="block text-[13px] text-gray-700 mb-1">Class Subject</label>
+         <select name="classSubject" value={form.classSubject} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]">
+            <option value="">Select</option>
+            {/* Added the missing option from your API */}
+            <option value="General English With Exam Preparation">General English With Exam Preparation</option>
+            <option value="General English">General English</option>
+            <option value="Business English">Business English</option>
+         </select>
+      </div>
+      <div>
+         <label className="block text-[13px] text-gray-700 mb-1">Class Level</label>
+         <select name="classLevel" value={form.classLevel} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]">
+            <option value="">Select</option>
+                                    <option value="200525">200525</option>
+                                    <option value="a1">a1</option>
+                                    <option value="A1">A1</option>
+                                    <option value="A1 20 25">A1 20 25</option>
+                                    <option value="A1 am">A1 am</option>
+                                    <option value="A1(2)">A1(2)</option>
+                                    <option value="A1(2) am">A1(2) am</option>
+                                    <option value="A1(2) pm">A1(2) pm</option>
+                                    <option value="A1(3) pm">A1(3) pm</option>
+                                    <option value="a2">a2</option>
+                                    <option value="A2">A2</option>
+                                    <option value="A2 am">A2 am</option>
+                                    <option value="A2 pm">A2 pm</option>
+                                    <option value="A2(2) pm">A2(2) pm</option>
+                                    <option value="am">am</option>
+                                    <option value="B1">B1</option>
+                                    <option value="B1 am">B1 am</option>
+                                    <option value="B1 new am">B1 new am</option>
+                                    <option value="B1 pm">B1 pm</option>
+                                    <option value="B2">B2</option>
+                                    <option value="b2">b2</option>
+                                    <option value="B2 new am">B2 new am</option>
+                                    <option value="B2(2) pm">B2(2) pm</option>
+                                    <option value="C1">C1</option>
+                                    <option value="C1 am">C1 am</option>
+                                    <option value="C1 pm">C1 pm</option>
+                                    <option value="C1(2) pm">C1(2) pm</option>
+                                    <option value="p2">p2</option>
+                                    <option value="pm">pm</option>
+         </select>
+      </div>
+  </div>
+</div>
 
 
           <SectionHeader title="Enroll in classes" />

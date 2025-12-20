@@ -47,7 +47,7 @@ interface StudentApiPayload {
     CourseTitle: string | null;
     ModeOfStudy: string | null;
     NumberOfWeeks: number | null;
-    TuitionFees: number | null;
+    TuitionFees: string | null;
     Department: string | null;
     ExternalExam: string | null;
     ExternalExamDate: string | null;
@@ -297,7 +297,7 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>, photoBase64?: s
         CourseTitle: formData.courseTitle || null,
         ModeOfStudy: formData.modeOfStudy || null,
         NumberOfWeeks: parseIntegerValue(formData.numberOfWeeks),
-        TuitionFees: parseDecimal(formData.tuitionFees),
+        TuitionFees: formData.tuitionFees || null,
         Department: formData.department || null,
         ExternalExam: formData.externalExam || null,
 
@@ -835,7 +835,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                             <div><label className="block text-[13px] text-gray-700 mb-1">Number of Weeks</label><input type="number" value={formData.numberOfWeeks} onChange={(e)=>handleInputChange('numberOfWeeks', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">Hours Per Week</label><input type="number" value={formData.hoursPerWeek} onChange={(e)=>handleInputChange('hoursPerWeek', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Tuition Fees</label><input type="number" value={formData.tuitionFees} onChange={(e)=>handleInputChange('tuitionFees', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Tuition Fees</label><input type="text" value={formData.tuitionFees} onChange={(e)=>handleInputChange('tuitionFees', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Department</label><input type="text" value={formData.department} onChange={(e)=>handleInputChange('department', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">External Exam</label><input type="text" value={formData.externalExam} onChange={(e)=>handleInputChange('externalExam', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
