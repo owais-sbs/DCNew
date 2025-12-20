@@ -473,7 +473,7 @@ useEffect(() => {
                </div>
                <div>
                   <label className="block text-[13px] text-gray-700 mb-1">ID Number</label>
-                  <input name="idNumber" value={form.idNumber} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+                  <input name="idNumber" disabled value={form.idNumber} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
                </div>
                <div>
                   <label className="block text-[13px] text-gray-700 mb-1">Payment Method</label>
