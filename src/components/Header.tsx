@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
+import axiosInstance from "./axiosInstance"
 import {
   Plus,
   ChevronDown,
@@ -30,6 +31,10 @@ export default function Header() {
   const { isExpanded } = useSidebar();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
+
+  const [students, setStudents] = useState<any[]>([]);
+const [isSearching, setIsSearching] = useState(false);
+const [showResults, setShowResults] = useState(false);
   
   // Mock subscription check based on your image
   const subscriptionEnded = true; 
@@ -38,16 +43,38 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState(""); // Add this
 
   // 1. Reusable search function
-const executeSearch = () => {
-  const trimmedQuery = searchQuery.trim();
-  if (trimmedQuery) {
-    // Redirect to the people page with the query param
-    navigate(`/people?search=${encodeURIComponent(trimmedQuery)}`);
-    setSearchQuery(""); // Clear the top bar
-  } else {
-    navigate('/people');
+const executeSearch = async (query?: string) => {
+  const trimmedQuery = (query ?? searchQuery).trim();
+
+  if (!trimmedQuery) {
+    setShowResults(false);
+    return;
+  }
+
+  try {
+    setIsSearching(true);
+
+    const response = await axiosInstance.get(
+      "/Student/GetAllWithPagination",
+      {
+        params: {
+          search: trimmedQuery,
+          pageNumber: 1,
+          pageSize: 5
+        }
+      }
+    );
+
+    setStudents(response.data?.Data?.Data || []);
+    setShowResults(true);
+  } catch (error) {
+    console.error("Student search error", error);
+  } finally {
+    setIsSearching(false);
   }
 };
+
+
 
 // 2. Updated Keyboard Handler
 const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -64,16 +91,24 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      const target = event.target;
-      if (!target.closest('.dropdown-container')) {
-        setIsAddNewOpen(false);
-        setIsProfileOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const handleClickOutside = (event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+
+    if (!target.closest(".search-container")) {
+      setShowResults(false);
+    }
+
+    if (!target.closest(".dropdown-container")) {
+      setIsAddNewOpen(false);
+      setIsProfileOpen(false);
+    }
+  };
+
+  document.addEventListener("click", handleClickOutside);
+
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, []);
+
 
   // Your original Profile Menu Items
   const getProfileMenuItems = () => {
@@ -136,22 +171,68 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
           <div className="flex-1 max-w-sm mx-6">
   <div className="flex-1 max-w-sm mx-6">
   <div className="relative group">
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
     <input
-      type="text"
-      placeholder="Search"
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      onKeyDown={handleSearch}
-      className="w-full pl-9 pr-12 py-1.5 rounded bg-[#3F4454] border border-transparent text-sm text-gray-200 placeholder:text-gray-400 focus:bg-white focus:text-gray-900 focus:outline-none transition-colors"
-    />
-    {/* Clickable Search Button */}
-    <button 
-      onClick={() => executeSearch()}
-      className="absolute right-2 top-1/2 -translate-y-1/2 h-7 px-2 rounded bg-gray-600 hover:bg-gray-700 text-white text-[10px] font-bold transition-colors"
-    >
-      Search
-    </button>
+  type="text"
+  placeholder="Search students"
+  value={searchQuery}
+  onChange={(e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    if (value.trim().length >= 2) {
+      executeSearch(value);
+    } else {
+      setShowResults(false);
+      setStudents([]);
+    }
+  }}
+  onKeyDown={handleSearch}
+  className="w-full pl-3 pr-3 py-1.5 rounded bg-[#3F4454] text-sm text-gray-200"
+/>
+
+
+{showResults && (
+  <div className="absolute mt-1 w-full bg-white rounded shadow-lg border z-50">
+
+    {isSearching && (
+      <div className="px-4 py-2 text-sm text-gray-500">
+        Searching...
+      </div>
+    )}
+
+    {!isSearching && students.length === 0 && (
+      <div className="px-4 py-2 text-sm text-gray-500">
+        No students found
+      </div>
+    )}
+
+    {!isSearching &&
+      students.map((student) => (
+        <button
+  key={student.Id}
+  onMouseDown={(e) => e.stopPropagation()}
+  onClick={() => {
+    navigate(`/people/students/${student.Id}`);
+    setShowResults(false);
+    setSearchQuery("");
+  }}
+  className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+>
+
+          <div className="font-medium text-gray-800">
+            {student.FirstName} {student.Surname}
+          </div>
+          <div className="text-xs text-gray-500">
+            {student.Email || student.MobilePhone}
+          </div>
+        </button>
+      ))}
+  </div>
+)}
+
+
+
+    
   </div>
 </div>
 </div>
