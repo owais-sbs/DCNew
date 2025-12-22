@@ -55,12 +55,11 @@ const executeSearch = async (query?: string) => {
     setIsSearching(true);
 
     const response = await axiosInstance.get(
-      "/Student/GetAllWithPagination",
+      "/Student/GetAllStudent",
       {
         params: {
           search: trimmedQuery,
-          pageNumber: 1,
-          pageSize: 5
+         
         }
       }
     );
@@ -192,41 +191,44 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
 
 
 {showResults && (
-  <div className="absolute mt-1 w-full bg-white rounded shadow-lg border z-50">
+  <div className="search-container absolute mt-1 w-full bg-white rounded shadow-xl border border-gray-200 z-50 overflow-hidden">
+    {/* Setting a max-height and overflow-y-auto enables the scrollbar */}
+    <div className="max-h-[350px] overflow-y-auto">
+      
+      {isSearching && (
+        <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
+          <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+          Searching...
+        </div>
+      )}
 
-    {isSearching && (
-      <div className="px-4 py-2 text-sm text-gray-500">
-        Searching...
-      </div>
-    )}
+      {!isSearching && students.length === 0 && (
+        <div className="px-4 py-3 text-sm text-gray-500">
+          No students found
+        </div>
+      )}
 
-    {!isSearching && students.length === 0 && (
-      <div className="px-4 py-2 text-sm text-gray-500">
-        No students found
-      </div>
-    )}
-
-    {!isSearching &&
-      students.map((student) => (
-        <button
-  key={student.Id}
-  onMouseDown={(e) => e.stopPropagation()}
-  onClick={() => {
-    navigate(`/people/students/${student.Id}`);
-    setShowResults(false);
-    setSearchQuery("");
-  }}
-  className="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
->
-
-          <div className="font-medium text-gray-800">
-            {student.FirstName} {student.Surname}
-          </div>
-          <div className="text-xs text-gray-500">
-            {student.Email || student.MobilePhone}
-          </div>
-        </button>
-      ))}
+      {!isSearching &&
+        students.map((student) => (
+          <button
+            key={student.Id}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => {
+              navigate(`/people/students/${student.Id}`);
+              setShowResults(false);
+              setSearchQuery("");
+            }}
+            className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors group"
+          >
+            <div className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+              {student.FirstName} {student.Surname}
+            </div>
+            <div className="text-[11px] text-gray-500 truncate">
+              {student.Email ||  "No Email"} - {student.Phone || "No phone"} - {student.IdNumber || "No IdNumber"}
+            </div>
+          </button>
+        ))}
+    </div>
   </div>
 )}
 
