@@ -1435,6 +1435,30 @@ export default function StudentProfile() {
     </div>
   )
 
+  // Helper function to wait for fonts to load
+  const waitForFonts = async (): Promise<void> => {
+    if ('fonts' in document) {
+      try {
+        await (document as any).fonts.ready
+        // Additional wait to ensure fonts are fully rendered
+        await new Promise(resolve => setTimeout(resolve, 200))
+      } catch (error) {
+        console.warn("Font loading check failed, continuing anyway:", error)
+      }
+    }
+  }
+
+  // Helper function to ensure all styles are computed
+  const ensureStylesComputed = (element: HTMLElement): void => {
+    // Force style computation by accessing computed styles
+    window.getComputedStyle(element)
+    // Also check all child elements
+    const allElements = element.querySelectorAll('*')
+    allElements.forEach(el => {
+      window.getComputedStyle(el as Element)
+    })
+  }
+
   const handlePrintDocument = async () => {
     if (!documentContentRef.current || !selectedDocument) return
 
@@ -1516,8 +1540,16 @@ export default function StudentProfile() {
       await Promise.all(imagePromises)
       console.log("All images preloaded")
 
-      // Additional delay to ensure images are fully rendered in the DOM
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Wait for fonts to be ready (important for production builds)
+      await waitForFonts()
+
+      // Ensure all styles are computed before rendering
+      if (documentContentRef.current) {
+        ensureStylesComputed(documentContentRef.current)
+      }
+
+      // Additional delay to ensure everything is fully rendered in the DOM
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       // Final check: Verify signature image is loaded and visible
       const signatureImages = documentContentRef.current.querySelectorAll('img')
@@ -1534,20 +1566,30 @@ export default function StudentProfile() {
         scale: 2,
         useCORS: false, // Not needed since we're using base64 images
         allowTaint: false, // Not needed since we're using base64 images
-        logging: true, // Enable logging to debug
+        logging: false, // Disable logging in production
         backgroundColor: "#ffffff",
         imageTimeout: 30000, // 30 second timeout for images
         removeContainer: false, // Keep container for proper rendering
-        onclone: (clonedDoc) => {
+        windowWidth: documentContentRef.current.scrollWidth,
+        windowHeight: documentContentRef.current.scrollHeight,
+        onclone: (clonedDoc, element) => {
+          // Ensure fonts are loaded in cloned document
+          const clonedElement = element as HTMLElement
+          ensureStylesComputed(clonedElement)
+          
           // Verify images in cloned document
           const clonedImages = clonedDoc.querySelectorAll('img')
           clonedImages.forEach((img, idx) => {
             console.log(`Cloned image ${idx}: src=${img.src.substring(0, 50)}..., complete=${img.complete}, naturalHeight=${img.naturalHeight}`)
+            // Ensure images are visible in cloned document
+            if (img.style.display === 'none') {
+              img.style.display = 'block'
+            }
           })
         }
       })
       
-      const imgData = canvas.toDataURL("image/png")
+      const imgData = canvas.toDataURL("image/png", 1.0) // Use highest quality
       const pdf = new jsPDF("p", "mm", "a4")
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
@@ -1672,26 +1714,45 @@ export default function StudentProfile() {
       await Promise.all(imagePromises)
       console.log("All images preloaded")
 
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Wait for fonts to be ready (important for production builds)
+      await waitForFonts()
+
+      // Ensure all styles are computed before rendering
+      if (documentContentRef.current) {
+        ensureStylesComputed(documentContentRef.current)
+      }
+
+      // Additional delay to ensure everything is fully rendered in the DOM
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       // Generate PDF
       const canvas = await html2canvas(documentContentRef.current, {
         scale: 2,
         useCORS: false,
         allowTaint: false,
-        logging: true,
+        logging: false, // Disable logging in production
         backgroundColor: "#ffffff",
         imageTimeout: 30000,
         removeContainer: false,
-        onclone: (clonedDoc) => {
+        windowWidth: documentContentRef.current.scrollWidth,
+        windowHeight: documentContentRef.current.scrollHeight,
+        onclone: (clonedDoc, element) => {
+          // Ensure fonts are loaded in cloned document
+          const clonedElement = element as HTMLElement
+          ensureStylesComputed(clonedElement)
+          
           const clonedImages = clonedDoc.querySelectorAll('img')
           clonedImages.forEach((img, idx) => {
             console.log(`Cloned image ${idx}: src=${img.src.substring(0, 50)}..., complete=${img.complete}, naturalHeight=${img.naturalHeight}`)
+            // Ensure images are visible in cloned document
+            if (img.style.display === 'none') {
+              img.style.display = 'block'
+            }
           })
         }
       })
       
-      const imgData = canvas.toDataURL("image/png")
+      const imgData = canvas.toDataURL("image/png", 1.0) // Use highest quality
       const pdf = new jsPDF("p", "mm", "a4")
       const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
@@ -1793,7 +1854,13 @@ export default function StudentProfile() {
             <div
               ref={documentContentRef}
               className="space-y-5 text-gray-900 bg-white p-6 md:p-8 rounded-xl shadow-sm"
-              style={{ minHeight: "fit-content" }}
+              style={{ 
+                minHeight: "fit-content",
+                fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
+                fontSize: "14px",
+                lineHeight: "1.5",
+                color: "#111827"
+              }}
             >
               <div className="text-sm text-gray-700">Date: {todayDisplay}</div>
               
@@ -1812,15 +1879,22 @@ export default function StudentProfile() {
               </div>
 
               {/* Student Details Table */}
-              <div className="border border-gray-300  overflow-hidden">
-                <table className="w-full text-sm">
+              <div className="border border-gray-300  overflow-hidden" style={{ border: "1px solid #d1d5db" }}>
+                <table className="w-full text-sm" style={{ width: "100%", borderCollapse: "collapse" }}>
                   <tbody>
                     {defaultFieldKeys.map((fieldKey) => (
-                      <tr key={fieldKey} className="border-b border-gray-200 last:border-b-0">
-                        <td className="bg-gray-50 font-medium px-4 py-3 w-1/3 text-gray-700 border-r border-gray-200">
+                      <tr key={fieldKey} className="border-b border-gray-200 last:border-b-0" style={{ borderBottom: "1px solid #e5e7eb" }}>
+                        <td className="bg-gray-50 font-medium px-4 py-3 w-1/3 text-gray-700 border-r border-gray-200" style={{ 
+                          backgroundColor: "#f9fafb", 
+                          fontWeight: "500", 
+                          padding: "12px 16px", 
+                          width: "33.333333%", 
+                          color: "#374151",
+                          borderRight: "1px solid #e5e7eb"
+                        }}>
                           {fieldKey}
                         </td>
-                        <td className="px-4 py-3 text-gray-900">
+                        <td className="px-4 py-3 text-gray-900" style={{ padding: "12px 16px", color: "#111827" }}>
                           {getStudentFieldValue(fieldKey)}
                         </td>
                       </tr>
