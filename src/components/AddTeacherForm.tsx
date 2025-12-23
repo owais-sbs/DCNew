@@ -202,7 +202,7 @@ export default function AddTeacherForm({ isOpen, onClose, asPage }: AddTeacherFo
               <div>
                 <label className="block text-[13px] text-gray-700 mb-1">Date of birth</label>
                 <input
-                  type="text"
+                  type="date"
                   value={formData.dateOfBirth}
                   onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
                   className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
@@ -317,7 +317,7 @@ export default function AddTeacherForm({ isOpen, onClose, asPage }: AddTeacherFo
               <div>
                 <label className="block text-[13px] text-gray-700 mb-1">Online Lesson Link</label>
                 <input
-                  type="url"
+                  type="text"
                   value={formData.onlineLessonLink}
                   onChange={(e) => handleInputChange('onlineLessonLink', e.target.value)}
                   className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"

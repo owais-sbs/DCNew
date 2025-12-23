@@ -1,16 +1,14 @@
-// /src/components/EditClass.tsx
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom"; // 1. Added useNavigate
+import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from './axiosInstance';
 import Swal from "sweetalert2";
 import {
   Plus,
-  Info,
-  SkipForward,
-  Users,
+  ArrowLeft,
   X,
   FileText,
   Upload,
+  Info,
 } from "lucide-react";
 
 type DayEntry = {
@@ -44,35 +42,30 @@ const initialState = {
 
 const EditClass: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate(); // 2. Initialize navigate hook
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState<typeof initialState>(initialState);
-
-  // UI state
   const [showMoreDetails, setShowMoreDetails] = useState(false);
-
-  // Teachers
   const [teachers, setTeachers] = useState<any[]>([]);
   const [isLoadingTeachers, setIsLoadingTeachers] = useState(false);
-  const [teacherError, setTeacherError] = useState<string | null>(null);
-
-  // Classrooms
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [isLoadingClassrooms, setIsLoadingClassrooms] = useState(false);
-  const [classroomError, setClassroomError] = useState<string | null>(null);
-  const [classroomSuccess, setClassroomSuccess] = useState<string | null>(null);
-
-  // Create classroom modal
   const [showClassroomModal, setShowClassroomModal] = useState(false);
   const [newClassroomName, setNewClassroomName] = useState("");
   const [savingClassroom, setSavingClassroom] = useState(false);
-
-  // Files
   const [syllabusFiles, setSyllabusFiles] = useState<File[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<any[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Helper UI component for consistency
+  const SectionHeader = ({ title }: { title: string }) => (
+    <div className="bg-[#f2f2f2] px-4 py-2 border-t border-b text-[13px] font-semibold text-gray-800">
+      {title}
+    </div>
+  );
 
   // -------------------------
-  // Helpers
+  // Handlers & Logic (Kept same as original)
   // -------------------------
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -92,6 +85,14 @@ const EditClass: React.FC = () => {
     }));
   };
 
+  const removeDay = (index: number) => {
+    if (formData.days.length <= 1) return;
+    setFormData((prev) => ({
+      ...prev,
+      days: prev.days.filter((_, i) => i !== index),
+    }));
+  };
+
   const fileToBase64 = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -104,250 +105,86 @@ const EditClass: React.FC = () => {
       reader.readAsDataURL(file);
     });
 
-  // -------------------------
-  // Fetch teachers
-  // -------------------------
+  // Fetch Logic
   useEffect(() => {
-    const ctrl = new AbortController();
     const fetchTeachers = async () => {
       try {
         setIsLoadingTeachers(true);
-        setTeacherError(null);
-        const res = await axiosInstance.get("/Teacher/GetAllTeachers", {
-          params: { pageNumber: 1, pageSize: 100 },
-          signal: ctrl.signal,
-        });
-        if (res.data?.IsSuccess) {
-          const list = res.data.Data?.data || res.data.Data || [];
-          setTeachers(Array.isArray(list) ? list : []);
-        } else {
-          setTeachers([]);
-          setTeacherError("No teachers available.");
-        }
-      } catch (err) {
-        if (ctrl.signal.aborted) return;
-        console.error("Failed to fetch teachers", err);
-        setTeacherError("Failed to load teachers.");
-      } finally {
-        if (!ctrl.signal.aborted) setIsLoadingTeachers(false);
-      }
+        const res = await axiosInstance.get("/Teacher/GetAllTeachers", { params: { pageNumber: 1, pageSize: 100 } });
+        if (res.data?.IsSuccess) setTeachers(res.data.Data?.data || res.data.Data || []);
+      } catch (err) { console.error(err); } finally { setIsLoadingTeachers(false); }
     };
-    fetchTeachers();
-    return () => ctrl.abort();
-  }, []);
-
-  // -------------------------
-  // Fetch classrooms
-  // -------------------------
-  useEffect(() => {
-    const ctrl = new AbortController();
     const fetchClassrooms = async () => {
       try {
         setIsLoadingClassrooms(true);
-        setClassroomError(null);
-        const res = await axiosInstance.get("/Class/GetAllClassRooms", { signal: ctrl.signal });
-        if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
-          setClassrooms(res.data.Data);
-          if (!formData.classRoomId && res.data.Data.length) {
-            setFormData((p) => ({ ...p, classRoomId: String(res.data.Data[0].Id) }));
-          }
-        } else {
-          setClassrooms([]);
-        }
-      } catch (err) {
-        if (ctrl.signal.aborted) return;
-        console.error("Failed to fetch classrooms", err);
-        setClassroomError("Failed to load classrooms.");
-      } finally {
-        if (!ctrl.signal.aborted) setIsLoadingClassrooms(false);
-      }
+        const res = await axiosInstance.get("/Class/GetAllClassRooms");
+        if (res.data?.IsSuccess && Array.isArray(res.data.Data)) setClassrooms(res.data.Data);
+      } catch (err) { console.error(err); } finally { setIsLoadingClassrooms(false); }
     };
+    fetchTeachers();
     fetchClassrooms();
-    return () => ctrl.abort();
   }, []);
 
-  const refreshClassrooms = async (selectedId?: number) => {
-    try {
-      setIsLoadingClassrooms(true);
-      const res = await axiosInstance.get("/Class/GetAllClassRooms");
-      if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
-        setClassrooms(res.data.Data);
-        if (selectedId) setFormData((p) => ({ ...p, classRoomId: String(selectedId) }));
-      }
-    } catch (err) {
-      console.error("refreshClassrooms error", err);
-    } finally {
-      setIsLoadingClassrooms(false);
-    }
-  };
-
-  // -------------------------
-  // Fetch class by id if present in URL
-  // -------------------------
   useEffect(() => {
-    const qClassId = id; 
-    
-    if (!qClassId) return;
-
-    const ctrl = new AbortController();
+    if (!id) return;
     const fetchClass = async (classId: number) => {
       try {
-        setIsLoadingClassrooms(true);
-        const res = await axiosInstance.get("/Class/GetClassById", {
-          params: { classId },
-          signal: ctrl.signal,
-        });
-        if (!res.data?.IsSuccess) {
-          Swal.fire("Error", res.data?.Message || "Failed to load class.", "error");
-          return;
-        }
-
-        const data = res.data.Data;
-        if (!data) return;
-
-        const mappedDays: DayEntry[] =
-          Array.isArray(data.Schedule) && data.Schedule.length
+        const res = await axiosInstance.get("/Class/GetClassById", { params: { classId } });
+        if (res.data?.IsSuccess) {
+          const data = res.data.Data;
+          const mappedDays: DayEntry[] = Array.isArray(data.Schedule) && data.Schedule.length
             ? data.Schedule.map((s: any) => ({
-                day: s.WeekDay || "Monday",
-                startTime: s.StartTime || "",
-                endTime: s.EndTime || "",
-                teacherId:
-                  Array.isArray(s.TeacherIds) && s.TeacherIds.length ? String(s.TeacherIds[0]) : "",
-              }))
-            : [{ day: "Monday", startTime: "", endTime: "", teacherId: "" }];
+              day: s.WeekDay || "Monday",
+              startTime: s.StartTime || "",
+              endTime: s.EndTime || "",
+              teacherId: Array.isArray(s.TeacherIds) && s.TeacherIds.length ? String(s.TeacherIds[0]) : "",
+            })) : [{ day: "Monday", startTime: "", endTime: "", teacherId: "" }];
 
-        const attachmentsFromApi = Array.isArray(data.Attachments) ? data.Attachments : [];
-
-        setFormData((prev) => ({
-          ...prev,
-          Id: data.Id || Number(classId),
-          title: data.ClassTitle ?? prev.title,
-          subject: data.ClassSubject ?? prev.subject,
-          level: data.ClassLevel ?? prev.level,
-          description: data.ClassDescription ?? prev.description,
-          classCode: data.ClassCode ?? prev.classCode,
-          year: data.Year ?? prev.year,
-          creditHours: data.CreditHours ?? prev.creditHours,
-          awardingBody: data.AwardingBody ?? prev.awardingBody,
-          bookCode: data.BookCode ?? prev.bookCode,
-          classType: data.ClassType ?? prev.classType,
-          classRoomId: data.ClassRooomId ? String(data.ClassRooomId) : prev.classRoomId,
-          recurrence: prev.recurrence,
-          startDate: data.StartDate ? data.StartDate.split("T")[0] : prev.startDate,
-          endDate: data.EndDate ? data.EndDate.split("T")[0] : prev.endDate,
-          publishDate: data.PublishDate ? data.PublishDate.split("T")[0] : prev.publishDate,
-          days: mappedDays,
-        }));
-
-        setExistingAttachments(attachmentsFromApi);
-      } catch (err) {
-        if (ctrl.signal.aborted) return;
-        console.error("Failed to fetch class by id", err);
-        Swal.fire("Error", "Failed to load class data.", "error");
-      } finally {
-        if (!ctrl.signal.aborted) setIsLoadingClassrooms(false);
-      }
+          setFormData(prev => ({
+            ...prev,
+            Id: data.Id || Number(classId),
+            title: data.ClassTitle || "",
+            subject: data.ClassSubject || prev.subject,
+            level: data.ClassLevel || "",
+            description: data.ClassDescription || "",
+            classCode: data.ClassCode || "",
+            year: data.Year || "",
+            creditHours: data.CreditHours || "",
+            classRoomId: data.ClassRooomId ? String(data.ClassRooomId) : "",
+            startDate: data.StartDate ? data.StartDate.split("T")[0] : "",
+            endDate: data.EndDate ? data.EndDate.split("T")[0] : "",
+            publishDate: data.PublishDate ? data.PublishDate.split("T")[0] : "",
+            days: mappedDays,
+          }));
+          setExistingAttachments(data.Attachments || []);
+        }
+      } catch (err) { console.error(err); }
     };
-
-    fetchClass(Number(qClassId));
-    return () => ctrl.abort();
+    fetchClass(Number(id));
   }, [id]);
 
-  // -------------------------
-  // Create classroom modal submit
-  // -------------------------
-  const handleCreateClassroom = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newClassroomName.trim()) {
-      setClassroomError("Classroom name is required.");
-      return;
-    }
-    try {
-      setSavingClassroom(true);
-      setClassroomError(null);
-      setClassroomSuccess(null);
-      const res = await axiosInstance.post("/Class/AddClassRoom", {
-        Id: 0,
-        Name: newClassroomName.trim(),
-      });
-      if (res.data?.IsSuccess && res.data?.Data?.Id) {
-        await refreshClassrooms(res.data.Data.Id);
-        setShowClassroomModal(false);
-        setNewClassroomName("");
-        setClassroomSuccess("Classroom added successfully.");
-        setTimeout(() => setClassroomSuccess(null), 2500);
-      } else {
-        setClassroomError(res.data?.Message || "Failed to add classroom.");
-      }
-    } catch (err) {
-      console.error("Failed to add classroom", err);
-      // @ts-ignore
-      setClassroomError(err?.response?.data?.Message || "Failed to add classroom.");
-    } finally {
-      setSavingClassroom(false);
-    }
-  };
-
-  // -------------------------
-  // Convert newly uploaded files to attachments (base64)
-  // -------------------------
-  const convertFilesToBase64 = async (currentId: number) => {
-    const arr = await Promise.all(
-      syllabusFiles.map(async (file) => {
-        const ext = file.name.split(".").pop()?.toLowerCase() || "";
-        const base64 = await fileToBase64(file);
-        return {
-          Id: 0,
-          FileDetails: base64,
-          FileType: ext,
-          URL: "",
-          ClassID: currentId,
-        };
-      })
-    );
-    return arr;
-  };
-
-  // -------------------------
-  // Submit create/update
-  // -------------------------
-  const handleSubmit = async () => {
+    setIsSubmitting(true);
     const currentId = id ? Number(id) : (formData.Id || 0);
 
-    // validations
-    if (!formData.title.trim()) return Swal.fire("Required", "Class title is required.", "warning");
-    if (!formData.startDate || !formData.endDate)
-      return Swal.fire("Required", "Start Date and End Date are required.", "warning");
-    if (!formData.classRoomId) return Swal.fire("Required", "Please select a classroom.", "warning");
-    if (!formData.days.length) return Swal.fire("Required", "Please add at least one schedule day.", "warning");
-
-    const scheduleEntries = formData.days.map((d) => ({
-      WeekDay: d.day,
-      StartTime: d.startTime,
-      EndTime: d.endTime,
-      TeacherIds: d.teacherId ? [Number(d.teacherId)].filter((n) => !isNaN(n)) : [],
-    }));
-
-    if (scheduleEntries.some((s) => !s.StartTime || !s.EndTime))
-      return Swal.fire("Required", "Please enter start and end time for each schedule day.", "warning");
-    if (scheduleEntries.some((s) => !s.TeacherIds || s.TeacherIds.length === 0))
-      return Swal.fire("Required", "Please select a teacher for each schedule day.", "warning");
+    // Basic Validations
+    if (!formData.title.trim() || !formData.startDate || !formData.endDate || !formData.classRoomId) {
+      setIsSubmitting(false);
+      return Swal.fire("Required", "Please fill all mandatory fields (*)", "warning");
+    }
 
     try {
-      const newAttachments = await convertFilesToBase64(currentId);
-      const mergedAttachments = [
-        ...(existingAttachments || []).map((a: any) => ({
-          Id: a.Id ?? 0,
-          FileDetails: a.FileDetails ?? null,
-          FileType: a.FileType ?? null,
-          URL: a.URL ?? a.Url ?? "",
-          ClassID: a.ClassID ?? currentId,
-        })),
-        ...newAttachments,
-      ];
+      const newFilesBase64 = await Promise.all(syllabusFiles.map(async (file) => ({
+        Id: 0,
+        FileDetails: await fileToBase64(file),
+        FileType: file.name.split(".").pop()?.toLowerCase() || "",
+        URL: "",
+        ClassID: currentId,
+      })));
 
       const payload = {
-        Id: currentId, 
+        Id: currentId,
         ClassTitle: formData.title,
         ClassRooomId: Number(formData.classRoomId),
         ClassSubject: formData.subject,
@@ -356,294 +193,292 @@ const EditClass: React.FC = () => {
         ClassCode: formData.classCode || null,
         Year: formData.year || null,
         CreditHours: formData.creditHours || null,
-        AwardingBody: formData.awardingBody || null,
-        BookCode: formData.bookCode || null,
-        ClassType: formData.classType || null,
         StartDate: formData.startDate ? new Date(formData.startDate).toISOString() : null,
         EndDate: formData.endDate ? new Date(formData.endDate).toISOString() : null,
         PublishDate: formData.publishDate ? new Date(formData.publishDate).toISOString() : null,
-        IsDeleted: false,
-        IsActive: true,
-        CreatedOn: currentId === 0 ? new Date().toISOString() : undefined,
+        Schedule: formData.days.map(d => ({
+          WeekDay: d.day,
+          StartTime: d.startTime,
+          EndTime: d.endTime,
+          TeacherIds: d.teacherId ? [Number(d.teacherId)] : [],
+        })),
+        Attachments: [...existingAttachments, ...newFilesBase64],
         UpdatedOn: new Date().toISOString(),
-        CreatedBy: currentId === 0 ? "system" : undefined,
-        UpdatedBy: "system",
-        Schedule: scheduleEntries,
-        Attachments: mergedAttachments,
+        UpdatedBy: "system"
       };
 
       const res = await axiosInstance.post("/Class/AddOrUpdateClass", payload);
-
       if (res.data?.IsSuccess) {
-        // 3. Updated Success Block with Redirect
-        Swal.fire({
-          icon: "success",
-          title: currentId > 0 ? "Class updated" : "Class created",
-          text: res.data?.Message || "Operation successful",
-          timer: 1500,
-          showConfirmButton: false,
-        }).then(() => {
-          navigate("/notes/classes"); // Redirects after alert closes or timer ends
-        });
-      } else {
-        Swal.fire("Error", res.data?.Message || "Failed to save class", "error");
+        Swal.fire({ icon: "success", title: "Saved", text: "Class updated successfully", timer: 1500, showConfirmButton: false });
+        navigate("/notes/classes");
       }
     } catch (err) {
-      console.error("Save error:", err);
-      // @ts-ignore
-      Swal.fire("Error", err?.response?.data?.Message || "Failed to save class", "error");
+      console.error(err);
+      Swal.fire("Error", "Failed to save class", "error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const removeNewFile = (index: number) => {
-    setSyllabusFiles((prev) => prev.filter((_, i) => i !== index));
+  const handleCreateClassroom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newClassroomName.trim()) return;
+    try {
+      setSavingClassroom(true);
+      const res = await axiosInstance.post("/Class/AddClassRoom", { Id: 0, Name: newClassroomName.trim() });
+      if (res.data?.IsSuccess) {
+        const freshRes = await axiosInstance.get("/Class/GetAllClassRooms");
+        setClassrooms(freshRes.data.Data);
+        setFormData(p => ({ ...p, classRoomId: String(res.data.Data.Id) }));
+        setShowClassroomModal(false);
+        setNewClassroomName("");
+      }
+    } catch (err) { console.error(err); } finally { setSavingClassroom(false); }
   };
 
-  // -------------------------
-  // JSX
-  // -------------------------
   return (
-    <div>
-      <div className="px-6 py-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">{id ? "Edit class" : "Create class"}</h1>
+    <div className="w-full min-h-screen bg-gray-50 py-8 px-6">
+      <div className="max-w-6xl mx-auto bg-white border border-gray-300 shadow-sm overflow-hidden">
 
-        <div className="space-y-6">
-          {/* Class details */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Class details</h3>
-              <button className="text-blue-600 text-sm hover:underline">Copy from existing class</button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Class title <span className="text-red-500">*</span></label>
-                  <input type="text" value={formData.title} onChange={(e) => handleInputChange("title", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Class subject</label>
-                  <input type="text" value="General English With Exam Preparation" readOnly className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed" />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Class level</label>
-                  <select value={formData.level} onChange={(e) => handleInputChange("level", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    <option value="">Select class level</option>
-                    <option value="A1">A1</option>
-                    <option value="A2">A2</option>
-                    <option value="B1">B1</option>
-                    <option value="B2">B2</option>
-                    <option value="C1">C1</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Class description</label>
-                <textarea value={formData.description} onChange={(e) => handleInputChange("description", e.target.value)} rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-              </div>
-
-              <button type="button" onClick={() => setShowMoreDetails((s) => !s)} className="text-blue-600 text-sm hover:underline">More details (optional) {showMoreDetails ? "Hide" : "Show"}</button>
-
-              {showMoreDetails && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Class code</label>
-                    <input type="text" value={formData.classCode} onChange={(e) => handleInputChange("classCode", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                    <input type="text" value={formData.year} onChange={(e) => handleInputChange("year", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Credit hours</label>
-                    <input type="text" value={formData.creditHours} onChange={(e) => handleInputChange("creditHours", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Classroom */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Classroom</h3>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Classroom <span className="text-red-500">*</span>
-                <button type="button" onClick={() => { setNewClassroomName(""); setClassroomError(null); setShowClassroomModal(true); }} className="text-blue-600 text-sm ml-2 hover:underline">(add new)</button>
-              </label>
-              <select value={formData.classRoomId} onChange={(e) => handleInputChange("classRoomId", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" disabled={isLoadingClassrooms}>
-                <option value="">{isLoadingClassrooms ? "Loading classrooms..." : "Select classroom"}</option>
-                {classrooms.map((r) => <option key={r.Id} value={r.Id}>{r.Name}</option>)}
-              </select>
-              {classroomError && <p className="text-sm text-red-600 mt-1">{classroomError}</p>}
-              {classroomSuccess && <p className="text-sm text-green-600 mt-1">{classroomSuccess}</p>}
-            </div>
-          </div>
-
-          {/* Schedule */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Class schedule</h3>
-
-            <div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start date <span className="text-red-500">*</span></label>
-                  <input type="date" value={formData.startDate} onChange={(e) => handleInputChange("startDate", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">End date <span className="text-red-500">*</span></label>
-                  <input type="date" value={formData.endDate} onChange={(e) => handleInputChange("endDate", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Select the lesson days, times & teachers</label>
-                {formData.days.map((d, idx) => (
-                  <div key={idx} className="mb-4 border border-gray-200 rounded-lg p-3">
-                    <div className="flex gap-3 flex-wrap">
-                      <select value={d.day} onChange={(e) => updateDay(idx, "day", e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg">
-                        <option>Monday</option>
-                        <option>Tuesday</option>
-                        <option>Wednesday</option>
-                        <option>Thursday</option>
-                        <option>Friday</option>
-                        <option>Saturday</option>
-                        <option>Sunday</option>
-                      </select>
-                      <input type="time" value={d.startTime} onChange={(e) => updateDay(idx, "startTime", e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg" />
-                      <input type="time" value={d.endTime} onChange={(e) => updateDay(idx, "endTime", e.target.value)} className="px-3 py-2 border border-gray-300 rounded-lg" />
-                    </div>
-
-                    <div className="mt-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Teacher for this session <span className="text-red-500">*</span></label>
-                      <select value={d.teacherId} onChange={(e) => updateDay(idx, "teacherId", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" disabled={isLoadingTeachers}>
-                        <option value="">{isLoadingTeachers ? "Loading teachers..." : "Select teacher"}</option>
-                        {teachers.map((t) => <option key={t.Id} value={String(t.Id)}>{t.Name} {t.Surname}</option>)}
-                      </select>
-                      {teacherError && idx === 0 && <p className="text-sm text-red-600 mt-1">{teacherError}</p>}
-                    </div>
-                  </div>
-                ))}
-                <button type="button" onClick={addDay} className="text-blue-600 text-sm hover:underline">+ Add another day</button>
-              </div>
-            </div>
-          </div>
-
-          {/* Syllabus */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Syllabus</h3>
-
-            <div className="mb-4">
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <label className="cursor-pointer">
-                  <span className="text-sm text-blue-600 font-medium">Click to upload</span>
-                  <span className="text-sm text-gray-500"> or drag and drop</span>
-                  <input type="file" multiple onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setSyllabusFiles((p) => [...p, ...files]);
-                  }} className="hidden" accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png" />
-                </label>
-                <p className="text-xs text-gray-500 mt-2">PDF, DOC, DOCX, TXT, JPG, PNG up to 10MB each</p>
-              </div>
-            </div>
-
-            {/* Existing attachments */}
-            {existingAttachments.length > 0 && (
-              <div className="mb-3">
-                <div className="text-sm font-medium text-gray-700 mb-2">Existing files on class</div>
-                {existingAttachments.map((att, i) => (
-                  <div key={`exist-${i}`} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg mb-2">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <div className="text-sm font-medium truncate">{att.FileName || att.URL || `Attachment ${i + 1}`}</div>
-                        <div className="text-xs text-gray-500">{att.FileType || att.URL}</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Newly uploaded files */}
-            {syllabusFiles.length > 0 && (
-              <div className="mb-3">
-                <div className="text-sm font-medium text-gray-700 mb-2">New files to upload</div>
-                {syllabusFiles.map((f, i) => (
-                  <div key={`new-${i}`} className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg mb-2">
-                    <div className="flex items-center gap-3">
-                      <FileText className="h-5 w-5 text-gray-400" />
-                      <div>
-                        <div className="text-sm font-medium truncate">{f.name}</div>
-                        <div className="text-xs text-gray-500">{(f.size / 1024 / 1024).toFixed(2)} MB</div>
-                      </div>
-                    </div>
-                    <button type="button" onClick={() => removeNewFile(i)} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600">
-                      <X size={16} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Students */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Students</h3>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => handleInputChange("students", "skip")} className={`px-4 py-2 rounded-lg ${formData.students === "skip" ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-white text-gray-700 border border-gray-300"}`}>
-                <SkipForward className="h-4 w-4 inline-block" /> Skip
-              </button>
-              <button type="button" onClick={() => handleInputChange("students", "select")} className={`px-4 py-2 rounded-lg ${formData.students === "select" ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-white text-gray-700 border border-gray-300"}`}>
-                <Users className="h-4 w-4 inline-block" /> Select students
-              </button>
-            </div>
-          </div>
-
-          {/* Publish date */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              Publish date <Info className="h-4 w-4 text-gray-400" />
-            </h3>
-            <input type="date" value={formData.publishDate} onChange={(e) => handleInputChange("publishDate", e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-          </div>
-
-          {/* Actions */}
-          <div className="flex justify-end gap-3 pt-6">
-            <button type="button" onClick={() => navigate("/notes/classes")} className="px-6 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50">Cancel</button>
-            <button type="button" onClick={handleSubmit} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-              {id ? "Update class" : "Add class"}
+        {/* Top dark title bar */}
+        <div className="bg-[#2b2b2e] px-4 py-2 text-white text-sm font-semibold flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate(-1)} className="text-white opacity-80 hover:opacity-100">
+              <ArrowLeft size={16} />
             </button>
+            <span>{id ? `Edit Class: ${formData.title}` : "Create New Class"}</span>
           </div>
         </div>
-      </div>
 
-      {/* Create classroom modal */}
-      {showClassroomModal && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-800">Add classroom</h2>
-              <button onClick={() => { setShowClassroomModal(false); setClassroomError(null); }} className="text-gray-500 hover:text-gray-700">
-                <span className="sr-only">Close</span>X
+        <form onSubmit={handleSubmit} className="p-0 space-y-0">
+
+          {/* 1. Class Details */}
+          <SectionHeader title="Basic Information" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-[13px] text-gray-700 mb-1">Class title <span className="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange("title", e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Class level</label>
+                <select
+                  value={formData.level}
+                  onChange={(e) => handleInputChange("level", e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                >
+                  <option value="">Select level</option>
+                  {["A1", "A2", "B1", "B2", "C1", "C2"].map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+              <div className="md:col-span-3">
+                <label className="block text-[13px] text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange("description", e.target.value)}
+                  className="w-full h-20 px-2 py-2 border border-gray-300 bg-white text-[13px] resize-none"
+                />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowMoreDetails(!showMoreDetails)}
+              className="text-blue-600 text-[12px] mt-2 hover:underline"
+            >
+              {showMoreDetails ? "- Less details" : "+ More details (Class Code, Year, etc.)"}
+            </button>
+
+            {showMoreDetails && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3 pt-3 border-t border-dashed">
+                <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Class code</label>
+                  <input type="text" value={formData.classCode} onChange={(e) => handleInputChange("classCode", e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" />
+                </div>
+                <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Year</label>
+                  <input type="text" value={formData.year} onChange={(e) => handleInputChange("year", e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" />
+                </div>
+                <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Credit hours</label>
+                  <input type="text" value={formData.creditHours} onChange={(e) => handleInputChange("creditHours", e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 2. Classroom */}
+          <SectionHeader title="Location & Classroom" />
+          <div className="p-4">
+            <div className="max-w-md">
+              <label className="block text-[13px] text-gray-700 mb-1">
+                Select Classroom <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                <select
+                  value={formData.classRoomId}
+                  onChange={(e) => handleInputChange("classRoomId", e.target.value)}
+                  className="flex-1 h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                  required
+                >
+                  <option value="">{isLoadingClassrooms ? "Loading..." : "Choose a room"}</option>
+                  {classrooms.map(r => <option key={r.Id} value={r.Id}>{r.Name}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setShowClassroomModal(true)}
+                  className="h-[34px] px-3 bg-gray-100 border border-gray-300 text-[12px] hover:bg-gray-200"
+                >
+                  + New
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Schedule */}
+          <SectionHeader title="Class Schedule & Teachers" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Start Date <span className="text-red-500">*</span></label>
+                <input type="date" value={formData.startDate} onChange={(e) => handleInputChange("startDate", e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" required />
+              </div>
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">End Date <span className="text-red-500">*</span></label>
+                <input type="date" value={formData.endDate} onChange={(e) => handleInputChange("endDate", e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" required />
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-[13px] font-semibold text-gray-600">Weekly Sessions</label>
+              {formData.days.map((d, idx) => (
+                <div key={idx} className="flex flex-col md:flex-row gap-3 p-3 bg-[#f9f9f9] border border-gray-200 relative">
+                  <div className="flex-1 grid grid-cols-3 gap-2">
+                    <select value={d.day} onChange={(e) => updateDay(idx, "day", e.target.value)} className="h-[34px] px-1 border border-gray-300 text-[12px]">
+                      {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(day => <option key={day} value={day}>{day}</option>)}
+                    </select>
+                    <input type="time" value={d.startTime} onChange={(e) => updateDay(idx, "startTime", e.target.value)} className="h-[34px] px-1 border border-gray-300 text-[12px]" />
+                    <input type="time" value={d.endTime} onChange={(e) => updateDay(idx, "endTime", e.target.value)} className="h-[34px] px-1 border border-gray-300 text-[12px]" />
+                  </div>
+                  <div className="flex-1">
+                    <select value={d.teacherId} onChange={(e) => updateDay(idx, "teacherId", e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[12px]" required>
+                      <option value="">Select Teacher *</option>
+                      {teachers.map(t => <option key={t.Id} value={String(t.Id)}>{t.Name} {t.Surname}</option>)}
+                    </select>
+                  </div>
+                  {formData.days.length > 1 && (
+                    <button type="button" onClick={() => removeDay(idx)} className="text-red-500 hover:bg-red-50 p-1">
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              <button type="button" onClick={addDay} className="flex items-center gap-1 text-blue-600 text-[13px] font-medium hover:underline">
+                <Plus size={14} /> Add another session
               </button>
             </div>
-            <form onSubmit={handleCreateClassroom} className="p-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Classroom name *</label>
-                <input type="text" value={newClassroomName} onChange={(e) => setNewClassroomName(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg" />
-              </div>
-              {classroomError && <p className="text-sm text-red-600">{classroomError}</p>}
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-200">
-                <button type="button" onClick={() => { setShowClassroomModal(false); setClassroomError(null); }} className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg">Cancel</button>
-                <button type="submit" disabled={savingClassroom} className="px-4 py-2 bg-blue-600 text-white rounded-lg">{savingClassroom ? "Saving..." : "Save"}</button>
-              </div>
-            </form>
+          </div>
+
+          {/* 4. Syllabus & Files */}
+          <SectionHeader title="Attachments & Syllabus" />
+          <div className="p-4">
+            <div className="border-2 border-dashed border-gray-200 p-4 text-center bg-gray-50 mb-4">
+              <input 
+                type="file" 
+                multiple 
+                id="file-upload" 
+                className="hidden" 
+                onChange={(e) => setSyllabusFiles(prev => [...prev, ...Array.from(e.target.files || [])])}
+              />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <Upload className="mx-auto h-6 w-6 text-gray-400 mb-1" />
+                <span className="text-[13px] text-blue-600 font-medium">Click to upload files</span>
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {/* Existing */}
+              {existingAttachments.map((att, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 border border-gray-200 bg-white text-[12px]">
+                  <FileText size={14} className="text-gray-400" />
+                  <span className="truncate flex-1">{att.FileName || "Attached File"}</span>
+                  <span className="text-[10px] bg-green-100 text-green-700 px-1">Cloud</span>
+                </div>
+              ))}
+              {/* New */}
+              {syllabusFiles.map((file, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 border border-blue-200 bg-blue-50 text-[12px]">
+                  <FileText size={14} className="text-blue-400" />
+                  <span className="truncate flex-1">{file.name}</span>
+                  <button type="button" onClick={() => setSyllabusFiles(p => p.filter((_, idx) => idx !== i))}>
+                    <X size={14} className="text-gray-400" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 5. Publish */}
+          <SectionHeader title="Publish Settings" />
+          <div className="p-4">
+            <div className="max-w-xs">
+              <label className="flex items-center gap-1 text-[13px] text-gray-700 mb-1">
+                Publish Date <Info size={14} className="text-gray-400" />
+              </label>
+              <input type="date" value={formData.publishDate} onChange={(e) => handleInputChange("publishDate", e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" />
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-end gap-3 px-4 py-3 border-t bg-white">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="h-[34px] px-4 border border-gray-300 text-[13px] bg-white hover:bg-gray-50 text-gray-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="h-[34px] px-6 bg-blue-600 text-white text-[13px] font-semibold hover:bg-blue-700 disabled:opacity-50"
+            >
+              {isSubmitting ? "Saving..." : id ? "Update Class" : "Create Class"}
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Classroom Modal (Admin Style) */}
+      {showClassroomModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-400 shadow-2xl w-full max-w-sm">
+             <div className="bg-[#2b2b2e] px-4 py-2 text-white text-[13px] font-semibold flex justify-between items-center">
+                <span>Add New Classroom</span>
+                <button onClick={() => setShowClassroomModal(false)}><X size={16}/></button>
+             </div>
+             <form onSubmit={handleCreateClassroom} className="p-4">
+                <label className="block text-[13px] mb-1">Room Name</label>
+                <input 
+                  autoFocus
+                  type="text" 
+                  value={newClassroomName} 
+                  onChange={(e) => setNewClassroomName(e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 text-[13px] mb-4"
+                />
+                <div className="flex justify-end gap-2">
+                   <button type="button" onClick={() => setShowClassroomModal(false)} className="h-[30px] px-3 border border-gray-300 text-[12px]">Cancel</button>
+                   <button type="submit" disabled={savingClassroom} className="h-[30px] px-4 bg-blue-600 text-white text-[12px]">
+                      {savingClassroom ? "Saving..." : "Save Room"}
+                   </button>
+                </div>
+             </form>
           </div>
         </div>
       )}

@@ -19,46 +19,33 @@ export default function TeacherProfile() {
   console.log('TeacherProfile rendered with id:', id)
 
   // Fetch teacher data
+  // Fetch teacher data
   useEffect(() => {
     const fetchTeacher = async () => {
       if (!id) return
       try {
         setLoading(true)
-        const response = await axiosInstance.get(`/Teacher/GetById/${id}`)
+        const response = await axiosInstance.get(`/Teacher/GetTeacherById?id=${id}`)  
         if (response.data?.IsSuccess) {
+          // Ham response.data.Data ko state me set kar rahe hain
           setTeacher(response.data.Data)
-        } else {
-          // Fallback to default data if API fails
-          setTeacher({
-            id,
-            name: "Unknown Teacher",
-            gender: "",
-            age: 0,
-            email: "",
-            idNumber: "",
-            department: "",
-            position: "Teacher"
-          })
         }
       } catch (error: any) {
         console.error("Error fetching teacher:", error)
-        // Fallback to default data on error
-        setTeacher({
-          id,
-          name: "Unknown Teacher",
-          gender: "",
-          age: 0,
-          email: "",
-          idNumber: "",
-          department: "",
-          position: "Teacher"
-        })
       } finally {
         setLoading(false)
       }
     }
     fetchTeacher()
   }, [id])
+
+
+  // Helper to format Date
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-GB'); // Format: DD/MM/YYYY
+  };
 
   // Fetch classes when classes tab is active
   useEffect(() => {
@@ -169,139 +156,112 @@ export default function TeacherProfile() {
     "Attachments", "Permissions", "Availability"
   ]
 
+  // Profile Content Tab
   const renderProfileContent = () => (
-    <div className="">
-      {/* Contact Details */}
-      {/* ================= CONTACT DETAILS (IMAGE STYLE) ================= */}
-<div className="bg-white border border-gray-300">
+    <div className="bg-white border border-gray-300">
+      {/* ROW 1: Mobile, Home, Email */}
+      <div className="grid grid-cols-1 md:grid-cols-3 border-b border-gray-200">
+        <div className="p-4">
+          <div className="text-sm text-gray-600">Mobile Phone</div>
+          <div className="text-sm text-blue-600 mt-1">
+            {teacher?.Mobile || "—"}
+          </div>
+        </div>
 
-  {/* ROW 1 */}
-  <div className="grid grid-cols-1 md:grid-cols-3 border-b border-gray-200">
-    <div className="p-4">
-      <div className="text-sm text-gray-600">Mobile Phone</div>
-      <div className="text-sm text-blue-600 mt-1">
-        {teacherData?.phone || "—"}
+        <div className="p-4 border-l border-gray-200">
+          <div className="text-sm text-gray-600">Home Phone</div>
+          <div className="text-sm text-gray-900 mt-1">
+            {teacher?.HomeNumber || "—"}
+          </div>
+        </div>
+
+        <div className="p-4 border-l border-gray-200">
+          <div className="text-sm text-gray-600">Email</div>
+          <div className="text-sm text-blue-600 mt-1">
+            {teacher?.Email || "—"}
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div className="p-4 border-l border-gray-200">
-      <div className="text-sm text-gray-600">Home Phone</div>
-      <div className="text-sm text-gray-900 mt-1">—</div>
-    </div>
-
-    <div className="p-4 border-l border-gray-200">
-      <div className="text-sm text-gray-600">Email</div>
-      <div className="text-sm text-blue-600 mt-1">
-        {teacherData?.email || "—"}
+      {/* ROW 2: Online Lesson Link */}
+      <div className="border-b border-gray-200 p-4">
+        <div className="text-sm text-gray-600">Online Lesson Link</div>
+        <div className="text-sm text-blue-600 mt-1">
+          {teacher?.OnlineSessionLink || "—"}
+        </div>
       </div>
-    </div>
-  </div>
 
-  {/* ROW 2 */}
-  <div className="border-b border-gray-200 p-4">
-    <div className="text-sm text-gray-600">Online Lesson Link</div>
-    <div className="text-sm text-gray-900 mt-1">—</div>
-  </div>
+      {/* ROW 3: DOB & ID Number */}
+      <div className="grid grid-cols-1 md:grid-cols-2 border-b border-gray-200">
+        <div className="p-4">
+          <div className="text-sm text-gray-600">Date of Birth</div>
+          <div className="text-sm text-gray-900 mt-1">
+            {formatDate(teacher?.DateOfBirth)}
+          </div>
+        </div>
 
-  {/* ROW 3 */}
-  <div className="grid grid-cols-1 md:grid-cols-2 border-b border-gray-200">
-    <div className="p-4">
-      <div className="text-sm text-gray-600">Date of Birth</div>
-      <div className="text-sm text-gray-900 mt-1">
-        {teacherData?.dob || "—"}
+        <div className="p-4 border-l border-gray-200">
+          <div className="text-sm text-gray-600">Id. Number</div>
+          <div className="text-sm text-gray-900 mt-1">
+            {teacher?.IdNumber || "—"}
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div className="p-4 border-l border-gray-200">
-      <div className="text-sm text-gray-600">Id. Number</div>
-      <div className="text-sm text-gray-900 mt-1">—</div>
-    </div>
-  </div>
-
-  {/* ROW 4 */}
-  <div className="border-b border-gray-200 p-4">
-    <div className="text-sm text-gray-600">Address</div>
-    <div className="text-sm text-gray-900 mt-1">
-      {teacherData?.country || "Ireland"}
-    </div>
-  </div>
-
-  {/* ROW 5 */}
-  <div className="border-b border-gray-200 p-4">
-    <div className="text-sm text-gray-600">General Notes</div>
-    <div className="text-sm text-gray-900 mt-1">—</div>
-  </div>
-
-  {/* ROW 6 */}
-  <div className="border-b border-gray-200 p-4">
-    <div className="text-sm text-gray-600">About</div>
-    <div className="text-sm text-gray-900 mt-1">—</div>
-  </div>
-
-  {/* SCHOOL PORTAL HEADER */}
-  <div className="p-4 bg-gray-50 border-b border-gray-200">
-    <div className="font-medium text-gray-900">School Portal</div>
-    <div className="text-sm text-gray-600">
-      Enable or disable the Teacher's access to your school's portal.
-    </div>
-  </div>
-
-  {/* SCHOOL PORTAL ROW */}
-  <div className="grid grid-cols-1 md:grid-cols-3 border-b border-gray-200">
-    <div className="p-4">
-      <div className="text-sm text-gray-600 mb-2">Access to School Portal</div>
-      <div className="inline-flex items-center gap-2">
-        <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-xs">
-          ON
-        </span>
+      {/* ROW 4: Address */}
+      <div className="border-b border-gray-200 p-4">
+        <div className="text-sm text-gray-600">Address</div>
+        <div className="text-sm text-gray-900 mt-1">
+          {teacher?.StreetAddress 
+            ? `${teacher.StreetAddress}, ${teacher.City}, ${teacher.Country}` 
+            : "—"}
+        </div>
       </div>
-    </div>
 
-    <div className="p-4 border-l border-gray-200">
-      <div className="text-sm text-gray-600">Invitation</div>
-      <div className="text-sm text-blue-600 mt-1 cursor-pointer">
-        Invite to Portal
+      {/* ROW 5: General Notes */}
+      <div className="border-b border-gray-200 p-4">
+        <div className="text-sm text-gray-600">General Notes</div>
+        <div className="text-sm text-gray-900 mt-1">
+          {teacher?.Notes || "—"}
+        </div>
       </div>
-      <div className="text-xs text-gray-500 mt-1">
-        {teacherData?.name} has not signed up yet!
+
+      {/* ROW 6: About */}
+      <div className="border-b border-gray-200 p-4">
+        <div className="text-sm text-gray-600">About</div>
+        <div className="text-sm text-gray-900 mt-1">
+          {teacher?.About || "—"}
+        </div>
       </div>
-    </div>
 
-    <div className="p-4 border-l border-gray-200">
-      <div className="text-sm text-gray-600">Last Login</div>
-      <div className="text-sm text-gray-400 italic mt-1">never</div>
-    </div>
-  </div>
+      {/* SCHOOL PORTAL */}
+      <div className="p-4 bg-gray-50 border-b border-gray-200">
+        <div className="font-medium text-gray-900">School Portal</div>
+      </div>
 
-  {/* USERNAME / PASSWORD */}
-  <div className="grid grid-cols-1 md:grid-cols-2 border-b border-gray-200">
-    <div className="p-4">
-      <div className="text-sm text-gray-600">Username</div>
-      <div className="text-sm italic text-gray-500 mt-1">not set</div>
-    </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 border-b border-gray-200">
+        <div className="p-4">
+          <div className="text-sm text-gray-600 mb-2">Access to School Portal</div>
+          <span className={`px-3 py-1 rounded-full text-white text-xs ${teacher?.IsActive ? 'bg-green-600' : 'bg-blue-600'}`}>
+            {teacher?.IsActive ? 'ON' : 'OFF'}
+          </span>
+        </div>
 
-    <div className="p-4 border-l border-gray-200">
-      <div className="text-sm text-gray-600">Password</div>
-      <div className="text-sm italic text-gray-500 mt-1">not set</div>
-    </div>
-  </div>
+        <div className="p-4 border-l border-gray-200">
+          <div className="text-sm text-gray-600">Invitation</div>
+          <div className="text-sm text-blue-600 mt-1 cursor-pointer">Invite to Portal</div>
+          <div className="text-xs text-gray-500 mt-1">{teacher?.Name} has not signed up yet!</div>
+        </div>
 
-  {/* AUTOMATIC REMINDERS */}
-  <div className="p-4 border-b border-gray-200">
-    <div className="text-sm text-gray-600 mb-2">Automatic Reminders</div>
-    <span className="px-3 py-1 rounded-full bg-blue-600 text-white text-xs">
-      ON
-    </span>
-  </div>
+        <div className="p-4 border-l border-gray-200">
+          <div className="text-sm text-gray-600">Last Login</div>
+          <div className="text-sm text-gray-400 italic mt-1">never</div>
+        </div>
+      </div>
 
-  {/* FOOTER */}
-  <div className="p-3 text-xs text-gray-500">
-    Created Date: 08-11-2022 17:27
-  </div>
-</div>
-
-
-      
+      <div className="p-3 text-xs text-gray-500">
+        Created By: {teacher?.CreatedBy || "—"} | Updated On: {teacher?.UpdatedOn ? new Date(teacher.UpdatedOn).toLocaleString() : "—"}
+      </div>
     </div>
   )
 
@@ -894,71 +854,37 @@ export default function TeacherProfile() {
         {/* Header card */}
         <div className="bg-white border border-gray-200  p-5 shadow-sm">
           {/* ================= TEACHER PROFILE HEADER ================= */}
-<div className="bg-white border border-gray-300">
-
-  {/* PAGE TITLE */}
-  <div className="px-5 py-3 border-b border-dotted border-gray-300 flex items-center justify-between">
-    <h1 className="text-lg font-semibold text-gray-800">
-      Teacher Profile
-    </h1>
-
-    <div className="flex items-center gap-2">
-      <button className="px-3 py-1.5 bg-gray-100 border border-gray-300 text-sm flex items-center gap-1">
-        Message
-      </button>
-      <button className="px-3 py-1.5 bg-gray-100 border border-gray-300 text-sm flex items-center gap-1">
-        Print
-      </button>
-      <button className="px-3 py-1.5 bg-gray-100 border border-gray-300 text-sm flex items-center gap-1">
-        More
-      </button>
-    </div>
-  </div>
-
-  {/* PROFILE ROW */}
-  <div className="px-5 py-5 flex items-start gap-4">
-
-    {/* AVATAR (SQUARE) */}
-    <div className="w-24 h-24 border border-gray-300 bg-gray-200 flex items-center justify-center">
-      <User size={48} className="text-gray-400" />
-    </div>
-
-    {/* DETAILS */}
-    <div className="flex-1">
-      <div className="text-xl font-semibold text-gray-900">
-        {teacherData?.name || "—"}
-      </div>
-
-      <div className="text-sm text-gray-600 mt-1">
-        {teacherData?.gender || "—"},
-      </div>
-
-      <div className="mt-3 space-y-2 text-sm">
-
-        {/* PHONE */}
-        <div className="flex items-center gap-2 text-blue-600">
-          <span className="text-gray-500">📞</span>
-          <span>{teacherData?.phone || "—"}</span>
+        <div className="px-5 py-3 border-b border-dotted border-gray-300 flex items-center justify-between">
+          <h1 className="text-lg font-semibold text-gray-800">Teacher Profile</h1>
         </div>
 
-        {/* EMAIL */}
-        <div className="flex items-center gap-2 text-blue-600">
-          <span className="text-gray-500">✉</span>
-          <span>{teacherData?.email || "—"}</span>
-        </div>
+        <div className="px-5 py-5 flex items-start gap-4">
+          {/* AVATAR (Base64 handle kiya gaya hai) */}
+          <div className="w-24 h-24 border border-gray-300 bg-gray-200 flex items-center justify-center overflow-hidden">
+            {teacher?.Photo ? (
+              <img src={`data:image/png;base64,${teacher.Photo}`} alt="Teacher" className="w-full h-full object-cover" />
+            ) : (
+              <User size={48} className="text-gray-400" />
+            )}
+          </div>
 
-        {/* GREEN CHECK */}
-        <div className="flex items-center gap-2 text-green-700 font-medium">
-          <span className="w-4 h-4 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">
-            ✓
-          </span>
-          5
+          <div className="flex-1">
+            <div className="text-xl font-semibold text-gray-900">
+              {teacher?.Name} {teacher?.Surname}
+            </div>
+            <div className="text-sm text-gray-600 mt-1">{teacher?.Gender || "—"}</div>
+            <div className="mt-3 space-y-2 text-sm">
+              <div className="flex items-center gap-2 text-blue-600">
+                <span className="text-gray-500">📞</span>
+                <span>{teacher?.Mobile || "—"}</span>
+              </div>
+              <div className="flex items-center gap-2 text-blue-600">
+                <span className="text-gray-500">✉</span>
+                <span>{teacher?.Email || "—"}</span>
+              </div>
+            </div>
+          </div>
         </div>
-
-      </div>
-    </div>
-  </div>
-</div>
 
 
           {/* Navigation tabs */}
