@@ -227,57 +227,54 @@ const makePageButtons = (totalPages: number, current: number) => {
   }, [teacherSearch])
 
   // Fetch teachers when teachers tab is active
-  useEffect(() => {
-    if (activeTab !== "teachers") return
+  // Is useEffect ko replace karein
+useEffect(() => {
+  // Page load pe ya jab pagination/search change ho tab fetch karega
+  // Agar aap sirf page refresh pe chahte hain aur tab click pe nahi, toh activeTab dependency ko dhyaan se manage karein
+  
+  const controller = new AbortController()
 
-    const controller = new AbortController()
+  const fetchTeachers = async () => {
+    setIsLoadingTeachers(true)
+    setTeacherError(null)
+    try {
+      const response = await axiosInstance.get("/Teacher/GetAllTeachers", {
+        params: {
+          pageNumber: teacherPageNumber,
+          pageSize: pageSize === "all" ? (teacherTotalCount > 0 ? teacherTotalCount : 100) : pageSize,
+          search: teacherSearchDebounced || ""
+        },
+        signal: controller.signal
+      })
 
-    const fetchTeachers = async () => {
-      setIsLoadingTeachers(true)
-      setTeacherError(null)
-      try {
-        const response = await axiosInstance.get("/Teacher/GetAllTeachers", {
-          params: {
-            pageNumber: teacherPageNumber,
-            pageSize: pageSize === "all" ? (teacherTotalCount > 0 ? teacherTotalCount : 1000000) : pageSize,
-            search: teacherSearchDebounced || ""
-          },
-          signal: controller.signal
-        })
-
-
-        console.log("Teachers response:", response.data)
-        if (response.data?.IsSuccess) {
-          // API returns: { data: [...], pagination: { totalCount, ... } }
-          const teachersData = response.data.Data?.data || []
-          const total = response.data.Data?.pagination?.totalCount || 0
-          
-          if (Array.isArray(teachersData)) {
-            setTeachers(teachersData)
-            setTeacherTotalCount(total)
-          } else {
-            setTeachers([])
-            setTeacherError("Invalid teacher data format.")
-          }
-        } else {
-          setTeachers([])
-          setTeacherError("No teacher data available.")
+      if (response.data?.IsSuccess) {
+        // API response handling
+        const teachersData = response.data.Data?.data || []
+        const total = response.data.Data?.pagination?.totalCount || 0
+        
+        if (Array.isArray(teachersData)) {
+          setTeachers(teachersData)
+          setTeacherTotalCount(total)
         }
-      } catch (error: unknown) {
-        if (controller.signal.aborted) return
-        console.error("Failed to load teachers", error)
-        setTeacherError("Failed to load teachers. Please try again.")
-      } finally {
-        if (!controller.signal.aborted) {
-          setIsLoadingTeachers(false)
-        }
+      } else {
+        setTeachers([])
+        setTeacherError("No teacher data available.")
+      }
+    } catch (error: unknown) {
+      if (controller.signal.aborted) return
+      setTeacherError("Failed to load teachers.")
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsLoadingTeachers(false)
       }
     }
+  }
 
-    fetchTeachers()
+  fetchTeachers()
 
-    return () => controller.abort()
-  }, [activeTab, teacherPageNumber, teacherSearchDebounced, pageSize])
+  return () => controller.abort()
+  // Yaha dependencies mein pageNumber aur search debounced hain
+}, [teacherPageNumber, teacherSearchDebounced, pageSize])
 
 
 

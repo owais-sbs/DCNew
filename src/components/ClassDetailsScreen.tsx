@@ -410,37 +410,49 @@ function LessonsContent({
   };
 
   const fetchLessons = async () => {
-    try {
-      setLoading(true);
-      const res = await axiosInstance.get(`/Class/GetSessionsForClass`, {
-        params: { classId: Number(id) },
-      });
+  try {
+    setLoading(true);
+    const res = await axiosInstance.get(`/Class/GetSessionsForClass`, {
+      params: { classId: Number(id) },
+    });
 
-      if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
-        const mapped = res.data.Data.map((s: any) => ({
+    if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
+      const mapped = res.data.Data.map((s: any) => {
+        // Date object create karein StartTime se
+        const dateObj = new Date(s.StartTime);
+
+        return {
           scheduleId: s.ScheduleId,
+          // Format: 17-Dec-2025
+          date: dateObj.toLocaleDateString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+          }).replace(/ /g, "-"), 
+          
+          // Format: FRI (short weekday)
+          day: dateObj.toLocaleDateString("en-GB", { weekday: 'short' }).toUpperCase(),
+          
           time: formatTime(s.StartTime),
           duration: calculateDuration(s.StartTime, s.EndTime),
           className: s.ClassTitle,
           subject: s.ClassSubject,
           classroom: s.ClassRoomName || s.DayOfWeek,
-          location: s.ClassRoomName || s.DayOfWeek,
           teacherNames: s.TeacherNames || [],
           totalStudents: s.TotalStudents || 0,
           presentCount: s.PresentCount || 0,
           absentCount: s.AbsentCount || 0,
-        }));
+        };
+      });
 
-        setLessons(mapped);
-      } else {
-        console.error("API returned bad structure:", res.data);
-      }
-    } catch (err) {
-      console.error("Error fetching lessons:", err);
-    } finally {
-      setLoading(false);
+      setLessons(mapped);
     }
-  };
+  } catch (err) {
+    console.error("Error fetching lessons:", err);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     if (selectedLessonIdx !== null) {
@@ -523,24 +535,31 @@ function LessonsContent({
             className="border border-gray-300 bg-white cursor-pointer"
           >
             {/* TOP ROW */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-              <div className="text-sm text-gray-900 font-medium">
-                {l.date || "16-12-2025"} &nbsp;
-                <span className="uppercase text-gray-600">
-                  {l.day || "TUE"}
-                </span>
-                , {l.time}
-              </div>
+            {/* CARD TOP ROW */}
+<div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+  <div className="text-sm text-gray-900 font-medium">
+    {/* Display Date */}
+    {l.date} &nbsp;
+    
+    {/* Display Day (e.g., TUE) */}
+    <span className="uppercase text-gray-600">
+      {l.day}
+    </span>
+    
+    {/* Display Time */}
+    , {l.time}
+  </div>
 
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-700">
-                  {l.teacherNames?.[0] || "Colm Delmar1"}
-                </span>
-                <div className="h-8 w-8 rounded-full border flex items-center justify-center text-gray-600">
-                  <Users size={16} />
-                </div>
-              </div>
-            </div>
+  <div className="flex items-center gap-2">
+    <span className="text-sm text-gray-700">
+      {/* Agar TeacherNames null hai to default value dikhayein */}
+      {l.teacherNames?.[0] || "No Teacher"}
+    </span>
+    <div className="h-8 w-8 rounded-full border flex items-center justify-center text-gray-600">
+      <Users size={16} />
+    </div>
+  </div>
+</div>
 
             {/* BOTTOM ROW */}
             <div className="flex items-center justify-between px-4 py-3 text-sm text-gray-600">
