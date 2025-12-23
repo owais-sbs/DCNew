@@ -103,6 +103,8 @@ export default function StudentProfile() {
   const [signatures, setSignatures] = useState<any[]>([])
   const [loadingSignatures, setLoadingSignatures] = useState(false)
   const [selectedSignatureId, setSelectedSignatureId] = useState<number | null>(null)
+  // Controls whether the signature should be rendered/printed in generated documents
+  const [includeSignature, setIncludeSignature] = useState<boolean>(true)
   const [profileImageError, setProfileImageError] = useState(false)
   const [signatureBase64Map, setSignatureBase64Map] = useState<Record<number, string>>({})
   const [attendanceStats, setAttendanceStats] = useState<any[]>([])
@@ -1452,8 +1454,8 @@ export default function StudentProfile() {
     if (!documentContentRef.current || !selectedDocument) return
 
     try {
-      // Ensure signature image is converted to base64 if not already
-      if (selectedSignatureId && signatures.length > 0) {
+      // Ensure signature image is converted to base64 if not already (only when including signature)
+      if (includeSignature && selectedSignatureId && signatures.length > 0) {
         const selectedSignature = signatures.find((sig) => sig.id === selectedSignatureId)
         if (selectedSignature && selectedSignature.signatureUrl) {
           let base64ToUse = signatureBase64Map[selectedSignature.id]
@@ -1509,20 +1511,32 @@ export default function StudentProfile() {
 
       // Create PDF using jsPDF html() method - single page only
       const pdf = new jsPDF("p", "mm", "a4")
-      const pageHeight = pdf.internal.pageSize.getHeight()
       const pageWidth = pdf.internal.pageSize.getWidth()
       
       await pdf.html(documentContentRef.current, {
         callback: (doc) => {
-          // Remove any extra pages that might have been created
-          const totalPages = (doc as any).internal.pages.length
-          if (totalPages > 1) {
-            for (let i = totalPages; i > 1; i--) {
-              doc.deletePage(i)
+          try {
+            // Remove any extra pages that might have been created
+            const totalPages = (doc as any).internal.pages.length
+            if (totalPages > 1) {
+              for (let i = totalPages; i > 1; i--) {
+                doc.deletePage(i)
+              }
             }
+
+            // Open the PDF in a new tab and trigger the browser print dialog
+            const blobUrl = doc.output("bloburl")
+            const printWindow = window.open(blobUrl, "_blank")
+
+            if (printWindow) {
+              printWindow.onload = () => {
+                printWindow.focus()
+                printWindow.print()
+              }
+            }
+          } catch (printError) {
+            console.error("Failed to open print dialog", printError)
           }
-          const sanitizedTitle = (selectedDocument.Title || "student-document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()
-          doc.save(`${sanitizedTitle}.pdf`)
         },
         x: 0,
         y: 0,
@@ -1571,8 +1585,8 @@ export default function StudentProfile() {
         }
       })
 
-      // Ensure signature image is converted to base64 if not already
-      if (selectedSignatureId && signatures.length > 0) {
+      // Ensure signature image is converted to base64 if not already (only when including signature)
+      if (includeSignature && selectedSignatureId && signatures.length > 0) {
         const selectedSignature = signatures.find((sig) => sig.id === selectedSignatureId)
         if (selectedSignature && selectedSignature.signatureUrl) {
           let base64ToUse = signatureBase64Map[selectedSignature.id]
@@ -1756,7 +1770,7 @@ export default function StudentProfile() {
                   lineHeight: "1.3",
                   color: "#000000",
                   boxSizing: "border-box",
-                  padding: "12mm 10mm",
+                  padding: "8mm 8mm",
                   margin: "0 auto",
                   position: "relative",
                   overflow: "hidden"
@@ -1777,23 +1791,31 @@ export default function StudentProfile() {
                 height: "calc(100% - 20px)",
                 boxSizing: "border-box",
                 display: "flex",
-                marginTop: "80px",
+                marginTop: "0px",
                 flexDirection: "column"
               }}>
                 {/* To/Recipient */}
                 {processedTo && (
-                  <div className="mb-1 whitespace-pre-wrap" style={{ fontSize: "9pt", lineHeight: "1.3", fontFamily: "'Times New Roman', Times, serif" }}>
+                  <div
+                    className="mb-1 whitespace-pre-wrap"
+                    style={{
+                      fontSize: "12pt",
+                      lineHeight: "1.2",
+                      fontFamily: "'Times New Roman', Times, serif",
+                      fontWeight: "bold",
+                    }}
+                  >
                     {processedTo}
                   </div>
                 )}
 
                 {/* Title */}
                 <h2 className="mb-2 font-bold" style={{ 
-                  fontSize: "11pt",
+                  fontSize: "12pt",
                   textAlign: "center",
                   marginTop: "6px",
                   marginBottom: "8px",
-                  lineHeight: "1.3",
+                  lineHeight: "1.2",
                   fontFamily: "'Times New Roman', Times, serif"
                 }}>
                   {selectedDocument.Title || "Document"}
@@ -1801,8 +1823,8 @@ export default function StudentProfile() {
 
                 {/* Body Content */}
                 <div className="mb-4 whitespace-pre-wrap" style={{ 
-                  fontSize: "9pt", 
-                  lineHeight: "1.3",
+                  fontSize: "12pt", 
+                  lineHeight: "1.2",
                   textAlign: "left",
                   fontFamily: "'Times New Roman', Times, serif"
                 }}>
@@ -1813,46 +1835,58 @@ export default function StudentProfile() {
                 <div className="mb-2" style={{ border: "1px solid #000000", flexShrink: 0 }}>
                   <table className="w-full" style={{ 
                     borderCollapse: "collapse",
-                    fontSize: "9pt",
+                    fontSize: "12px",
                     width: "100%",
-                    fontFamily: "'Times New Roman', Times, serif"
+                    // Use standard PDF-safe fonts to avoid spacing issues in jsPDF/html2canvas
+                    fontFamily: "Arial, Helvetica, sans-serif"
                   }}>
                 
                     <tbody>
-                      {defaultFieldKeys.map((fieldKey) => (
-                        <tr key={fieldKey}>
-                          <td className="font-medium" style={{ 
-                            border: "1px solid #000000",
-                            padding: "5px 6px",
-                            backgroundColor: "#ffffff",
-                            verticalAlign: "top",
-                            width: "35%",
-                            lineHeight: "1.8",
-                            fontFamily: "'Times New Roman', Times, serif"
-                          }}>
-                            {fieldKey}
-                          </td>
-                          <td style={{ 
-                            border: "1px solid #000000",
-                            padding: "5px 6px",
-                            backgroundColor: "#ffffff",
-                            verticalAlign: "top",
-                            width: "65%",
-                            lineHeight: "1.8",
-                            fontFamily: "'Times New Roman', Times, serif"
-                          }}>
-                            {getStudentFieldValue(fieldKey)}
-                          </td>
-                        </tr>
-                      ))}
+                      {defaultFieldKeys.map((fieldKey) => {
+                        const isAddressRow = fieldKey === "Address"
+                        return (
+                          <tr key={fieldKey}>
+                            <td
+                              className="font-medium"
+                              style={{ 
+                                border: "1px solid #000000",
+                                padding: "6px 3px",
+                                backgroundColor: "#ffffff",
+                                verticalAlign: "top",
+                                width: "22%",
+                                lineHeight: "1.4",
+                                fontFamily: "Arial, Helvetica, sans-serif",
+                                fontWeight: "bold",
+                              }}
+                            >
+                              {fieldKey}
+                            </td>
+                            <td
+                              style={{ 
+                                border: "1px solid #000000",
+                                padding: "7px 9px",
+                                backgroundColor: "#ffffff",
+                                verticalAlign: "top",
+                                width: "65%",
+                                lineHeight: "1.4",
+                                fontFamily: "Arial, Helvetica, sans-serif",
+                                fontWeight: "normal",
+                                whiteSpace: isAddressRow ? "nowrap" : "normal",
+                              }}
+                            >
+                              {getStudentFieldValue(fieldKey)}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
 
                 {processedFooter && (
-                  <div className="mt-1 whitespace-pre-wrap" style={{ 
-                    fontSize: "9pt", 
-                    lineHeight: "1.3",
+                  <div className=" whitespace-pre-wrap" style={{ 
+                    fontSize: "12pt", 
+                    lineHeight: "1.2",
                     textAlign: "left",
                     fontFamily: "'Times New Roman', Times, serif"
                   }}>
@@ -1860,8 +1894,8 @@ export default function StudentProfile() {
                   </div>
                 )}
 
-                {/* Selected Signature Display in Document - Positioned below footer */}
-                {selectedSignatureId && signatures.length > 0 && (() => {
+              {/* Selected Signature Display in Document - Positioned below footer */}
+                {includeSignature && selectedSignatureId && signatures.length > 0 && (() => {
                   const selectedSignature = signatures.find((sig) => sig.id === selectedSignatureId)
                   if (selectedSignature) {
                     // Use base64 version if available, otherwise fallback to URL
@@ -1970,29 +2004,42 @@ export default function StudentProfile() {
               </div>
             )}
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <button className="h-10 px-4  border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2">
-              <FilePlus size={16} /> Save to students profile
-            </button>
-            <button
-              onClick={handleSendDocument}
-              className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2"
-              disabled={!selectedDocument || !id}
-            >
-              <Mail size={16} /> Send document
-            </button>
-            <button
-              onClick={handlePrintDocument}
-              className="h-10 px-4  border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2"
-            >
-              <Download size={16} /> Print
-            </button>
-            <button
-              onClick={() => setSelectedDocument(null)}
-              className="h-10 px-4  bg-gray-800 text-white text-sm"
-            >
-              Close
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
+            {/* Signature toggle */}
+            <label className="inline-flex items-center gap-2 text-xs text-gray-600">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-gray-300"
+                checked={includeSignature}
+                onChange={(e) => setIncludeSignature(e.target.checked)}
+              />
+              <span>Include signature in document</span>
+            </label>
+
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <button className="h-10 px-4  border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2">
+                <FilePlus size={16} /> Save to students profile
+              </button>
+              <button
+                onClick={handleSendDocument}
+                className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2"
+                disabled={!selectedDocument || !id}
+              >
+                <Mail size={16} /> Send document
+              </button>
+              <button
+                onClick={handlePrintDocument}
+                className="h-10 px-4  border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2"
+              >
+                <Download size={16} /> Print
+              </button>
+              <button
+                onClick={() => setSelectedDocument(null)}
+                className="h-10 px-4  bg-gray-800 text-white text-sm"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       </div>
