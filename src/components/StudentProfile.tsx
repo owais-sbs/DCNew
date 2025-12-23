@@ -2,7 +2,6 @@ import { useParams, useNavigate } from "react-router-dom"
 import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck, Flag, Star, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import axiosInstance from "./axiosInstance"
-import html2canvas from "html2canvas"
 import { jsPDF } from "jspdf"
 import Swal from "sweetalert2"
 
@@ -534,10 +533,12 @@ export default function StudentProfile() {
     "Student ID",
     "Address",
     "Date of Birth",
+    "Nationality",
+
     "Passport Number",
     "Course Start Date",
     "Course End Date",
-    "Course Level",
+    "Course Title",
     "Mode of Study",
     "Number of Weeks",
     "Hours Per Week",
@@ -622,14 +623,8 @@ export default function StudentProfile() {
     },
     "Hours Per Week": () => studentdetails?.HoursPerWeek?.toString() || "—",
     "Tuition Fees": () => {
-      const fees = studentdetails?.TuitionFees;
-      if (fees === null || fees === undefined || fees === "") return "—";
-      // Check if it's a string that says "Fully Paid" or similar
-      if (typeof fees === "string" && fees.toLowerCase().includes("paid")) {
-        return fees;
-      }
-      // Otherwise format as currency
-      return formatCurrency(fees);
+      // Always return "Fully Paid" for documents
+      return "Fully Paid";
     },
     "Course Code": () => studentdetails?.CourseCode || "—",
     "ILEP programme reference": () => studentdetails?.IlepReference || "—",
@@ -647,14 +642,8 @@ export default function StudentProfile() {
       return examFees.toString();
     },
     "End of the course exam fees": () => {
-      const examFees = studentdetails?.EndOfExamPaid;
-      if (examFees === null || examFees === undefined || examFees === "") return "—";
-      // If it's a number, format as currency, otherwise return as string
-      const numeric = Number(examFees);
-      if (!isNaN(numeric)) {
-        return formatCurrency(numeric);
-      }
-      return examFees.toString();
+      // Always return "Fully Paid" for documents
+      return "Fully Paid";
     }
   }
 
@@ -1488,131 +1477,67 @@ export default function StudentProfile() {
               if (parentText.includes(selectedSignature.name) || img.alt === selectedSignature.name) {
                 console.log("Updating signature image src directly in DOM")
                 img.src = base64ToUse
-                // Force reload
-                img.style.display = 'none'
-                img.offsetHeight // Trigger reflow
-                img.style.display = 'block'
               }
             })
             // Wait for image to update
-            await new Promise(resolve => setTimeout(resolve, 500))
+            await new Promise(resolve => setTimeout(resolve, 300))
           }
         }
       }
 
-      // Preload all images in the document (now using base64, so no CORS issues)
+      // Wait for all images to load
       const images = documentContentRef.current.querySelectorAll('img')
-      console.log("Found images to preload:", images.length)
-      
-      const imagePromises = Array.from(images).map((img, index) => {
+      const imagePromises = Array.from(images).map((img) => {
         return new Promise((resolve) => {
-          // Check if image is already loaded
           if (img.complete && img.naturalHeight !== 0) {
-            console.log(`Image ${index} already loaded, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
             resolve(img)
             return
           }
           
-          // Wait for image to load
-          const loadHandler = () => {
-            console.log(`Image ${index} loaded successfully, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
-            resolve(img)
-          }
-          
-          const errorHandler = () => {
-            console.warn(`Image ${index} failed to load:`, img.src.substring(0, 100))
-            resolve(img) // Continue anyway
-          }
+          const loadHandler = () => resolve(img)
+          const errorHandler = () => resolve(img) // Continue anyway
           
           img.addEventListener('load', loadHandler, { once: true })
           img.addEventListener('error', errorHandler, { once: true })
-          
-          // Trigger load if src is set but not loading
-          if (img.src && !img.complete) {
-            // Image is loading, wait for events
-          } else if (!img.src) {
-            resolve(img)
-          }
         })
       })
 
-      // Wait for all images to load
       await Promise.all(imagePromises)
-      console.log("All images preloaded")
-
-      // Wait for fonts to be ready (important for production builds)
-      await waitForFonts()
-
-      // Ensure all styles are computed before rendering
-      if (documentContentRef.current) {
-        ensureStylesComputed(documentContentRef.current)
-      }
-
-      // Additional delay to ensure everything is fully rendered in the DOM
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Final check: Verify signature image is loaded and visible
-      const signatureImages = documentContentRef.current.querySelectorAll('img')
-      signatureImages.forEach((img, idx) => {
-        if (img.src && img.src.includes('data:image')) {
-          console.log(`Signature image ${idx} src type: base64, loaded: ${img.complete}, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
-          if (!img.complete || img.naturalHeight === 0) {
-            console.warn(`Signature image ${idx} not fully loaded, waiting...`)
-          }
-        }
-      })
-
-      const canvas = await html2canvas(documentContentRef.current, {
-        scale: 2,
-        useCORS: false, // Not needed since we're using base64 images
-        allowTaint: false, // Not needed since we're using base64 images
-        logging: false, // Disable logging in production
-        backgroundColor: "#ffffff",
-        imageTimeout: 30000, // 30 second timeout for images
-        removeContainer: false, // Keep container for proper rendering
-        windowWidth: documentContentRef.current.scrollWidth,
-        windowHeight: documentContentRef.current.scrollHeight,
-        onclone: (clonedDoc, element) => {
-          // Ensure fonts are loaded in cloned document
-          const clonedElement = element as HTMLElement
-          ensureStylesComputed(clonedElement)
-          
-          // Verify images in cloned document
-          const clonedImages = clonedDoc.querySelectorAll('img')
-          clonedImages.forEach((img, idx) => {
-            console.log(`Cloned image ${idx}: src=${img.src.substring(0, 50)}..., complete=${img.complete}, naturalHeight=${img.naturalHeight}`)
-            // Ensure images are visible in cloned document
-            if (img.style.display === 'none') {
-              img.style.display = 'block'
-            }
-          })
-        }
-      })
       
-      const imgData = canvas.toDataURL("image/png", 1.0) // Use highest quality
+      // Small delay to ensure everything is rendered
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // Create PDF using jsPDF html() method - single page only
       const pdf = new jsPDF("p", "mm", "a4")
-      const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
-      const margin = 12
-      const maxWidth = pageWidth - margin * 2
-      const maxHeight = pageHeight - margin * 2
-
-      let renderWidth = maxWidth
-      let renderHeight = (canvas.height * renderWidth) / canvas.width
-
-      if (renderHeight > maxHeight) {
-        const scale = maxHeight / renderHeight
-        renderHeight = maxHeight
-        renderWidth = renderWidth * scale
-      }
-
-      const offsetX = (pageWidth - renderWidth) / 2
-      const offsetY = (pageHeight - renderHeight) / 2
-
-      pdf.addImage(imgData, "PNG", offsetX, offsetY, renderWidth, renderHeight)
-
-      const sanitizedTitle = (selectedDocument.Title || "student-document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()
-      pdf.save(`${sanitizedTitle}.pdf`)
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      
+      await pdf.html(documentContentRef.current, {
+        callback: (doc) => {
+          // Remove any extra pages that might have been created
+          const totalPages = (doc as any).internal.pages.length
+          if (totalPages > 1) {
+            for (let i = totalPages; i > 1; i--) {
+              doc.deletePage(i)
+            }
+          }
+          const sanitizedTitle = (selectedDocument.Title || "student-document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()
+          doc.save(`${sanitizedTitle}.pdf`)
+        },
+        x: 0,
+        y: 0,
+        width: pageWidth,
+        windowWidth: documentContentRef.current.scrollWidth,
+        html2canvas: {
+          scale: 0.264583, // Convert pixels to mm
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+          height: documentContentRef.current.scrollHeight,
+          width: documentContentRef.current.scrollWidth
+        },
+        autoPaging: 'slice' // Prevent auto page breaks
+      })
     } catch (error) {
       console.error("Failed to generate PDF", error)
       Swal.fire({
@@ -1678,149 +1603,115 @@ export default function StudentProfile() {
         }
       }
 
-      // Preload all images in the document
+      // Wait for all images to load
       const images = documentContentRef.current.querySelectorAll('img')
-      console.log("Found images to preload:", images.length)
-      
-      const imagePromises = Array.from(images).map((img, index) => {
+      const imagePromises = Array.from(images).map((img) => {
         return new Promise((resolve) => {
           if (img.complete && img.naturalHeight !== 0) {
-            console.log(`Image ${index} already loaded, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
             resolve(img)
             return
           }
           
-          const loadHandler = () => {
-            console.log(`Image ${index} loaded successfully, dimensions: ${img.naturalWidth}x${img.naturalHeight}`)
-            resolve(img)
-          }
-          
-          const errorHandler = () => {
-            console.warn(`Image ${index} failed to load:`, img.src.substring(0, 100))
-            resolve(img)
-          }
+          const loadHandler = () => resolve(img)
+          const errorHandler = () => resolve(img) // Continue anyway
           
           img.addEventListener('load', loadHandler, { once: true })
           img.addEventListener('error', errorHandler, { once: true })
-          
-          if (img.src && !img.complete) {
-            // Image is loading, wait for events
-          } else if (!img.src) {
-            resolve(img)
-          }
         })
       })
 
       await Promise.all(imagePromises)
-      console.log("All images preloaded")
-
-      // Wait for fonts to be ready (important for production builds)
-      await waitForFonts()
-
-      // Ensure all styles are computed before rendering
-      if (documentContentRef.current) {
-        ensureStylesComputed(documentContentRef.current)
-      }
-
-      // Additional delay to ensure everything is fully rendered in the DOM
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Generate PDF
-      const canvas = await html2canvas(documentContentRef.current, {
-        scale: 2,
-        useCORS: false,
-        allowTaint: false,
-        logging: false, // Disable logging in production
-        backgroundColor: "#ffffff",
-        imageTimeout: 30000,
-        removeContainer: false,
-        windowWidth: documentContentRef.current.scrollWidth,
-        windowHeight: documentContentRef.current.scrollHeight,
-        onclone: (clonedDoc, element) => {
-          // Ensure fonts are loaded in cloned document
-          const clonedElement = element as HTMLElement
-          ensureStylesComputed(clonedElement)
-          
-          const clonedImages = clonedDoc.querySelectorAll('img')
-          clonedImages.forEach((img, idx) => {
-            console.log(`Cloned image ${idx}: src=${img.src.substring(0, 50)}..., complete=${img.complete}, naturalHeight=${img.naturalHeight}`)
-            // Ensure images are visible in cloned document
-            if (img.style.display === 'none') {
-              img.style.display = 'block'
-            }
-          })
-        }
-      })
       
-      const imgData = canvas.toDataURL("image/png", 1.0) // Use highest quality
+      // Small delay to ensure everything is rendered
+      await new Promise(resolve => setTimeout(resolve, 200))
+
+      // Generate PDF using jsPDF html() method - single page only
       const pdf = new jsPDF("p", "mm", "a4")
-      const pageWidth = pdf.internal.pageSize.getWidth()
       const pageHeight = pdf.internal.pageSize.getHeight()
-      const margin = 12
-      const maxWidth = pageWidth - margin * 2
-      const maxHeight = pageHeight - margin * 2
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      
+      await pdf.html(documentContentRef.current, {
+        callback: async (doc) => {
+          try {
+            // Remove any extra pages that might have been created
+            const totalPages = (doc as any).internal.pages.length
+            if (totalPages > 1) {
+              for (let i = totalPages; i > 1; i--) {
+                doc.deletePage(i)
+              }
+            }
+            
+            // Convert PDF to Blob
+            const pdfBlob = doc.output('blob')
+            const sanitizedTitle = (selectedDocument.Title || "student-document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()
+            const pdfFile = new File([pdfBlob], `${sanitizedTitle}.pdf`, { type: 'application/pdf' })
 
-      let renderWidth = maxWidth
-      let renderHeight = (canvas.height * renderWidth) / canvas.width
+            // Create FormData
+            const formData = new FormData()
+            formData.append("Id", "0")
+            formData.append("FileDetails", pdfFile)
+            formData.append("FileType", "pdf")
+            formData.append("FolderName", "documents")
+            formData.append("StudentName", studentName || "")
+            formData.append("StudentID", String(id))
+            formData.append("IsDeleted", "false")
 
-      if (renderHeight > maxHeight) {
-        const scale = maxHeight / renderHeight
-        renderHeight = maxHeight
-        renderWidth = renderWidth * scale
-      }
+            // Update loading message
+            Swal.fire({
+              title: "Sending document...",
+              text: "Please wait while we send the document via email.",
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading()
+              }
+            })
 
-      const offsetX = (pageWidth - renderWidth) / 2
-      const offsetY = (pageHeight - renderHeight) / 2
+            // Send to API
+            const response = await axiosInstance.post("/Account/UploadPdfAndSendEmail", formData, {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            })
 
-      pdf.addImage(imgData, "PNG", offsetX, offsetY, renderWidth, renderHeight)
-
-      // Convert PDF to Blob
-      const pdfBlob = pdf.output('blob')
-      const sanitizedTitle = (selectedDocument.Title || "student-document").replace(/[^a-z0-9]+/gi, "-").toLowerCase()
-      const pdfFile = new File([pdfBlob], `${sanitizedTitle}.pdf`, { type: 'application/pdf' })
-
-      // Create FormData
-      const formData = new FormData()
-      formData.append("Id", "0")
-      formData.append("FileDetails", pdfFile)
-      formData.append("FileType", "pdf")
-      formData.append("FolderName", "documents")
-      formData.append("StudentName", studentName || "")
-      formData.append("StudentID", String(id))
-      formData.append("IsDeleted", "false")
-
-      // Update loading message
-      Swal.fire({
-        title: "Sending document...",
-        text: "Please wait while we send the document via email.",
-        allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading()
-        }
-      })
-
-      // Send to API
-      const response = await axiosInstance.post("/Account/UploadPdfAndSendEmail", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
+            if (response.data?.IsSuccess) {
+              Swal.fire({
+                icon: "success",
+                title: "Success",
+                text: response.data?.Message || "Document sent successfully via email.",
+                confirmButtonColor: "#2563eb"
+              })
+            } else {
+              Swal.fire({
+                icon: "error",
+                title: "Error",
+                text: response.data?.Message || "Failed to send document via email.",
+                confirmButtonColor: "#2563eb"
+              })
+            }
+          } catch (callbackError: any) {
+            console.error("Error in PDF callback", callbackError)
+            Swal.fire({
+              icon: "error",
+              title: "Error",
+              text: callbackError.response?.data?.Message || callbackError.message || "Unable to send document. Please try again.",
+              confirmButtonColor: "#2563eb"
+            })
+          }
         },
+        x: 0,
+        y: 0,
+        width: pageWidth,
+        windowWidth: documentContentRef.current.scrollWidth,
+        html2canvas: {
+          scale: 0.264583, // Convert pixels to mm
+          useCORS: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+          height: documentContentRef.current.scrollHeight,
+          width: documentContentRef.current.scrollWidth
+        },
+        autoPaging: 'slice' // Prevent auto page breaks
       })
-
-      if (response.data?.IsSuccess) {
-        Swal.fire({
-          icon: "success",
-          title: "Success",
-          text: response.data?.Message || "Document sent successfully via email.",
-          confirmButtonColor: "#2563eb"
-        })
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Error",
-          text: response.data?.Message || "Failed to send document via email.",
-          confirmButtonColor: "#2563eb"
-        })
-      }
     } catch (error: any) {
       console.error("Failed to send document", error)
       Swal.fire({
@@ -1843,109 +1734,182 @@ export default function StudentProfile() {
 
     return (
       <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setSelectedDocument(null)}>
-        <div className="w-full max-w-3xl bg-white  border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="w-full max-w-5xl bg-white border border-gray-200 shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
             <h3 className="text-lg font-semibold text-gray-900">Create document</h3>
-            <button onClick={() => setSelectedDocument(null)} className="h-8 w-8 grid place-items-center  hover:bg-gray-100">
+            <button onClick={() => setSelectedDocument(null)} className="h-8 w-8 grid place-items-center hover:bg-gray-100">
               <span className="text-gray-500">×</span>
             </button>
           </div>
-          <div className="p-6 max-h-[70vh] overflow-y-auto bg-white">
-            <div
-              ref={documentContentRef}
-              className="space-y-5 text-gray-900 bg-white p-6 md:p-8 rounded-xl shadow-sm"
-              style={{ 
-                minHeight: "fit-content",
-                fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif",
-                fontSize: "14px",
-                lineHeight: "1.5",
-                color: "#111827"
-              }}
-            >
-              <div className="text-sm text-gray-700">Date: {todayDisplay}</div>
+          <div className="p-4 max-h-[85vh] overflow-auto bg-gray-100">
+            <div className="flex justify-center items-start w-full">
+              <div
+                ref={documentContentRef}
+                className="bg-white shadow-sm"
+                style={{ 
+                  width: "210mm",
+                  maxWidth: "210mm",
+                  height: "297mm",
+                  maxHeight: "297mm",
+                  fontFamily: "'Times New Roman', Times, serif",
+                  fontSize: "9pt",
+                  lineHeight: "1.3",
+                  color: "#000000",
+                  boxSizing: "border-box",
+                  padding: "12mm 10mm",
+                  margin: "0 auto",
+                  position: "relative",
+                  overflow: "hidden"
+                }}
+              >
+              {/* Date */}
+              <div style={{ 
+                fontSize: "9pt", 
+                lineHeight: "1.3", 
+                fontFamily: "'Times New Roman', Times, serif",
+                marginBottom: "4px"
+              }}>
+                Date: {todayDisplay}
+              </div>
               
-              {processedTo && (
-                <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                  {processedTo}
+              {/* Main Content Container */}
+              <div style={{ 
+                height: "calc(100% - 20px)",
+                boxSizing: "border-box",
+                display: "flex",
+                marginTop: "80px",
+                flexDirection: "column"
+              }}>
+                {/* To/Recipient */}
+                {processedTo && (
+                  <div className="mb-1 whitespace-pre-wrap" style={{ fontSize: "9pt", lineHeight: "1.3", fontFamily: "'Times New Roman', Times, serif" }}>
+                    {processedTo}
+                  </div>
+                )}
+
+                {/* Title */}
+                <h2 className="mb-2 font-bold" style={{ 
+                  fontSize: "11pt",
+                  textAlign: "center",
+                  marginTop: "6px",
+                  marginBottom: "8px",
+                  lineHeight: "1.3",
+                  fontFamily: "'Times New Roman', Times, serif"
+                }}>
+                  {selectedDocument.Title || "Document"}
+                </h2>
+
+                {/* Body Content */}
+                <div className="mb-4 whitespace-pre-wrap" style={{ 
+                  fontSize: "9pt", 
+                  lineHeight: "1.3",
+                  textAlign: "left",
+                  fontFamily: "'Times New Roman', Times, serif"
+                }}>
+                  {processedBody || "No content available."}
                 </div>
-              )}
 
-              <h2 className="text-center text-lg font-semibold text-gray-900">
-                {selectedDocument.Title || "Document"}
-              </h2>
-
-              <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                {processedBody || "No content available."}
-              </div>
-
-              {/* Student Details Table */}
-              <div className="border border-gray-300  overflow-hidden" style={{ border: "1px solid #d1d5db" }}>
-                <table className="w-full text-sm" style={{ width: "100%", borderCollapse: "collapse" }}>
-                  <tbody>
-                    {defaultFieldKeys.map((fieldKey) => (
-                      <tr key={fieldKey} className="border-b border-gray-200 last:border-b-0" style={{ borderBottom: "1px solid #e5e7eb" }}>
-                        <td className="bg-gray-50 font-medium px-4 py-3 w-1/3 text-gray-700 border-r border-gray-200" style={{ 
-                          backgroundColor: "#f9fafb", 
-                          fontWeight: "500", 
-                          padding: "12px 16px", 
-                          width: "33.333333%", 
-                          color: "#374151",
-                          borderRight: "1px solid #e5e7eb"
-                        }}>
-                          {fieldKey}
-                        </td>
-                        <td className="px-4 py-3 text-gray-900" style={{ padding: "12px 16px", color: "#111827" }}>
-                          {getStudentFieldValue(fieldKey)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {processedFooter && (
-                <div className="text-sm text-gray-900 whitespace-pre-wrap">
-                  {processedFooter}
+                {/* Student Details Table */}
+                <div className="mb-2" style={{ border: "1px solid #000000", flexShrink: 0 }}>
+                  <table className="w-full" style={{ 
+                    borderCollapse: "collapse",
+                    fontSize: "9pt",
+                    width: "100%",
+                    fontFamily: "'Times New Roman', Times, serif"
+                  }}>
+                
+                    <tbody>
+                      {defaultFieldKeys.map((fieldKey) => (
+                        <tr key={fieldKey}>
+                          <td className="font-medium" style={{ 
+                            border: "1px solid #000000",
+                            padding: "5px 6px",
+                            backgroundColor: "#ffffff",
+                            verticalAlign: "top",
+                            width: "35%",
+                            lineHeight: "1.8",
+                            fontFamily: "'Times New Roman', Times, serif"
+                          }}>
+                            {fieldKey}
+                          </td>
+                          <td style={{ 
+                            border: "1px solid #000000",
+                            padding: "5px 6px",
+                            backgroundColor: "#ffffff",
+                            verticalAlign: "top",
+                            width: "65%",
+                            lineHeight: "1.8",
+                            fontFamily: "'Times New Roman', Times, serif"
+                          }}>
+                            {getStudentFieldValue(fieldKey)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
 
-              {/* Selected Signature Display in Document */}
-              {selectedSignatureId && signatures.length > 0 && (() => {
-                const selectedSignature = signatures.find((sig) => sig.id === selectedSignatureId)
-                if (selectedSignature) {
-                  // Use base64 version if available, otherwise fallback to URL
-                  const signatureImageSrc = signatureBase64Map[selectedSignature.id] || selectedSignature.signatureUrl
-                  
-                  if (signatureImageSrc) {
-                    return (
-                      <div className="mt-6 pt-6 border-t border-gray-300">
-                        <div className="flex items-end justify-end gap-4">
-                          <div className="text-right">
-                            <img
-                              src={signatureImageSrc}
-                              alt={selectedSignature.name}
-                              className="max-h-20 object-contain"
-                              style={{ display: "block", maxWidth: "200px" }}
-                              onLoad={(e) => {
-                                console.log("Signature image loaded successfully")
-                              }}
-                              onError={(e) => {
-                                console.error("Signature image failed to load")
-                                const target = e.currentTarget as HTMLImageElement
-                                target.style.display = "none"
-                              }}
-                            />
-                            {selectedSignature.name && (
-                              <div className="text-xs text-gray-600 mt-1 font-medium">{selectedSignature.name}</div>
-                            )}
+                {processedFooter && (
+                  <div className="mt-1 whitespace-pre-wrap" style={{ 
+                    fontSize: "9pt", 
+                    lineHeight: "1.3",
+                    textAlign: "left",
+                    fontFamily: "'Times New Roman', Times, serif"
+                  }}>
+                    {processedFooter}
+                  </div>
+                )}
+
+                {/* Selected Signature Display in Document - Positioned below footer */}
+                {selectedSignatureId && signatures.length > 0 && (() => {
+                  const selectedSignature = signatures.find((sig) => sig.id === selectedSignatureId)
+                  if (selectedSignature) {
+                    // Use base64 version if available, otherwise fallback to URL
+                    const signatureImageSrc = signatureBase64Map[selectedSignature.id] || selectedSignature.signatureUrl
+                    
+                    if (signatureImageSrc) {
+                      return (
+                        <div style={{ marginTop: "5px",marginBottom: "15px" }}>
+                          <div className="flex">
+                            <div className="text-left">
+                              <img
+                                src={signatureImageSrc}
+                                alt={selectedSignature.name}
+                                className="block"
+                                style={{ 
+                                  maxHeight: "100px",
+                                  maxWidth: "100px",
+                                  objectFit: "contain"
+                                }}
+                                onLoad={(e) => {
+                                  console.log("Signature image loaded successfully")
+                                }}
+                                onError={(e) => {
+                                  console.error("Signature image failed to load")
+                                  const target = e.currentTarget as HTMLImageElement
+                                  target.style.display = "none"
+                                }}
+                              />
+                              {selectedSignature.name && (
+                                <div className="mt-0.5 font-medium" style={{ 
+                                  fontSize: "9pt",
+                                  color: "#000000",
+                                  lineHeight: "1.3",
+                                  fontFamily: "'Times New Roman', Times, serif"
+                                }}>
+                                  {selectedSignature.name}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )
+                      )
+                    }
                   }
-                }
-                return null
-              })()}
+                  return null
+                })()}
+              </div>
+            </div>
             </div>
 
             {/* Signature Selection Section - Outside document content */}

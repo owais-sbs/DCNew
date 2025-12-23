@@ -856,7 +856,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 <select value={formData.ilepReference} onChange={(e)=>handleInputChange('ilepReference', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white">
                                     <option value="">Select</option>
                                     {Array.from({ length: 5 }, (_, i) => {
-                                        const num = String(i + 1).padStart(3, '0');
+                                        const num = String(i + 1).padStart(4, '0');
                                         return <option key={num} value={`0355/${num}`}>0355/{num}</option>
                                     })}
                                 </select>
