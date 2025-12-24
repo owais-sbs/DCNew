@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axiosInstance from "./axiosInstance";
 import AddStudentForm from "./AddStudentForm";
 import SessionDetailsModal from "./SessionDetailsModal";
+import Swal from "sweetalert2";
 import {
   Edit,
   MessageSquare,
@@ -32,6 +33,7 @@ import {
   Flag,
   StickyNote,
   Users2,
+  Trash2,
 } from "lucide-react";
 
 const tabs = [
@@ -41,9 +43,20 @@ const tabs = [
 
 export default function ClassDetailsScreen() {
   const { id } = useParams(); // id from URL (string)
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("lessons");
   const [classInfo, setClassInfo] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [openMoreMenu, setOpenMoreMenu] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const close = () => setOpenMoreMenu(false);
+    if (openMoreMenu) {
+      document.addEventListener("click", close);
+    }
+    return () => document.removeEventListener("click", close);
+  }, [openMoreMenu]);
 
   useEffect(() => {
     if (!id) return;
@@ -107,6 +120,64 @@ export default function ClassDetailsScreen() {
     return `Repeats weekly from ${start} to ${end}`;
   };
 
+  const handleDelete = async () => {
+    if (!id) return;
+
+    const confirm = await Swal.fire({
+      title: "Are you sure?",
+      text: "Do you really want to delete this class?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, delete it",
+      cancelButtonText: "Cancel",
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      didOpen: () => {
+        const confirmBtn = Swal.getConfirmButton();
+        const cancelBtn = Swal.getCancelButton();
+
+        if (confirmBtn) {
+          confirmBtn.style.setProperty('background-color', '#d33', 'important');
+          confirmBtn.style.setProperty('color', '#ffffff', 'important');
+        }
+        if (cancelBtn) {
+          cancelBtn.style.setProperty('background-color', '#3085d6', 'important');
+          cancelBtn.style.setProperty('color', '#ffffff', 'important');
+        }
+      }
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const response = await axiosInstance.delete(`/class/Delete?id=${id}`);
+
+      if (response.data?.IsSuccess) {
+        Swal.fire({
+          title: "Deleted!",
+          text: "Class has been deleted successfully.",
+          icon: "success",
+        });
+        navigate('/notes/classes');
+      } else {
+        Swal.fire({
+          title: "Error",
+          text: response.data?.Message || "Unable to delete class.",
+          icon: "error",
+        });
+      }
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        title: "Error",
+        text: "Something went wrong while deleting.",
+        icon: "error",
+      });
+    } finally {
+      setOpenMoreMenu(false);
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "lessons":
@@ -161,11 +232,44 @@ export default function ClassDetailsScreen() {
         Print
         <ChevronDown size={12} />
       </button>
-      <button className="px-3 py-1.5 border rounded text-sm flex items-center gap-1 text-gray-700 hover:bg-gray-50">
-        <MoreHorizontal size={14} />
-        More
-        <ChevronDown size={12} />
-      </button>
+      <div className="relative">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setOpenMoreMenu(!openMoreMenu);
+          }}
+          className="px-3 py-1.5 border rounded text-sm flex items-center gap-1 text-gray-700 hover:bg-gray-50"
+        >
+          <MoreHorizontal size={14} />
+          More
+          <ChevronDown size={12} />
+        </button>
+
+        {openMoreMenu && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute right-0 mt-2 w-44 bg-white border border-gray-400 rounded-sm shadow-lg z-50"
+          >
+            <button
+              onClick={() => {
+                setOpenMoreMenu(false);
+                navigate(`/notes/edit-class/${id}`);
+              }}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-[#f7f7f7] flex items-center gap-2 border-b border-gray-300 last:border-b-0"
+            >
+              <Edit size={14} />
+              Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              className="w-full text-left px-4 py-2 text-sm hover:bg-[#f7f7f7] text-red-600 flex items-center gap-2"
+            >
+              <Trash2 size={14} />
+              Delete
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   </div>
 
