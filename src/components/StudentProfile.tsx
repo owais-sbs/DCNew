@@ -30,7 +30,7 @@ type StudentFieldKey =
   | "Course Title"
   | "Course Code"
   | "ILEP programme reference"
-  | "End of the course exam fees"
+  | "End of the Course Exam Fee"
 
 type DocumentTemplateContent = {
   id: string
@@ -545,7 +545,7 @@ export default function StudentProfile() {
     "Number of Weeks",
     "Hours Per Week",
     "Tuition Fees",
-    "End of the course exam fees",
+    "End of the Course Exam Fee",
     "ILEP Programme Reference"
   ]
 
