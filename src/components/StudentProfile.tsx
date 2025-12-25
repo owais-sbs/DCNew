@@ -1778,8 +1778,8 @@ export default function StudentProfile() {
               >
               {/* Date */}
               <div style={{ 
-                fontSize: "9pt", 
-                lineHeight: "1.3", 
+                fontSize: "13pt", 
+                lineHeight: "1", 
                 fontFamily: "'Times New Roman', Times, serif",
                 marginBottom: "4px"
               }}>
@@ -1824,7 +1824,7 @@ export default function StudentProfile() {
                 {/* Body Content */}
                 <div className="mb-4 whitespace-pre-wrap" style={{ 
                   fontSize: "12pt", 
-                  lineHeight: "1.2",
+                  lineHeight: "1",
                   textAlign: "left",
                   fontFamily: "'Times New Roman', Times, serif"
                 }}>
@@ -1832,13 +1832,14 @@ export default function StudentProfile() {
                 </div>
 
                 {/* Student Details Table */}
-                <div className="mb-2" style={{ border: "1px solid #000000", flexShrink: 0 }}>
+                <div className="mb-2" style={{ flexShrink: 0 }}>
                   <table className="w-full" style={{ 
                     borderCollapse: "collapse",
-                    fontSize: "12px",
+                    fontSize: "14px",
                     width: "100%",
                     // Use standard PDF-safe fonts to avoid spacing issues in jsPDF/html2canvas
-                    fontFamily: "Arial, Helvetica, sans-serif"
+                    fontFamily: "Arial, Helvetica, sans-serif",
+                    border: "0.5px solid black"
                   }}>
                 
                     <tbody>
@@ -1849,12 +1850,12 @@ export default function StudentProfile() {
                             <td
                               className="font-medium"
                               style={{ 
-                                border: "1px solid #000000",
+                                border: "0.5px solid black",
                                 padding: "6px 3px",
                                 backgroundColor: "#ffffff",
                                 verticalAlign: "top",
-                                width: "22%",
-                                lineHeight: "1.4",
+                                width: "26%",
+                                lineHeight: "1.2",
                                 fontFamily: "Arial, Helvetica, sans-serif",
                                 fontWeight: "bold",
                               }}
@@ -1863,12 +1864,12 @@ export default function StudentProfile() {
                             </td>
                             <td
                               style={{ 
-                                border: "1px solid #000000",
+                                border: "0.5px solid black",
                                 padding: "7px 9px",
                                 backgroundColor: "#ffffff",
                                 verticalAlign: "top",
                                 width: "65%",
-                                lineHeight: "1.4",
+                                lineHeight: "1.2",
                                 fontFamily: "Arial, Helvetica, sans-serif",
                                 fontWeight: "normal",
                                 whiteSpace: isAddressRow ? "nowrap" : "normal",
@@ -1884,9 +1885,9 @@ export default function StudentProfile() {
                 </div>
 
                 {processedFooter && (
-                  <div className=" whitespace-pre-wrap" style={{ 
+                  <div className=" whitespace-pre-wrap " style={{ 
                     fontSize: "12pt", 
-                    lineHeight: "1.2",
+                    lineHeight: "1",
                     textAlign: "left",
                     fontFamily: "'Times New Roman', Times, serif"
                   }}>

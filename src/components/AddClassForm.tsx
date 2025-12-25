@@ -33,7 +33,8 @@ export default function AddClassForm() {
     days: [{ day: "Monday", startTime: "", endTime: "", teacherId: "" }],
     pricingMethod: "skip",
     students: "skip",
-    publishDate: ""
+    publishDate: "",
+    generalNotes: ""
   });
   const [showMoreDetails, setShowMoreDetails] = useState(false);
   const [teachers, setTeachers] = useState<any[]>([])
@@ -322,197 +323,169 @@ export default function AddClassForm() {
     }
   }
 
-  // ####################################################################
-  // ## The JSX remains mostly the same, with minor input type fixes   ##
-  // ####################################################################
+  // UI helper for the admin flat look
+  const SectionHeader = ({ title }: { title: string }) => (
+    <div className="bg-[#f2f2f2] px-4 py-2 border-t border-b text-[13px] font-semibold text-gray-800">
+      {title}
+    </div>
+  );
+
   return (
     <div>
-      <div className="px-6 py-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">Add class</h1>
-        
-        <div className="space-y-6">
-          {/* Class details */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            {/* ... (No changes in this section) ... */}
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-800">Class details</h3>
-              <button className="text-blue-600 text-sm hover:underline">Copy from existing class</button>
-            </div>
-            
-            <div className="space-y-4">
-              {/* Three fields in one row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Class title <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder=""
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Class subject</label>
-                  <input
-                    type="text"
-                    value="General English With Exam Preparation"
-                    readOnly
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
-                    placeholder=""
-                    title="General English With Exam Preparation"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Class level</label>
-                  <select
-                    value={formData.level}
-                    onChange={(e) => handleInputChange('level', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select class level</option>
-                    <option value="200525">200525</option>
-                    <option value="a1">a1</option>
-                    <option value="A1">A1</option>
-                    <option value="A1 20 25">A1 20 25</option>
-                    <option value="A1 am">A1 am</option>
-                    <option value="A1(2)">A1(2)</option>
-                    <option value="A1(2) am">A1(2) am</option>
-                    <option value="A1(2) pm">A1(2) pm</option>
-                    <option value="A1(3) pm">A1(3) pm</option>
-                    <option value="a2">a2</option>
-                    <option value="A2">A2</option>
-                    <option value="A2 am">A2 am</option>
-                    <option value="A2 pm">A2 pm</option>
-                    <option value="A2(2) pm">A2(2) pm</option>
-                    <option value="am">am</option>
-                    <option value="B1">B1</option>
-                    <option value="B1 am">B1 am</option>
-                    <option value="B1 new am">B1 new am</option>
-                    <option value="B1 pm">B1 pm</option>
-                    <option value="B2">B2</option>
-                    <option value="b2">b2</option>
-                    <option value="B2 new am">B2 new am</option>
-                    <option value="B2(2) pm">B2(2) pm</option>
-                    <option value="C1">C1</option>
-                    <option value="C1 am">C1 am</option>
-                    <option value="C1 pm">C1 pm</option>
-                    <option value="C1(2) pm">C1(2) pm</option>
-                    <option value="p2">p2</option>
-                    <option value="pm">pm</option>
-                  </select>
-                </div>
-              </div>
-              
-              {/* Description takes full row */}
+      <div
+        className="bg-white border border-gray-300 overflow-hidden mx-[250px]"
+      >
+        {/* Top dark title bar */}
+        <div className="bg-[#2b2b2e] px-4 py-2 text-white text-sm font-semibold">
+          Add Class
+        </div>
+
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="p-0 space-y-0">
+          {/* Class Details */}
+          <SectionHeader title="Class Details" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Class description</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  rows={3}
-                  placeholder=""
+                <label className="block text-[13px] text-gray-700 mb-1">
+                  Class title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                  required
                 />
               </div>
               
-              <button 
-                type="button"
-                onClick={() => setShowMoreDetails(!showMoreDetails)}
-                className="text-blue-600 text-sm hover:underline"
-              >
-                More details (optional) {showMoreDetails ? 'Hide' : 'Show'}
-              </button>
-              
-              {showMoreDetails && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Class code</label>
-                    <input
-                      type="text"
-                      value={formData.classCode}
-                      onChange={(e) => handleInputChange('classCode', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder=""
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Year</label>
-                    <input
-                      type="text"
-                      value={formData.year}
-                      onChange={(e) => handleInputChange('year', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder=""
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Credit hours</label>
-                    <input
-                      type="text"
-                      value={formData.creditHours}
-                      onChange={(e) => handleInputChange('creditHours', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder=""
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Awarding body</label>
-                    <input
-                      type="text"
-                      value={formData.awardingBody}
-                      onChange={(e) => handleInputChange('awardingBody', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder=""
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Book code</label>
-                    <input
-                      type="text"
-                      value={formData.bookCode}
-                      onChange={(e) => handleInputChange('bookCode', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder=""
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Class type</label>
-                    <select
-                      value={formData.classType}
-                      onChange={(e) => handleInputChange('classType', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="">Select class type</option>
-                      <option value="Regular">Regular</option>
-                      <option value="Intensive">Intensive</option>
-                      <option value="Part-time">Part-time</option>
-                      <option value="Full-time">Full-time</option>
-                      <option value="Online">Online</option>
-                      <option value="Hybrid">Hybrid</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* Classroom */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Classroom</h3>
-            
-            <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-[13px] text-gray-700 mb-1">Class subject</label>
+                <input
+                  type="text"
+                  value="General English With Exam Preparation"
+                  readOnly
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-gray-50 text-gray-600 cursor-not-allowed text-[13px]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Class level</label>
+                <select
+                  value={formData.level}
+                  onChange={(e) => handleInputChange('level', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                >
+                  <option value="">Select class level</option>
+                  <option value="200525">200525</option>
+                  <option value="a1">a1</option>
+                  <option value="A1">A1</option>
+                  <option value="A1 20 25">A1 20 25</option>
+                  <option value="A1 am">A1 am</option>
+                  <option value="A1(2)">A1(2)</option>
+                  <option value="A1(2) am">A1(2) am</option>
+                  <option value="A1(2) pm">A1(2) pm</option>
+                  <option value="A1(3) pm">A1(3) pm</option>
+                  <option value="a2">a2</option>
+                  <option value="A2">A2</option>
+                  <option value="A2 am">A2 am</option>
+                  <option value="A2 pm">A2 pm</option>
+                  <option value="A2(2) pm">A2(2) pm</option>
+                  <option value="am">am</option>
+                  <option value="B1">B1</option>
+                  <option value="B1 am">B1 am</option>
+                  <option value="B1 new am">B1 new am</option>
+                  <option value="B1 pm">B1 pm</option>
+                  <option value="B2">B2</option>
+                  <option value="b2">b2</option>
+                  <option value="B2 new am">B2 new am</option>
+                  <option value="B2(2) pm">B2(2) pm</option>
+                  <option value="C1">C1</option>
+                  <option value="C1 am">C1 am</option>
+                  <option value="C1 pm">C1 pm</option>
+                  <option value="C1(2) pm">C1(2) pm</option>
+                  <option value="p2">p2</option>
+                  <option value="pm">pm</option>
+                </select>
+              </div>
+              
+              <div className="md:col-span-3">
+                <label className="block text-[13px] text-gray-700 mb-1">Class description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  className="w-full h-24 px-2 py-2 border border-gray-300 bg-white text-[13px] resize-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Class code</label>
+                <input
+                  type="text"
+                  value={formData.classCode}
+                  onChange={(e) => handleInputChange('classCode', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Year</label>
+                <input
+                  type="text"
+                  value={formData.year}
+                  onChange={(e) => handleInputChange('year', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Credit hours</label>
+                <input
+                  type="text"
+                  value={formData.creditHours}
+                  onChange={(e) => handleInputChange('creditHours', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Awarding body</label>
+                <input
+                  type="text"
+                  value={formData.awardingBody}
+                  onChange={(e) => handleInputChange('awardingBody', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Book code</label>
+                <input
+                  type="text"
+                  value={formData.bookCode}
+                  onChange={(e) => handleInputChange('bookCode', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Class type</label>
+                <select
+                  value={formData.classType}
+                  onChange={(e) => handleInputChange('classType', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                >
+                  <option value="">Select class type</option>
+                  <option value="Regular">Regular</option>
+                  <option value="Intensive">Intensive</option>
+                  <option value="Part-time">Part-time</option>
+                  <option value="Full-time">Full-time</option>
+                  <option value="Online">Online</option>
+                  <option value="Hybrid">Hybrid</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">
                   Classroom <span className="text-red-500">*</span>
                   <button 
                     type="button"
@@ -521,7 +494,7 @@ export default function AddClassForm() {
                       setClassroomError(null)
                       setShowClassroomModal(true)
                     }}
-                    className="text-blue-600 text-sm ml-2 hover:underline"
+                    className="text-blue-600 text-[13px] ml-2 hover:underline"
                   >
                     (add new)
                   </button>
@@ -529,7 +502,7 @@ export default function AddClassForm() {
                 <select
                   value={formData.classRoomId}
                   onChange={(e) => handleInputChange('classRoomId', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
                   disabled={isLoadingClassrooms}
                 >
                   <option value="">
@@ -541,259 +514,179 @@ export default function AddClassForm() {
                     </option>
                   ))}
                 </select>
-                {classroomError && <p className="text-sm text-red-600 mt-1">{classroomError}</p>}
-                {classroomSuccess && <p className="text-sm text-green-600 mt-1">{classroomSuccess}</p>}
+                {classroomError && <p className="text-[13px] text-red-600 mt-1">{classroomError}</p>}
+                {classroomSuccess && <p className="text-[13px] text-green-600 mt-1">{classroomSuccess}</p>}
               </div>
             </div>
           </div>
 
-          {/* Class schedule */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Class schedule</h3>
-            
-            <div className="space-y-4">
+          {/* Schedule Details */}
+          <SectionHeader title="Schedule Details" />
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Select class recurrence</label>
-                {/* ... (No changes in this section) ... */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleInputChange('recurrence', 'weekly')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                      formData.recurrence === 'weekly' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-white text-gray-700 border border-gray-300'
-                    }`}
-                  >
-                    Weekly
-                  </button>
-                  <button
-                    onClick={() => handleInputChange('recurrence', 'custom')}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                      formData.recurrence === 'custom' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-white text-gray-700 border border-gray-300'
-                    }`}
-                  >
-                    Custom dates
-                  </button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                {/* ... (No changes in this section) ... */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => handleInputChange('startDate', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End date <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.endDate}
-                    onChange={(e) => handleInputChange('endDate', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Select the lesson days, times & teachers</label>
-                {formData.days.map((day, index) => (
-                  <div key={index} className="space-y-3 mb-4 border border-gray-200 rounded-lg p-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <select
-                        value={day.day}
-                        onChange={(e) => updateDay(index, 'day', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option>Monday</option>
-                        <option>Tuesday</option>
-                        <option>Wednesday</option>
-                        <option>Thursday</option>
-                        <option>Friday</option>
-                        <option>Saturday</option>
-                        <option>Sunday</option>
-                      </select>
-                      
+                <label className="block text-[13px] text-gray-700 mb-1">Recurrence</label>
+                <div className="flex gap-0 border border-gray-300 bg-white h-[34px] items-center">
+                  {["Weekly", "Custom dates"].map((option) => (
+                    <label key={option} className="flex items-center px-3 text-[13px] cursor-pointer">
                       <input
-                        type="time"
-                        value={day.startTime}
-                        onChange={(e) => updateDay(index, 'startTime', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        type="radio"
+                        name="recurrence"
+                        value={option === "Weekly" ? "weekly" : "custom"}
+                        checked={formData.recurrence === (option === "Weekly" ? "weekly" : "custom")}
+                        onChange={(e) => handleInputChange('recurrence', e.target.value)}
+                        className="mr-2"
                       />
-                      <input
-                        type="time"
-                        value={day.endTime}
-                        onChange={(e) => updateDay(index, 'endTime', e.target.value)}
-                        className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Teacher for this session <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={day.teacherId}
-                        onChange={(e) => updateDay(index, 'teacherId', e.target.value)}
-                        disabled={isLoadingTeachers}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">
-                          {isLoadingTeachers ? "Loading teachers..." : "Select teacher"}
-                        </option>
-                        {teachers.map((teacher) => (
-                          <option key={teacher.Id} value={String(teacher.Id)}>
-                            {teacher.Name} {teacher.Surname}
-                          </option>
-                        ))}
-                      </select>
-                      {teacherError && index === 0 && (
-                        <p className="text-sm text-red-600 mt-1">{teacherError}</p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <button onClick={addDay} className="text-blue-600 text-sm hover:underline">+ Add another day</button>
-              </div>
-            </div>
-          </div>
-
-          {/* Syllabus */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Syllabus</h3>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Upload syllabus files
-                </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                  <div className="text-center">
-                    <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <label className="cursor-pointer">
-                      <span className="text-sm text-blue-600 hover:text-blue-700 font-medium">
-                        Click to upload
-                      </span>
-                      <span className="text-sm text-gray-500"> or drag and drop</span>
-                      <input
-                        type="file"
-                        multiple
-                        onChange={(e) => {
-                          const files = Array.from(e.target.files || [])
-                          setSyllabusFiles((prev) => [...prev, ...files])
-                        }}
-                        className="hidden"
-                        accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-                      />
+                      <span>{option}</span>
                     </label>
-                    <p className="text-xs text-gray-500 mt-2">PDF, DOC, DOCX, TXT, JPG, PNG up to 10MB each</p>
-                  </div>
-                </div>
-              </div>
-
-              {syllabusFiles.length > 0 && (
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-gray-700">Uploaded files:</div>
-                  {syllabusFiles.map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <FileText className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 truncate">
-                            {file.name}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setSyllabusFiles((prev) => prev.filter((_, i) => i !== index))
-                        }}
-                        className="h-8 w-8 grid place-items-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors flex-shrink-0"
-                        title="Remove file"
-                      >
-                        <X size={16} />
-                      </button>
-                    </div>
                   ))}
                 </div>
-              )}
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">
+                  Start date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => handleInputChange('startDate', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">
+                  End date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.endDate}
+                  onChange={(e) => handleInputChange('endDate', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                  required
+                />
+              </div>
+              
+              <div className="md:col-span-3">
+                <label className="block text-[13px] text-gray-700 mb-2">Lesson days, times & teachers</label>
+                {formData.days.map((day, index) => (
+                  <div key={index} className="mb-3 p-3 border border-gray-200 bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-2">
+                      <div>
+                        <label className="block text-[13px] text-gray-700 mb-1">Day</label>
+                        <select
+                          value={day.day}
+                          onChange={(e) => updateDay(index, 'day', e.target.value)}
+                          className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                        >
+                          <option>Monday</option>
+                          <option>Tuesday</option>
+                          <option>Wednesday</option>
+                          <option>Thursday</option>
+                          <option>Friday</option>
+                          <option>Saturday</option>
+                          <option>Sunday</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-[13px] text-gray-700 mb-1">Start time</label>
+                        <input
+                          type="time"
+                          value={day.startTime}
+                          onChange={(e) => updateDay(index, 'startTime', e.target.value)}
+                          className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-[13px] text-gray-700 mb-1">End time</label>
+                        <input
+                          type="time"
+                          value={day.endTime}
+                          onChange={(e) => updateDay(index, 'endTime', e.target.value)}
+                          className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-[13px] text-gray-700 mb-1">
+                          Teacher <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={day.teacherId}
+                          onChange={(e) => updateDay(index, 'teacherId', e.target.value)}
+                          disabled={isLoadingTeachers}
+                          className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                        >
+                          <option value="">
+                            {isLoadingTeachers ? "Loading..." : "Select teacher"}
+                          </option>
+                          {teachers.map((teacher) => (
+                            <option key={teacher.Id} value={String(teacher.Id)}>
+                              {teacher.Name} {teacher.Surname}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    {teacherError && index === 0 && (
+                      <p className="text-[13px] text-red-600 mt-1">{teacherError}</p>
+                    )}
+                  </div>
+                ))}
+                <button 
+                  type="button"
+                  onClick={addDay} 
+                  className="text-blue-600 text-[13px] hover:underline"
+                >
+                  + Add another day
+                </button>
+              </div>
+              
+              <div>
+                <label className="block text-[13px] text-gray-700 mb-1">Publish date</label>
+                <input
+                  type="date"
+                  value={formData.publishDate}
+                  onChange={(e) => handleInputChange('publishDate', e.target.value)}
+                  className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+                />
+              </div>
             </div>
           </div>
-          
-          {/* Students */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            {/* ... (No changes in this section) ... */}
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Students</h3>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleInputChange('students', 'skip')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                  formData.students === 'skip' 
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                    : 'bg-white text-gray-700 border border-gray-300'
-                }`}
-              >
-                <SkipForward className="h-4 w-4" />
-                Skip
-              </button>
-              <button
-                onClick={() => handleInputChange('students', 'select')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                  formData.students === 'select' 
-                    ? 'bg-blue-100 text-blue-700 border border-blue-200' 
-                    : 'bg-white text-gray-700 border border-gray-300'
-                }`}
-              >
-                <Users className="h-4 w-4" />
-                Select students
-              </button>
+
+          {/* Notes */}
+          <SectionHeader title="Notes" />
+          <div className="p-4">
+            <div>
+              <label className="block text-[13px] text-gray-700 mb-1">General Notes</label>
+              <textarea
+                value={formData.generalNotes}
+                onChange={(e) => handleInputChange('generalNotes', e.target.value)}
+                className="w-full h-24 px-2 py-2 border border-gray-300 bg-white text-[13px] resize-none"
+              />
             </div>
-          </div>
-          
-          {/* Publish date */}
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              Publish date
-              <Info className="h-4 w-4 text-gray-400" />
-            </h3>
-            
-            {/* CHANGED: type="date" to send correct format to API */}
-            <input
-              type="date"
-              value={formData.publishDate}
-              onChange={(e) => handleInputChange('publishDate', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-end gap-3 pt-6">
-            <button className="px-6 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50">
+          <div className="flex items-center justify-end gap-3 px-4 py-3 border-t bg-white">
+            <button
+              type="button"
+              className="h-[34px] px-3 border border-gray-300 text-[13px] bg-white hover:bg-gray-50"
+            >
               Cancel
             </button>
             <button
-              onClick={handleSubmit}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              type="submit"
+              className="h-[34px] px-3 text-white text-[13px] bg-blue-600 hover:bg-blue-700"
             >
               Add class
             </button>
           </div>
-        </div>
+        </form>
       </div>
       {showClassroomModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4">
