@@ -1889,7 +1889,10 @@ export default function StudentProfile() {
                     fontSize: "12pt", 
                     lineHeight: "1",
                     textAlign: "left",
-                    fontFamily: "'Times New Roman', Times, serif"
+                    fontFamily: "'Times New Roman', Times, serif",
+                    position: "relative",
+                    zIndex: 10,
+                    marginBottom: "10px"
                   }}>
                     {processedFooter}
                   </div>
@@ -1904,7 +1907,12 @@ export default function StudentProfile() {
                     
                     if (signatureImageSrc) {
                       return (
-                        <div style={{ marginTop: "5px",marginBottom: "15px" }}>
+                        <div style={{ 
+                          marginTop: "10px",
+                          marginBottom: "15px",
+                          position: "relative",
+                          zIndex: 1
+                        }}>
                           <div className="flex">
                             <div className="text-left">
                               <img
