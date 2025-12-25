@@ -731,35 +731,63 @@ function LessonsContent({
 }
 
 function StudentsContent({ classId }: { classId: number }) {
-  const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const navigate = useNavigate();
+
+  const fetchStudents = async () => {
+    if (!classId) return;
+    try {
+      setLoading(true);
+      const response = await axiosInstance.get("/Class/GetStudentInClass", {
+        params: { classId },
+      });
+      if (response?.data?.IsSuccess) {
+        setStudents(response.data.Data || []);
+      }
+    } catch (err: any) {
+      setError("Failed to load students");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStudents = async () => {
-      if (!classId) return;
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await axiosInstance.get("/Class/GetStudentInClass", {
-          params: { classId },
-        });
-        if (response?.data?.IsSuccess) {
-          setStudents(response.data.Data || []);
-        } else {
-          setError("Failed to load students");
-          setStudents([]);
-        }
-      } catch (err: any) {
-        setError("Failed to load students");
-        setStudents([]);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchStudents();
   }, [classId]);
+
+  // --- REMOVE (UNENROLL) LOGIC ---
+  const handleUnenroll = async (studentId: number, studentName: string) => {
+    const confirm = await Swal.fire({
+      title: "Unenroll Student?",
+      text: `Are you sure you want to remove ${studentName} from this class?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, remove",
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        // Matches your API: UnenrollStudentFromClass([FromQuery] long studentId, [FromQuery] long classId)
+        const res = await axiosInstance.post(`/Class/UnenrollStudentFromClass`, null, {
+          params: { studentId, classId }
+        });
+
+        if (res.data?.IsSuccess) {
+          Swal.fire("Removed!", "Student has been unenrolled.", "success");
+          fetchStudents(); // Refresh list
+        } else {
+          Swal.fire("Error", res.data?.Message || "Failed to unenroll student", "error");
+        }
+      } catch (err) {
+        Swal.fire("Error", "Server error while unenrolling.", "error");
+      }
+    }
+  };
 
   const formatDate = (dateStr?: string | null) => {
     if (!dateStr) return "";
@@ -768,42 +796,19 @@ function StudentsContent({ classId }: { classId: number }) {
 
   return (
     <>
-      {/* HEADER */}
       <div className="flex items-center justify-between border-b border-gray-300 pb-3 mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Students</h2>
-
-        <div className="flex items-center gap-3">
-          {/* TOGGLE */}
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-5 bg-gray-300 rounded-full relative">
-              <div className="w-4 h-4 bg-white rounded-full absolute left-1 top-0.5 shadow" />
-            </div>
-          </div>
-
-          {/* ICON */}
-          <button className="p-2 border border-gray-300 rounded text-gray-600">
-            <BookOpen size={16} />
-          </button>
-
-          {/* ENROLL BUTTON */}
-          <button
-            onClick={() => setShowEnrollModal(true)}
-            className="px-3 py-1.5 bg-gray-100 border border-gray-300 rounded text-sm flex items-center gap-1 hover:bg-gray-200"
-          >
-            <Plus size={14} />
-            Enroll Students
-          </button>
-        </div>
+        <button
+          onClick={() => setShowEnrollModal(true)}
+          className="px-3 py-1.5 bg-gray-600 text-white rounded text-sm flex items-center gap-1 hover:bg-gray-700"
+        >
+          <Plus size={14} /> Enroll Students
+        </button>
       </div>
 
-      {/* TABLE */}
-      <div className="bg-white border border-gray-300">
+      <div className="bg-white border border-gray-300 rounded-sm overflow-hidden">
         {loading ? (
-          <div className="py-12 flex justify-center">
-            <Loader2 className="animate-spin text-gray-500" />
-          </div>
-        ) : error ? (
-          <div className="py-12 text-center text-red-600">{error}</div>
+          <div className="py-12 flex justify-center"><Loader2 className="animate-spin text-gray-500" /></div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-300">
@@ -811,77 +816,53 @@ function StudentsContent({ classId }: { classId: number }) {
                 <th className="px-4 py-2">Student name</th>
                 <th className="px-4 py-2">Phone</th>
                 <th className="px-4 py-2">Email</th>
-                <th className="px-4 py-2">Present hours</th>
                 <th className="px-4 py-2">Enrolled</th>
                 <th className="px-4 py-2">Status</th>
                 <th className="px-4 py-2 text-center">Actions</th>
               </tr>
             </thead>
-
             <tbody className="divide-y divide-gray-200">
               {students.map((s) => {
-                const fullName =
-                  `${s.FirstName || ""} ${s.Surname || ""}`.trim();
-
+                const fullName = `${s.FirstName || ""} ${s.Surname || ""}`.trim();
                 return (
                   <tr key={s.Id} className="hover:bg-gray-50">
-                    {/* NAME */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 text-xs">
-                          {fullName
-                            .split(" ")
-                            .map((n) => n[0])
-                            .slice(0, 2)
-                            .join("")}
+                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-xs font-bold">
+                          {s.FirstName?.[0]}{s.Surname?.[0]}
                         </div>
                         <div>
-                          <div className="text-blue-600 font-medium cursor-pointer">
-                            {fullName}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {s.IdNumber}
-                          </div>
+                          <div className="text-blue-600 font-medium">{fullName}</div>
+                          <div className="text-xs text-gray-500">{s.IdNumber}</div>
                         </div>
                       </div>
                     </td>
-
-                    {/* PHONE */}
-                    <td className="px-4 py-3">{s.MobilePhone || "-"}</td>
-
-                    {/* EMAIL */}
-                    <td className="px-4 py-3 text-blue-600">
-                      {s.Email || "-"}
-                    </td>
-
-                    {/* HOURS */}
-                    <td className="px-4 py-3">06:00</td>
-
-                    {/* ENROLLED */}
+                    <td className="px-4 py-3 text-gray-600">{s.MobilePhone || "-"}</td>
+                    <td className="px-4 py-3 text-gray-600">{s.Email || "-"}</td>
+                    <td className="px-4 py-3 text-gray-600">{formatDate(s.RegistrationDate)}</td>
                     <td className="px-4 py-3">
-                      {formatDate(s.RegistrationDate)}
-                    </td>
-
-                    {/* STATUS */}
-                    <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                          s.IsActive && !s.IsDeleted
-                            ? "bg-green-600 text-white"
-                            : "bg-orange-500 text-white"
-                        }`}
-                      >
-                        {s.IsActive && !s.IsDeleted
-                          ? "ACTIVE"
-                          : "UNENROLLED"}
+                      <span className={`px-2 py-0.5 text-[10px] rounded-full font-bold ${s.IsActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        {s.IsActive ? "ACTIVE" : "INACTIVE"}
                       </span>
                     </td>
-
-                    {/* ACTIONS */}
-                    <td className="px-4 py-3 text-center text-gray-400">
-                      <div className="flex justify-center gap-2">
-                        <Edit size={16} className="cursor-pointer" />
-                        <X size={16} className="cursor-pointer" />
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex justify-center gap-3">
+                        {/* --- EDIT BUTTON --- */}
+                        <button 
+                          onClick={() => navigate(`/people/students/edit/${s.Id}`)}
+                          className="text-gray-400 hover:text-blue-600 transition-colors"
+                          title="Edit Student"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        {/* --- REMOVE BUTTON --- */}
+                        <button 
+                          onClick={() => handleUnenroll(s.Id, fullName)}
+                          className="text-gray-400 hover:text-red-600 transition-colors"
+                          title="Remove from Class"
+                        >
+                          <X size={18} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -891,6 +872,17 @@ function StudentsContent({ classId }: { classId: number }) {
           </table>
         )}
       </div>
+
+      {showEnrollModal && (
+        <EnrollStudentsModal
+          classId={classId}
+          onClose={() => setShowEnrollModal(false)}
+          onSuccess={() => {
+            setShowEnrollModal(false);
+            fetchStudents();
+          }}
+        />
+      )}
     </>
   );
 }
@@ -1518,217 +1510,195 @@ function AddLessonModal({
   );
 }
 
-function EnrollStudentsModal({ scheduleId, classId1, onClose }: { scheduleId: number, classId1: string, onClose: () => void }) {
-  const navigate = useNavigate();
-   const [showEnrollModal, setShowEnrollModal] = useState(true);
-const [isLoadingAllStudents, setIsLoadingAllStudents] = useState(false)
-   const [allStudents, setAllStudents] = useState<any[]>([])
-   const [alreadyEnrolled, setAlreadyEnrolled] = useState<number[]>([])
-   const [selectedToEnroll, setSelectedToEnroll] = useState<number[]>([])
-   const [sessionClassId, setSessionClassId] = useState<number | null>(null)
-
-
-   const fetchAllStudents = async () => {
-    try{
-      setIsLoadingAllStudents(true)
-      const res = await axiosInstance.get("/Student/GetAll")
-      const enrollRes = await axiosInstance.get(`/Class/GetStudentsForSession?scheduleId=${scheduleId}`)
-
-      if(res.data?.IsSuccess){
-        setAllStudents(res.data.Data)
-      }
-
-      if(enrollRes.data?.IsSuccess){
-        const ids = enrollRes.data.Data.map((s: any) => s.StudentId)
-        setAlreadyEnrolled(ids)
-        // Get classId from the first student in the session (all students in a session belong to the same class)
-        if(enrollRes.data.Data.length > 0 && enrollRes.data.Data[0].ClassId) {
-          setSessionClassId(enrollRes.data.Data[0].ClassId)
-        }
-      }
-
-
-    }catch(err){
-      console.log("Error fetching student list", err)
-    }finally{
-      setIsLoadingAllStudents(false)
-    }
-  }
-
+function EnrollStudentsModal({ 
+  classId, 
+  onClose, 
+  onSuccess 
+}: { 
+  classId: number, 
+  onClose: () => void, 
+  onSuccess: () => void 
+}) {
+  const [allStudents, setAllStudents] = useState<any[]>([]);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    if(showEnrollModal){
-      fetchAllStudents()
-    }
-  }, [showEnrollModal])
-
-
-  
-  const enrollStudents = async () => {
-    if(!scheduleId || selectedToEnroll.length === 0)
-      return 
-    
-    const sessionId = scheduleId 
-
-    try{
-      const response = await axiosInstance.post(`/Class/EnrollStudentToClassInBulk`, selectedToEnroll, { params: { sessionId }})
-      
-      if(response.data?.IsSuccess){
-        onClose()
-        setSelectedToEnroll([])
+    const fetchAll = async () => {
+      try {
+        setLoading(true);
+        const res = await axiosInstance.get("/Student/GetAll");
+        if (res.data?.IsSuccess) {
+          setAllStudents(res.data.Data || []);
+        }
+      } catch (err) {
+        console.error("Error fetching students", err);
+      } finally {
+        setLoading(false);
       }
-    }catch(err){
-      console.log("Error enrolling students", err)
-      alert("Failed to enroll students")
-    }
+    };
+    fetchAll();
+  }, []);
+
+  const toggleStudent = (id: number) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleEnroll = async () => {
+  if (selectedIds.length === 0) {
+    Swal.fire("Note", "Please select at least one student", "info");
+    return;
   }
-  const [showAddStudent, setShowAddStudent] = useState(false);
+
+  try {
+    setSubmitting(true);
+
+    // 1. Get sessions for this class to find a valid sessionId
+    const sessionRes = await axiosInstance.get(`/Class/GetSessionsForClass`, {
+      params: { classId: Number(classId) },
+    });
+
+    if (!sessionRes.data?.IsSuccess || sessionRes.data.Data.length === 0) {
+      Swal.fire("Error", "No active sessions found for this class. Create a lesson first.", "error");
+      return;
+    }
+
+    // 2. Pick the first session ID (ScheduleId)
+    const sessionId = sessionRes.data.Data[0].ScheduleId;
+
+    // 3. Post to the API using the sessionId as required by your C# logic
+    const response = await axiosInstance.post(
+      `/Class/EnrollStudentToClassInBulk`, 
+      selectedIds, // The [FromBody] list
+      { 
+        params: { sessionId: sessionId } // Matches [FromQuery] long sessionId
+      }
+    );
+
+    if (response.data?.IsSuccess) {
+      // Check the internal message for "Session not found" even if HTTP is 200
+      if (response.data.Data.Message.includes("Session not found")) {
+         Swal.fire("Error", response.data.Data.Message, "error");
+      } else {
+         Swal.fire("Success", "Students enrolled successfully", "success");
+         onSuccess();
+      }
+    } else {
+      Swal.fire("Error", response.data?.Message || "Enrollment failed", "error");
+    }
+  } catch (err) {
+    console.error("Enrollment error:", err);
+    Swal.fire("Error", "Server error during enrollment", "error");
+  } finally {
+    setSubmitting(false);
+  }
+};
+
+  const filteredStudents = allStudents.filter(s => 
+    `${s.FirstName} ${s.Surname}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.IdNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
+        {/* HEADER */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">
-            Enroll students
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600"
-          >
-            <X className="h-5 w-5" />
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 tracking-tight">Enroll Students</h2>
+            <p className="text-sm text-gray-500">Select students to add to this class</p>
+          </div>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+            <X size={20} />
           </button>
         </div>
-        <div className="p-6">
-          <p className="text-gray-600 mb-4">
-            Enroll students in 'Advanced_AM_DCE1_PART 1' Select the date on
-            which the students will be enrolled in the class and then select
-            which students to enroll.
-          </p>
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Enrollment date *
-              </label>
-              <input
-                type="text"
-                defaultValue="21-10-2025"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Unenrollment date (optional)
-              </label>
-              <input
-                type="text"
-                placeholder="Select date..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
+
+        {/* SEARCH BOX */}
+        <div className="px-6 py-4 border-b border-gray-50">
+          <div className="relative">
+            <Eye className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input 
+              type="text"
+              placeholder="Search by name or student ID..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            Select from existing students
-          </h3>
-          <div className="flex items-center gap-3 mb-4">
-            <button className="px-4 py-2 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-50 flex items-center gap-2">
-              <Copy className="h-4 w-4" />
-              Copy from another class
+        </div>
+
+        {/* STUDENT LIST */}
+        <div className="flex-1 overflow-y-auto p-2">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="animate-spin text-blue-600 mb-2" size={32} />
+              <p className="text-gray-500 text-sm">Loading student directory...</p>
+            </div>
+          ) : filteredStudents.length > 0 ? (
+            <div className="grid grid-cols-1 gap-1">
+              {filteredStudents.map((s) => (
+                <div 
+                  key={s.Id}
+                  onClick={() => toggleStudent(s.Id)}
+                  className={`flex items-center justify-between p-3 rounded-lg cursor-pointer transition-all ${
+                    selectedIds.includes(s.Id) 
+                      ? "bg-blue-50 border border-blue-200" 
+                      : "hover:bg-gray-50 border border-transparent"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                      selectedIds.includes(s.Id) ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-600"
+                    }`}>
+                      {s.FirstName?.[0]}{s.Surname?.[0]}
+                    </div>
+                    <div>
+                      <p className={`text-sm font-semibold ${selectedIds.includes(s.Id) ? "text-blue-700" : "text-gray-800"}`}>
+                        {s.FirstName} {s.Surname}
+                      </p>
+                      <p className="text-xs text-gray-500">{s.IdNumber || "No ID"}</p>
+                    </div>
+                  </div>
+                  <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${
+                    selectedIds.includes(s.Id) ? "bg-blue-600 border-blue-600" : "bg-white border-gray-300"
+                  }`}>
+                    {selectedIds.includes(s.Id) && <CheckSquare size={14} className="text-white" />}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 text-gray-500 italic">No students found matching your search.</div>
+          )}
+        </div>
+
+        {/* FOOTER */}
+        <div className="p-6 border-t border-gray-200 flex items-center justify-between bg-gray-50 rounded-b-xl">
+          <p className="text-sm font-medium text-gray-600">
+            {selectedIds.length} students selected
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="px-5 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 font-medium transition-all"
+              disabled={submitting}
+            >
+              Cancel
             </button>
             <button
-              onClick={() => setShowAddStudent(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+              onClick={handleEnroll}
+              disabled={submitting || selectedIds.length === 0}
+              className="px-5 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md shadow-blue-100"
             >
-              <Plus className="h-4 w-4" />
-              Add new student
+              {submitting && <Loader2 size={16} className="animate-spin" />}
+              Enroll Now
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium text-gray-800 mb-2">All students</h4>
-              <div className="border border-gray-200 rounded-lg h-64 overflow-y-auto">
-                     {isLoadingAllStudents ? (
-                  <div className="flex items-center justify-center h-40">
-                    <Loader2 className="animate-spin text-blue-500" size={28} />
-                  </div>
-                ) : (
-                  allStudents.map((s: any) => {
-                    const disabled = alreadyEnrolled.includes(s.Id)
-                    const selected = selectedToEnroll.includes(s.Id)
-                
-                    return (
-                      <div
-                        key={s.Id}
-                        onClick={() => !disabled && setSelectedToEnroll(prev =>
-                          prev.includes(s.Id) ? prev.filter(id => id !== s.Id) : [...prev, s.Id]
-                        )}
-                        className={`p-2 flex justify-between cursor-pointer ${
-                          disabled
-                            ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                            : selected
-                            ? "bg-blue-50 text-blue-700 font-medium"
-                            : "hover:bg-gray-50"
-                        }`}
-                      >
-                        {s.FirstName} {s.Surname}
-                        {disabled && <span className="text-xs">(Enrolled)</span>}
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Use shift and control keys to select multiple students
-              </p>
-            </div>
-             <div>
-                    <h4 className="font-medium text-gray-800 mb-2">Enrolled students</h4>
-                    {selectedToEnroll.length === 0 ? (
-  <div className="h-full flex items-center justify-center text-gray-400">
-    No students selected
-  </div>
-) : (
-  selectedToEnroll.map((id) => {
-    const student = allStudents.find((s) => s.Id === id)
-    return (
-      <div key={id} className="p-2 flex justify-between bg-white border-b">
-        {student?.FirstName} {student?.Surname}
-        <button
-          className="text-red-500 text-xs"
-          onClick={() =>
-            setSelectedToEnroll(prev => prev.filter(x => x !== id))
-          }
-        >
-          Remove
-        </button>
-      </div>
-    )
-  })
-)}
-
-                  </div>
-          </div>
         </div>
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
-          <button onClick={() => {
-                  onClose()
-                  setSelectedToEnroll([])
-                  }}
-            className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={enrollStudents}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Save changes
-          </button>
-        </div>
-        {showAddStudent && (
-          <AddStudentForm
-            isOpen={showAddStudent}
-            onClose={() => setShowAddStudent(false)}
-          />
-        )}
       </div>
     </div>
   );
