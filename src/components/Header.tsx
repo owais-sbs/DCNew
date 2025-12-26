@@ -155,14 +155,14 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
   ];
 
   return (
-    <div className="flex flex-col sticky top-0 z-20">
+    <div className="flex flex-col sticky top-0 z-40">
       {/* Dark Header */}
       <header className="bg-[#2B2F3E] border-b border-gray-700 shadow-sm h-14">
-        <div className={`transition-all duration-300 h-full flex items-center justify-between px-4 ${isExpanded ? 'pl-[325px]' : 'pl-[117px]'}`}>
+        <div className={`transition-all duration-300 h-full flex items-center justify-between px-4 ${isExpanded ? 'pl-[325px]' : 'pl-[15px]'}`}>
           
           {/* Left: Logo & Text */}
           <div className="flex items-center gap-3">
-            <img src={logo} alt="Logo" className="h-6 w-auto object-contain" />
+            <img src={logo} alt="Logo" className="h-12 w-auto object-contain" />
           
           </div>
 

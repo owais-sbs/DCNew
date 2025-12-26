@@ -56,17 +56,10 @@ export default function Sidebar() {
         isExpanded ? 'w-[325px]' : 'w-[100px]' // Adjusted width for the stacked look
       }`}
     >
-      {/* Top Spacer for Fixed Header */}
-     <div className="h-14 bg-[#2b2f3e] w-full shrink-0 flex items-center justify-center">
-        <img
-          src={logo}
-          alt="Logo"
-          className="h-6 w-auto object-contain"
-        />
-      </div>
+     
 
       {/* Navigation */}
-      <nav className="flex flex-col gap-1 py-4 overflow-y-auto flex-1 scrollbar-thin">
+      <nav className="flex flex-col gap-1 py-4 overflow-y-auto flex-1 scrollbar-thin mt-12">
         {items.map(({ id, icon: Icon, label, path }) => {
           const isActive = active === id;
           
