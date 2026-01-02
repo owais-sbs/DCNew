@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom"
-import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck, Flag, Star, X } from "lucide-react"
+import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle,Printer, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck, Flag, Star, X } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import axiosInstance from "./axiosInstance"
 import { jsPDF } from "jspdf"
