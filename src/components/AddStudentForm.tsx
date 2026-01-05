@@ -862,7 +862,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 </select>
                             </div>
 
-                            <div className="md:col-span-2"><label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label><input type="date" value={formData.endOfExamPaid} onChange={(e)=>handleInputChange('endOfExamPaid', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div className="md:col-span-2"><label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label><input type="text" value={formData.endOfExamPaid} onChange={(e)=>handleInputChange('endOfExamPaid', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                         </div>
                     </div>
 

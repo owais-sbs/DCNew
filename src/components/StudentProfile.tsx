@@ -685,7 +685,7 @@ const stats = getOverallAttendanceStats();
     "ILEP programme reference": () => studentdetails?.IlepReference || "—",
     "End of the Course Exam Fee": () => {
       const examFees = studentdetails?.EndOfExamPaid;
-      if (examFees === null || examFees === undefined || examFees === "") return "—";
+      if (examFees === null || examFees === undefined || examFees === "") return "Fully Paid";
       // Check if it says "Fully Paid" or similar, otherwise format as currency
       if (typeof examFees === "string" && examFees.toLowerCase().includes("paid")) {
         return examFees;
@@ -2511,14 +2511,18 @@ const stats = getOverallAttendanceStats();
         value1={studentdetails?.GeneralNotes}
         label2="Medical Notes"
         value2={studentdetails?.MedicalNotes}
+        label3="Class Subjects"
+        value3={studentdetails?.ClassSubject}
       />
 
       {/* CLASS */}
-      <Row3
-        label1="Class Subjects"
-        value1={studentdetails?.ClassSubject}
-        label2="Class Levels"
-        value2={studentdetails?.ClassLevel}
+      <Row3        
+        label1="Class Levels"
+        value1={studentdetails?.ClassLevel}
+        label2="Course Code"
+        value2={studentdetails?.CourseCode}
+        label3="External Exam"
+        value3={studentdetails?.ExternalExam}
       />
 
       {/* IDENTITY */}
@@ -2573,12 +2577,12 @@ const stats = getOverallAttendanceStats();
         value3={studentdetails?.Department}
       />
 
-      <Row3
+      {/* <Row3
         label1="Course Code"
         value1={studentdetails?.CourseCode}
         label2="External Exam"
         value2={studentdetails?.ExternalExam}
-      />
+      /> */}
 
       {/* EXAM */}
       <Row3
@@ -2602,22 +2606,17 @@ const stats = getOverallAttendanceStats();
       <Row3
         label1="End of Exam paid"
         value1={studentdetails?.EndOfExamPaid}
-      />
-
-      {/* SCHOOL PORTAL HEADER */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div className="text-sm font-semibold text-gray-800">
-          School Portal
-        </div>
+        label2="School Portal"
+        value2={
+          <div className="">
+        
         <div className="text-xs text-gray-500">
           Enable or disable the student's access to your portal.
         </div>
       </div>
-
-      {/* SCHOOL PORTAL */}
-      <Row3
-        label1="Access to School Portal"
-        value1={
+        }
+        label3="Access to School Portal"
+        value3={
           <span className="inline-flex items-center gap-2">
             <span className="w-10 h-5 bg-blue-600 rounded-full relative">
               <span className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
@@ -2625,8 +2624,16 @@ const stats = getOverallAttendanceStats();
             ON
           </span>
         }
-        label2="Invitation"
-        value2={
+      />
+
+      {/* SCHOOL PORTAL HEADER */}
+      
+
+      {/* SCHOOL PORTAL */}
+      <Row3
+        
+        label1="Invitation"
+        value1={
           <button
             onClick={handleOpenInviteModal}
             className="text-blue-600 hover:underline"
@@ -2635,8 +2642,17 @@ const stats = getOverallAttendanceStats();
           </button>
         }
         sub2="Abdullah has not signed up yet!"
-        label3="Last Login"
-        value3="never"
+        label2="Last Login"
+        value2="never"
+        label3="Automatic Reminders"
+        value3={
+          <span className="inline-flex items-center gap-2">
+            <span className="w-10 h-5 bg-blue-600 rounded-full relative">
+              <span className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
+            </span>
+            ON
+          </span>
+        }
       />
 
       <Row3
@@ -2646,17 +2662,7 @@ const stats = getOverallAttendanceStats();
         value2="not set"
       />
 
-      <Row3
-        label1="Automatic Reminders"
-        value1={
-          <span className="inline-flex items-center gap-2">
-            <span className="w-10 h-5 bg-blue-600 rounded-full relative">
-              <span className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
-            </span>
-            ON
-          </span>
-        }
-      />
+      
 
       {/* FOOTER */}
       <div className="px-6 py-3 text-xs text-gray-500 bg-gray-50">
