@@ -847,6 +847,144 @@ export default function StudentProfile() {
 </div>
 
 
+
+{classesSubTab === 'lessons' && (
+        <div>
+          {selectedClassId && (
+            <div className="mb-4 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setClassesSubTab('classes')
+                  setSelectedClassId(null)
+                  setLessons([])
+                }}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                ← Back to classes
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-4 mb-4">
+            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+              <option>Attendance: All</option>
+            </select>
+            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+              <option>Class: All</option>
+            </select>
+            <div className="relative">
+              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+                Date: 01-01-2013 - 01-01-2030 <ChevronDown size={14} />
+              </button>
+            </div>
+            <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center">
+              <Clock size={16} className="text-gray-500" />
+            </button>
+          </div>
+          {loadingLessons ? (
+            <div className="py-12 text-center text-gray-500">
+              Loading lessons...
+            </div>
+          ) : lessons.length === 0 ? (
+            <div className="py-12 text-center text-gray-500">
+              {selectedClassId ? "No lessons found for this class." : "Select a class and click 'View lessons' to see lessons."}
+            </div>
+          ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Day</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                  </tr>
+               </thead>
+
+                <tbody>
+                  {lessons.map((lesson, i) => {
+                    const formatLessonDate = (dateString?: string) => {
+                      if (!dateString) return "—"
+                      const date = new Date(dateString)
+                      if (Number.isNaN(date.getTime())) return "—"
+                      const dateStr = date.toLocaleDateString("en-GB")
+                      const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+                      return `${dateStr} ${timeStr}`
+                    }
+                    
+                    const getAttendanceColor = (status: string | null) => {
+                      if (!status) return ""
+                      switch (status.toLowerCase()) {
+                        case "present": return "bg-green-100 text-green-800"
+                        case "absent": return "bg-red-100 text-red-800"
+                        case "late": return "bg-orange-100 text-orange-800"
+                        case "nottaken": return "bg-gray-100 text-gray-500"
+                        case "excused": return "bg-blue-100 text-blue-800"
+                        default: return "bg-gray-100 text-gray-800"
+                      }
+                    }
+                    
+                    const lessonDate = formatLessonDate(lesson.date || lesson.startTime)
+                    const lessonTime = lesson.startTime && lesson.endTime 
+                      ? `${new Date(lesson.startTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}-${new Date(lesson.endTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
+                      : ""
+                    
+                    // Get attendance data from the lesson object (already mapped from API)
+                    const attendanceStatus = lesson.attendance || null
+                    
+                    // Format attendance status for display (exclude "NotTaken")
+                    const displayAttendanceStatus = attendanceStatus && attendanceStatus.toLowerCase() !== "nottaken" 
+                      ? attendanceStatus 
+                      : null
+                    
+                    return (
+                      <tr key={lesson.scheduleId || i} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-3 px-4 text-gray-700">
+                          <div>{lessonDate}</div>
+                          {lessonTime && <div className="text-xs text-gray-500">{lessonTime}</div>}
+                        </td>
+                        <td className="py-3 px-4 text-gray-700">
+                          {lesson.dayOfWeek || "—"}
+                        </td>
+                    <td className="py-3 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-red-500" />
+                            <div>
+                              <div className="font-medium text-gray-900">{lesson.className || "Unnamed Class"}</div>
+                            </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4">
+                          {displayAttendanceStatus ? (
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAttendanceColor(displayAttendanceStatus)}`}>
+                              {displayAttendanceStatus}
+                      </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                    </td>
+                    <td className="py-3 px-4">
+                          <button 
+                            className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+                            onClick={() => {
+                              setSelectedLesson(lesson)
+                              setShowAttendanceModal(true)
+                            }}
+                          >
+                        <FileText size={16} />
+                      </button>
+                    </td>
+                  </tr>
+                    )
+                  })}
+              </tbody>
+            </table>
+          </div>
+          )}
+        </div>
+      )}
+               
+
     {/* TABLE */}
     {classesSubTab === "classes" && (
       <div className="overflow-x-auto mt-4">
@@ -1028,7 +1166,9 @@ export default function StudentProfile() {
       </div>
     )}
   </div>
+  
 )
+
 
 
   // Helper function to get status color
