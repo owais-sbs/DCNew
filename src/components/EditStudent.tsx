@@ -627,6 +627,20 @@ useEffect(() => {
                   <label className="block text-[13px] text-gray-700 mb-1">ILEP Ref</label>
                   <input name="ilepReference" value={form.ilepReference} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
                </div>
+
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label>
+                   <input 
+        name="endOfExamPaid" 
+        type="text" 
+        value={form.endOfExamPaid} 
+        onChange={handleChange} 
+        className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" 
+      />
+      </div>
+
+              
+
                <div>
                   <label className="block text-[13px] text-gray-700 mb-1">Schedule</label>
                   <input name="schedule" value={form.schedule} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
