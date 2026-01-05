@@ -855,9 +855,9 @@ export default function StudentProfile() {
             <tr className="border-b border-gray-300">
               <th className="text-left px-4 py-2">Class</th>
               <th className="text-left px-4 py-2">Teacher</th>
-              <th className="text-left px-4 py-2">Recurring Time</th>
+              {/* <th className="text-left px-4 py-2">Recurring Time</th> */}
               <th className="text-left px-4 py-2">Enrolled</th>
-              <th className="text-left px-4 py-2">Unenrolled</th>
+              <th className="text-left px-4 py-2">Unenrolled2</th>
               <th className="text-left px-4 py-2">Status</th>
               <th className="text-left px-4 py-2">Actions</th>
             </tr>
@@ -893,14 +893,14 @@ export default function StudentProfile() {
 
                   {/* Teacher */}
                   <td className="px-4 py-3 text-blue-600">
-                    2 teachers
+                    {cls.TeacherId}
                   </td>
 
                   {/* Recurring */}
-                  <td className="px-4 py-3 text-gray-700">
+                  {/* <td className="px-4 py-3 text-gray-700">
                     Monday (13:00–15:00), Thursday (13:00–15:00){" "}
                     <span className="text-blue-600 cursor-pointer">and more</span>
-                  </td>
+                  </td> */}
 
                   {/* Enrolled */}
                   <td className="px-4 py-3">
@@ -924,14 +924,102 @@ export default function StudentProfile() {
                   </td>
 
                   {/* Actions */}
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3 text-gray-400">
-                      <FileText size={16} />
-                      <Award size={16} />
-                      <Printer size={16} />
-                      <X size={16} />
-                    </div>
-                  </td>
+                   <td className="py-3 px-4">
+                          <div className="relative class-menu-container">
+                            <button 
+                              className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setOpenClassMenu(openClassMenu === cls.ClassId ? null : cls.ClassId)
+                              }}
+                            >
+                      <MoreHorizontal size={16} />
+                    </button>
+                            {openClassMenu === cls.ClassId && (
+                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenClassMenu(null)
+                                    fetchLessons(cls.ClassId)
+                                  }}
+                                >
+                                  <FileText size={16} />
+                                  View lessons
+                                </button>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenClassMenu(null)
+                                    // TODO: Implement view grades
+                                  }}
+                                >
+                                  <Award size={16} />
+                                  View grades
+                                </button>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenClassMenu(null)
+                                    // TODO: Implement print report
+                                  }}
+                                >
+                                  <Download size={16} />
+                                  Print report
+                                </button>
+                                <button
+                                  className="w-full px-4 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setOpenClassMenu(null)
+                                    // TODO: Implement unenroll
+                                    Swal.fire({
+                                      title: "Unenroll Student",
+                                      text: `Are you sure you want to unenroll ${studentName} from ${cls.ClassTitle}?`,
+                                      icon: "warning",
+                                      showCancelButton: true,
+                                      confirmButtonColor: "#ef4444",
+                                      cancelButtonColor: "#6b7280",
+                                      confirmButtonText: "Yes, unenroll",
+                                    }).then(async (result) => {
+                                      if (result.isConfirmed) {
+                                        try {
+                                          const response = await axiosInstance.post("/Class/UnenrollStudentFromClass", null, {
+                                            params: {
+                                              studentId: parseInt(id!),
+                                              classId: cls.ClassId
+                                            }
+                                          })
+                                          if (response.data?.IsSuccess) {
+                                            Swal.fire("Success", "Student unenrolled successfully", "success")
+                                            // Refresh classes
+                                            const refreshResponse = await axiosInstance.get("/Class/GetClassesByStudent", {
+                                              params: { studentId: parseInt(id!) }
+                                            })
+                                            if (refreshResponse.data?.IsSuccess) {
+                                              setClasses(refreshResponse.data.Data || [])
+                                            }
+                                          } else {
+                                            Swal.fire("Error", response.data?.Message || "Failed to unenroll student", "error")
+                                          }
+                                        } catch (error: any) {
+                                          console.error("Error unenrolling:", error)
+                                          Swal.fire("Error", "Failed to unenroll student. Please try again.", "error")
+                                        }
+                                      }
+                                    })
+                                  }}
+                                >
+                                  <Trash2 size={16} />
+                                  Unenroll
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                          </td>
                 </tr>
               )
             })}
