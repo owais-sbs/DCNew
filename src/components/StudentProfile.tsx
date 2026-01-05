@@ -122,6 +122,31 @@ export default function StudentProfile() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
 
+  // Inside StudentProfile component
+const [activities, setActivities] = useState<any[]>([]);
+const [loadingActivity, setLoadingActivity] = useState(false);
+
+useEffect(() => {
+  if (activeTab.toLowerCase() === "activity" && id) {
+    const fetchActivity = async () => {
+      setLoadingActivity(true);
+      try {
+        const response = await axiosInstance.get(`/Dashboard/GetStudentActivity`, {
+          params: { studentId: id }
+        });
+        if (response.data?.IsSuccess) {
+          setActivities(response.data.Data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching activity:", error);
+      } finally {
+        setLoadingActivity(false);
+      }
+    };
+    fetchActivity();
+  }
+}, [activeTab, id]);
+
   useEffect(() => {
     const close = () => setOpenMoreMenu(false)
     if (openMoreMenu) {
@@ -766,51 +791,66 @@ const stats = getOverallAttendanceStats();
     "Create documents"
   ]
 
-  const renderActivityContent = () => (
-    <div className="bg-white border border-gray-200  p-6 shadow-sm">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-semibold text-gray-900">Activity</h2>
-          <p className="text-gray-600 mt-1">Student activity is logged here</p>
-        </div>
-        <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
-          Activity type <ChevronDown size={14} />
-        </button>
+ const renderActivityContent = () => (
+  <div className="bg-white border border-gray-200 p-6 shadow-sm">
+    <div className="flex items-center justify-between mb-6">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-900">Activity</h2>
+        <p className="text-gray-600 mt-1">Student activity is logged here</p>
       </div>
-      
-      <div className="space-y-4">
-        {[
-          { date: "17-10-2025", time: "11:15", recorded: "11:50, Oct 17 2025" },
-          { date: "17-10-2025", time: "09:00", recorded: "09:15, Oct 17 2025" },
-          { date: "16-10-2025", time: "11:15", recorded: "11:45, Oct 16 2025" },
-          { date: "16-10-2025", time: "09:00", recorded: "09:10, Oct 16 2025" },
-          { date: "15-10-2025", time: "11:15", recorded: "11:30, Oct 15 2025" },
-          { date: "15-10-2025", time: "09:00", recorded: "09:05, Oct 15 2025" },
-          { date: "14-10-2025", time: "11:15", recorded: "11:40, Oct 14 2025" },
-          { date: "14-10-2025", time: "09:00", recorded: "09:20, Oct 14 2025" },
-          { date: "13-10-2025", time: "11:15", recorded: "11:25, Oct 13 2025" },
-          { date: "13-10-2025", time: "09:00", recorded: "09:00, Oct 13 2025" }
-        ].map((activity, i) => (
-          <div key={i} className="flex items-start gap-4 p-4 border border-gray-200 ">
-            <div className="flex flex-col items-center">
-              <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                <CheckCircle size={16} className="text-blue-600" />
-              </div>
-              {i < 9 && <div className="w-0.5 h-8 bg-gray-200 mt-2" />}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm font-medium">Attendance:</span>
-                <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Present</span>
-                <span className="text-sm text-gray-600">was recorded for Class Roon12 D7 - lesson on {activity.date} {activity.time}</span>
-              </div>
-              <div className="text-xs text-gray-500">{activity.recorded}</div>
-            </div>
-          </div>
-        ))}
-      </div>
+      <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
+        Activity type <ChevronDown size={14} />
+      </button>
     </div>
-  )
+    
+    <div className="space-y-4">
+      {loadingActivity ? (
+        <div className="py-10 text-center text-gray-500">Loading activities...</div>
+      ) : activities.length === 0 ? (
+        <div className="py-10 text-center text-gray-500">No activity recorded.</div>
+      ) : (
+        activities.map((activity, i) => {
+          const dateObj = new Date(activity.ActivityTime);
+          const displayDate = dateObj.toLocaleDateString("en-GB", {
+            day: '2-digit', month: 'short', year: 'numeric'
+          });
+          const displayTime = dateObj.toLocaleTimeString("en-GB", {
+            hour: '2-digit', minute: '2-digit'
+          });
+
+          return (
+            <div key={activity.AttendanceId || i} className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg">
+              <div className="flex flex-col items-center">
+                <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <CheckCircle size={16} className="text-blue-600" />
+                </div>
+                {i < activities.length - 1 && <div className="w-0.5 h-8 bg-gray-200 mt-2" />}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="text-sm font-medium">Attendance:</span>
+                  <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                    activity.Status === "Excused" ? "bg-blue-100 text-blue-800" : 
+                    activity.Status === "Absent" ? "bg-red-100 text-red-800" : 
+                    "bg-green-100 text-green-800"
+                  }`}>
+                    {activity.Status}
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    was recorded for <strong>{activity.ClassTitle}</strong> in {activity.ClassRoom}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500">
+                  {displayTime}, {displayDate}
+                </div>
+              </div>
+            </div>
+          );
+        })
+      )}
+    </div>
+  </div>
+);
 
 
 
