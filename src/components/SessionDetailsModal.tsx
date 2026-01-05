@@ -381,67 +381,56 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
           <div className="flex-1 min-w-0">
             <div className="text-[16px] font-semibold text-gray-900 truncate">{student.name}</div>
             <div className="relative mt-3 group w-full max-w-xs">
-              <button
-                onClick={(e) => e.stopPropagation()}
-                className={`w-full h-8  border text-[15px] font-semibold transition-all bg-gray-200 ${
-                  student.status === "Present"
-                    ? "bg-gray-200 text-gray-700 border-gray-300 "
-                    : student.status === "Absent"
-                    ? "bg-gray-200 text-gray-700 border-gray-300"
-                    : student.status === "Late"
-                    ? "bg-gray-200 text-yellow-700 border-gray-300"
-                    : student.status === "Excused"
-                    ? "bg-gray-200 text-gray-600 border-gray-300 cursor-not-allowed"
-                    : "bg-gray-200  text-gray-700 border-gray-300"
-                }`}
-                disabled={student.status === "Excused" || updatingStudent === student.id}
-              >
-                {updatingStudent === student.id ? (
-                  <Loader2 className="animate-spin w-5 h-5 mx-auto bg-gray-200" />
-                ) : (
-                  student.status ?? "Take attendance"
-                )}
-              </button>
-              {student.status !== "Excused" && (
-                <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
-                  <div className="w-full h-7 border border-gray-300 bg-white overflow-hidden flex shadow-sm ">
   <button
-    className="flex-1 text-[11px] font-bold text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors uppercase tracking-tight"
-    onClick={(e) => {
-      e.stopPropagation();
-      markAttendance(student.classId, student.id, "Present");
-    }}
+    onClick={(e) => e.stopPropagation()}
+    className={`w-full h-9 border text-[13px] font-bold transition-all flex items-center justify-center rounded-sm ${
+      student.status === "Present"
+        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+        : student.status === "Absent"
+        ? "bg-rose-50 text-rose-700 border-rose-200"
+        : student.status === "Late"
+        ? "bg-amber-50 text-amber-700 border-amber-200"
+        : student.status === "Excused"
+        ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed italic"
+        : "bg-white text-slate-500 border-gray-300 hover:border-indigo-400"
+    }`}
+    disabled={student.status === "Excused" || updatingStudent === student.id}
   >
-    Present
+    {updatingStudent === student.id ? (
+      <Loader2 className="animate-spin w-4 h-4" />
+    ) : (
+      student.status ?? "Record Attendance"
+    )}
   </button>
   
-  <div className="w-px bg-gray-300" />
-  
-  <button
-    className="flex-1 text-[11px] font-bold text-slate-600 hover:bg-rose-50 hover:text-rose-700 transition-colors uppercase tracking-tight"
-    onClick={(e) => {
-      e.stopPropagation();
-      markAttendance(student.classId, student.id, "Absent");
-    }}
-  >
-    Absent
-  </button>
-  
-  <div className="w-px bg-gray-300" />
-  
-  <button
-    className="flex-1 text-[11px] font-bold text-slate-600 hover:bg-amber-50 hover:text-amber-700 transition-colors uppercase tracking-tight"
-    onClick={(e) => {
-      e.stopPropagation();
-      markAttendance(student.classId, student.id, "Late");
-    }}
-  >
-    Late
-  </button>
+  {/* Hover Menu - Now matches the styling better */}
+  {student.status !== "Excused" && (
+    <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto shadow-lg" onClick={(e) => e.stopPropagation()}>
+      <div className="w-full h-9 border border-gray-400 bg-white overflow-hidden flex rounded-sm">
+        <button
+          className="flex-1 text-[10px] font-black text-emerald-700 hover:bg-emerald-600 hover:text-white transition-colors uppercase"
+          onClick={(e) => { e.stopPropagation(); markAttendance(student.classId, student.id, "Present"); }}
+        >
+          Present
+        </button>
+        <div className="w-px bg-gray-200" />
+        <button
+          className="flex-1 text-[10px] font-black text-rose-700 hover:bg-rose-600 hover:text-white transition-colors uppercase"
+          onClick={(e) => { e.stopPropagation(); markAttendance(student.classId, student.id, "Absent"); }}
+        >
+          Absent
+        </button>
+        <div className="w-px bg-gray-200" />
+        <button
+          className="flex-1 text-[10px] font-black text-amber-700 hover:bg-amber-600 hover:text-white transition-colors uppercase"
+          onClick={(e) => { e.stopPropagation(); markAttendance(student.classId, student.id, "Late"); }}
+        >
+          Late
+        </button>
+      </div>
+    </div>
+  )}
 </div>
-                </div>
-              )}
-            </div>
           </div>
           <div className="flex items-center gap-2 relative student-menu-container">
             <button
@@ -579,44 +568,49 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
           
           {/* 2. ACTIONS BAR (Light Gray Background) */}
           <div className="px-6 py-3 bg-[#f1f5f9] border-b border-gray-300 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-slate-700">
-              Students <span className="ml-1 px-1.5 py-0.5 bg-slate-200  text-xs">{sessionStudents.length}</span>
-            </h3>
-            
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={toggleSelectAll}
-                className="h-9 px-3 bg-white border border-gray-300 text-slate-600 text-xs font-semibold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm"
-              >
-                {selectedStudents.length === sessionStudents.length ? "Deselect all" : "Select all"} ({selectedStudents.length})
-              </button>
+  <h3 className="text-sm font-bold text-slate-700">
+    Students <span className="ml-1 px-1.5 py-0.5 bg-slate-200 text-xs">{sessionStudents.length}</span>
+  </h3>
+  
+  <div className="flex items-center gap-1.5">
+    <button
+      onClick={toggleSelectAll}
+      className="h-9 px-3 bg-white border border-gray-300 text-slate-600 text-xs font-semibold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm rounded-sm"
+    >
+      {selectedStudents.length === sessionStudents.length ? "Deselect all" : "Select all"} ({selectedStudents.length})
+    </button>
 
-              <div className="w-px h-5 bg-gray-300 mx-1"></div>
+    <div className="w-px h-5 bg-gray-300 mx-1"></div>
 
-              {["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
-                <button
-                  key={label}
-                  onClick={() => {
-                    if (label === "Attendance") {
-                      setAttendanceApplyTo(selectedStudents.length > 0 ? "selected" : "all");
-                      setShowAttendanceModal(true);
-                    }
-                  }}
-                  className="h-9 px-3 bg-white border border-gray-300 text-slate-600 text-xs font-semibold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm"
-                >
-                  {label}
-                  <svg className="w-4 h-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path
-                      fillRule="evenodd"
-                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              ))}
-            </div>
-          </div>
+    {/* Dynamic colored buttons */}
+    {(() => {
+      const buttonStyles = {
+        Attendance: "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100",
+        Behaviour: "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100",
+        Grade: "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100",
+        Message: "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100",
+      };
 
+      return ["Attendance", "Behaviour", "Grade", "Message"].map((label) => (
+        <button
+          key={label}
+          onClick={() => {
+            if (label === "Attendance") {
+              setAttendanceApplyTo(selectedStudents.length > 0 ? "selected" : "all");
+              setShowAttendanceModal(true);
+            }
+          }}
+          className={`h-9 px-3 border text-xs font-bold flex items-center gap-2 transition shadow-sm rounded-sm ${buttonStyles[label as keyof typeof buttonStyles]}`}
+        >
+          {label}
+          <svg className="w-4 h-4 opacity-60" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.44l3.71-4.21a.75.75 0 111.08 1.04l-4.25 4.83a.75.75 0 01-1.08 0L5.25 8.27a.75.75 0 01-.02-1.06z" clipRule="evenodd" />
+          </svg>
+        </button>
+      ));
+    })()}
+  </div>
+</div>
           <div className="p-6 overflow-y-auto bg-slate-50 flex-1">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {renderStudents()}
