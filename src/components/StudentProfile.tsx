@@ -111,6 +111,9 @@ export default function StudentProfile() {
   const [loadingAttendanceStats, setLoadingAttendanceStats] = useState(false)
   const [attendanceStatsError, setAttendanceStatsError] = useState<string | null>(null)
 
+  const presentStat = attendanceStats.find((stat: any) => stat.Status === "Present");
+  const percentage = presentStat?.Percentage ?? 0;
+
 
   const [openMoreMenu, setOpenMoreMenu] = useState(false)
 
@@ -126,6 +129,31 @@ export default function StudentProfile() {
     }
     return () => document.removeEventListener("click", close)
   }, [openMoreMenu])
+
+
+  // Logic to derive the "True" attendance percentage
+const getOverallAttendanceStats = () => {
+  if (!attendanceStats || attendanceStats.length === 0) return { percentage: 0, label: "No Data" };
+
+  // 1. Find the Present stat
+  const presentStat = attendanceStats.find(s => s.Status === "Present");
+  
+  // 2. Filter out "None" or "NotTaken" for the visual table
+  const displayStats = attendanceStats.filter(s => s.Status !== "None" && s.Status !== "NotTaken");
+
+  // 3. Logic: If there is a "Present" percentage, use it. 
+  // If all valid counts are 0, it's 0%.
+  const totalCount = displayStats.reduce((acc, curr) => acc + (curr.Count || 0), 0);
+  
+  return {
+    percentage: presentStat?.Percentage || 0,
+    label: "Present",
+    totalLessons: totalCount,
+    displayStats
+  };
+};
+
+const stats = getOverallAttendanceStats();
 
 
   useEffect(() => {
@@ -1203,106 +1231,153 @@ export default function StudentProfile() {
     }
   }
 
-  const renderAttendanceContent = () => {
-    // Find Present status for donut chart
-    const presentStat = attendanceStats.find((stat: any) => stat.Status?.toLowerCase() === "present")
-    const overallPercentage = presentStat?.Percentage || 0
-    const overallStatus = presentStat?.Status || "Present"
+ const renderAttendanceContent = () => {
+  // 1️⃣ Extract data
+  const present = attendanceStats.find(s => s.Status === "Present")?.Percentage || 0;
+  const absent = attendanceStats.find(s => s.Status === "Absent")?.Percentage || 0;
+  const late = attendanceStats.find(s => s.Status === "Late")?.Percentage || 0;
+  const excused = attendanceStats.find(s => s.Status === "Excused")?.Percentage || 0;
 
-    return (
-      <div className="bg-white border border-gray-200  p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Attendance</h2>
+  // 2️⃣ Pie Data
+  const pieData = [
+    { label: "Present", value: present, color: "#4d8b31" },
+    { label: "Absent", value: absent, color: "#c92a2a" },
+    { label: "Late", value: late, color: "#ff9800" },
+    { label: "Excused", value: excused, color: "#1e64f0" }
+  ];
+
+  // 3️⃣ Conic Gradient
+  let cumulative = 0;
+  const gradient = pieData
+    .map(item => {
+      const start = cumulative;
+      cumulative += item.value;
+      return `${item.color} ${start}% ${cumulative}%`;
+    })
+    .join(", ");
+
+  // 4️⃣ Label positioning helper
+  const getLabelPosition = (start: number, value: number) => {
+    const angle = ((start + value / 2) * 360) / 100;
+    const radius = 90; // distance from center
+    const x = 50 + (radius * Math.cos((angle - 90) * Math.PI / 180)) / 100;
+    const y = 50 + (radius * Math.sin((angle - 90) * Math.PI / 180)) / 100;
+    return { left: `${x}%`, top: `${y}%` };
+  };
+
+  let running = 0;
+
+  return (
+    <div className="bg-white border border-gray-200 p-6 shadow-sm rounded">
+      {/* HEADER */}
+      <h2 className="text-xl font-semibold text-gray-900 mb-6">
+        Attendance Distribution
+      </h2>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+
+        {/* ================= PIE CHART ================= */}
+        {/* ================= PIE CHART ================= */}
+<div className="flex justify-center">
+  <div
+    className="relative w-64 h-64 rounded-full"
+    style={{ background: `conic-gradient(${gradient})` }}
+  >
+    {(() => {
+      let running = 0;
+
+      return pieData.map((item, index) => {
+        if (item.value < 6) {
+          running += item.value;
+          return null; // ❌ skip tiny slices
+        }
+
+        const angle = ((running + item.value / 2) * 360) / 100;
+        running += item.value;
+
+        const radius = 42; // 🔥 push labels outward
+        const x = 50 + radius * Math.cos((angle - 90) * Math.PI / 180);
+        const y = 50 + radius * Math.sin((angle - 90) * Math.PI / 180);
+
+        return (
+          <div
+            key={index}
+            className="absolute text-white text-xs font-bold select-none"
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+              transform: "translate(-50%, -50%)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {item.value.toFixed(1)}%
           </div>
-          <div className="flex items-center gap-3">
-            <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
-              Class: <ChevronDown size={14} />
-            </button>
-            <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
-              Date: Total <ChevronDown size={14} />
-            </button>
-            <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white text-gray-700 flex items-center justify-center">
-              <Clock size={16} />
-            </button>
-          </div>
+        );
+      });
+    })()}
+  </div>
+</div>
+
+
+        {/* ================= TABLE ================= */}
+        <div className="overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-200 text-gray-400 uppercase text-[10px] font-bold tracking-wider">
+                <th className="text-left py-3 px-2">Status</th>
+                <th className="text-left py-3 px-2">Duration</th>
+                <th className="text-center py-3 px-2">Sessions</th>
+                <th className="text-right py-3 px-2">Ratio</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {attendanceStats
+                .filter(s => s.Status !== "None" && s.Status !== "NotTaken")
+                .map((stat: any, index: number) => (
+                  <tr
+                    key={index}
+                    className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition"
+                  >
+                    <td className="py-4 px-2">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{
+                            backgroundColor:
+                              stat.Status === "Present" ? "#4d8b31" :
+                              stat.Status === "Absent" ? "#c92a2a" :
+                              stat.Status === "Late" ? "#ff9800" :
+                              "#1e64f0"
+                          }}
+                        />
+                        <span className="font-medium text-gray-700">
+                          {stat.Status}
+                        </span>
+                      </div>
+                    </td>
+
+                    <td className="py-4 px-2 text-gray-500">
+                      {stat.Time !== "0" ? stat.Time : "—"}
+                    </td>
+
+                    <td className="py-4 px-2 text-center text-gray-700">
+                      {stat.Count}
+                    </td>
+
+                    <td className="py-4 px-2 text-right font-bold text-gray-900">
+                      {stat.Percentage}%
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
         </div>
 
-        {loadingAttendanceStats ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mb-2"></div>
-              <p className="text-gray-600">Loading attendance stats...</p>
-            </div>
-          </div>
-        ) : attendanceStatsError ? (
-          <div className="text-center py-12">
-            <p className="text-red-600">{attendanceStatsError}</p>
-          </div>
-        ) : attendanceStats.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-600">No attendance data available.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Donut Chart */}
-            <div className="flex items-center justify-center">
-              <div className="relative">
-                <div className="h-48 w-48 rounded-full border-8 border-gray-200 flex items-center justify-center">
-                  <div className={`h-32 w-32 rounded-full border-8 ${getStatusBorderColor(overallStatus)} flex items-center justify-center`}>
-                    <div className="text-center">
-                      <div className="text-2xl font-bold text-gray-900">{overallPercentage.toFixed(1)}%</div>
-                      <div className="text-sm text-gray-600">{overallStatus}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Attendance Details Table */}
-            <div>
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Time</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Count</th>
-                    <th className="text-left py-3 px-4 font-medium text-gray-700">Percentage (%)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendanceStats.map((stat: any, index: number) => {
-                    const isLast = index === attendanceStats.length - 1
-                    return (
-                      <tr key={index} className={isLast ? "" : "border-b border-gray-100"}>
-                        <td className="py-3 px-4">
-                          {stat.Status?.toLowerCase() === "excused" ? (
-                            <span className="text-gray-700">{stat.Status}</span>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <div className={`h-2 w-2 rounded-full ${getStatusColor(stat.Status)}`} />
-                              <span className="text-gray-700">{stat.Status}</span>
-                            </div>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-gray-700">{stat.Time || "0"}</td>
-                        <td className="py-3 px-4 text-gray-700">{stat.Count || 0}</td>
-                        <td className="py-3 px-4 text-gray-700">
-                          {stat.Percentage !== undefined && stat.Percentage !== null
-                            ? stat.Percentage.toFixed(1)
-                            : stat.Status?.toLowerCase() === "excused" ? "-" : "0"}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
       </div>
-    )
-  }
+    </div>
+  );
+};
 
 
   const renderFeesContent = () => (
@@ -3175,23 +3250,36 @@ export default function StudentProfile() {
       )}
 
       {/* Student Attendance and Behaviour Modal */}
-      {showAttendanceModal && selectedLesson && (
-        <StudentAttendanceModal
-          studentId={parseInt(id!)}
-          studentName={studentName}
-          lesson={selectedLesson}
-          onClose={() => {
-            setShowAttendanceModal(false)
-            setSelectedLesson(null)
-          }}
-          onSuccess={() => {
-            // Refresh lessons after updating attendance
-            if (selectedClassId) {
-              fetchLessons(selectedClassId)
-            }
-          }}
-        />
-      )}
+      {/* Inside StudentProfile return block */}
+{showAttendanceModal && selectedLesson && (
+  <StudentAttendanceModal
+    studentId={parseInt(id!)}
+    studentName={studentName}
+    lesson={selectedLesson}
+    onClose={() => {
+      setShowAttendanceModal(false)
+      setSelectedLesson(null)
+    }}
+    onSuccess={() => {
+      if (selectedClassId) {
+        fetchLessons(selectedClassId)
+      }
+    }}
+    // Pass the function here
+    refreshStats={() => {
+      // Logic to trigger the useEffect in parent or call the fetch function directly
+      // Since fetchAttendanceStats is defined in the parent, make sure it's accessible
+      // or wrapped in a useCallback if needed.
+      const fetchStats = async () => {
+        const response = await axiosInstance.get("/Dashboard/GetStudentAttendanceStats", {
+          params: { studentId: Number(id) }
+        })
+        if (response.data?.IsSuccess) setAttendanceStats(response.data.Data)
+      }
+      fetchStats();
+    }}
+  />
+)}
     </div>
   )
 }
@@ -3202,13 +3290,15 @@ function StudentAttendanceModal({
   studentName,
   lesson,
   onClose,
-  onSuccess
+  onSuccess,
+  refreshStats
 }: {
   studentId: number
   studentName: string
   lesson: any
   onClose: () => void
   onSuccess: () => void
+  refreshStats: () => void
 }) {
   const [attendanceStatus, setAttendanceStatus] = useState<"Present" | "Absent" | "Late" | "Excused" | null>(
     lesson.attendance || null
@@ -3308,41 +3398,43 @@ function StudentAttendanceModal({
   }
 
   const handleMarkAttendance = async (status: "Present" | "Absent" | "Late") => {
-    if (isExcused) return
-    
-    setLoading(true)
-    try {
-      const dateForAPI = formatDateForAPI(lesson.date || lesson.startTime)
-      const payload = {
+  if (isExcused || loading) return;
+
+  const previousStatus = attendanceStatus;
+  setAttendanceStatus(status);
+  
+  try {
+    const response = await axiosInstance.post("/Class/MarkAttendance", null, { 
+      params: {
         classId: lesson.classId,
         scheduleId: lesson.scheduleId,
         studentId: studentId,
-        date: dateForAPI,
+        date: formatDateForAPI(lesson.date || lesson.startTime),
         attendanceStatus: status,
-      }
-      const response = await axiosInstance.post("/Class/MarkAttendance", null, { params: payload })
-      if (response.data?.IsSuccess) {
-        setAttendanceStatus(status)
-        // Update attendance data
-        if (attendanceData) {
-          setAttendanceData({
-            ...attendanceData,
-            AttendanceStatus: status,
-            AttendanceDate: new Date().toISOString()
-          })
-        }
-        Swal.fire("Success", "Attendance marked successfully", "success")
-        onSuccess()
-      } else {
-        Swal.fire("Error", response.data?.Message || "Failed to mark attendance", "error")
-      }
-    } catch (error: any) {
-      console.error("Error marking attendance:", error)
-      Swal.fire("Error", "Failed to mark attendance. Please try again.", "error")
-    } finally {
-      setLoading(false)
+      } 
+    });
+
+    if (response.data?.IsSuccess) {
+      // 1. Show Success Message
+      Swal.fire({
+        icon: 'success',
+        title: 'Attendance Saved',
+        text: `Status updated to ${status} successfully.`,
+        timer: 1500,
+        showConfirmButton: false
+      });
+
+      // 2. Refresh data using props
+      refreshStats(); 
+      onSuccess();
+    } else {
+      throw new Error(response.data?.Message);
     }
+  } catch (error) {
+    setAttendanceStatus(previousStatus);
+    Swal.fire("Error", "Could not save attendance. Please try again.", "error");
   }
+};
 
   const handleToggleExcused = async () => {
     const newExcused = !isExcused
