@@ -385,11 +385,11 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
     onClick={(e) => e.stopPropagation()}
     className={`w-full h-9 border text-[13px] font-bold transition-all flex items-center justify-center rounded-sm ${
       student.status === "Present"
-        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+        ? "bg-emerald-600 text-white border-emerald-700"
         : student.status === "Absent"
-        ? "bg-rose-50 text-rose-700 border-rose-200"
+        ? "bg-red-600 text-white border-red-700" 
         : student.status === "Late"
-        ? "bg-amber-50 text-amber-700 border-amber-200"
+        ? "bg-amber-600 text-white border-amber-700"
         : student.status === "Excused"
         ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed italic"
         : "bg-white text-slate-500 border-gray-300 hover:border-indigo-400"
@@ -415,7 +415,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
         </button>
         <div className="w-px bg-gray-200" />
         <button
-          className="flex-1 text-[10px] font-black text-rose-700 hover:bg-rose-600 hover:text-white transition-colors uppercase"
+          className="flex-1 text-[10px] font-black text-red-700 hover:bg-red-600 hover:text-white transition-colors uppercase"
           onClick={(e) => { e.stopPropagation(); markAttendance(student.classId, student.id, "Absent"); }}
         >
           Absent
