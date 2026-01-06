@@ -583,24 +583,41 @@ const stats = getOverallAttendanceStats();
         .join(", ")
     : ""
 
-  const defaultFieldKeys: StudentFieldKey[] = [
-    "Name",
-    "Student ID",
-    "Address",
-    "Date of Birth",
-    "Nationality",
-
-    "Passport Number",
-    "Course Start Date",
-    "Course End Date",
-    "Course Title",
-    "Mode of Study",
-    "Number of Weeks",
-    "Hours Per Week",
-    "Tuition Fees",
-    "End of the Course Exam Fee",
-    "ILEP Programme Reference"
-  ]
+    const isReferenceLetter = selectedDocument?.Title?.toLowerCase().includes("reference letter");
+    
+  const defaultFieldKeys: StudentFieldKey[] = isReferenceLetter 
+  ? [
+      "Name",
+      "Student ID",
+      "Address",
+      "Date of Birth",
+      "Attendance",
+      "Nationality",
+      "Passport Number",
+      "Course Start Date",
+      "Course End Date",
+      "Course Title", 
+      "Number of Weeks",
+      "Hours Per Week",
+      "Tuition Fees"
+    ]
+  : [
+      "Name",
+      "Student ID",
+      "Address",
+      "Date of Birth",
+      "Course Level",
+      "Passport Number",
+      "Course Start Date",
+      "Course End Date",
+      "Course Title",
+      "Mode of Study",
+      "Number of Weeks",
+      "Hours Per Week",
+      "Tuition Fees",
+      "End of the Course Exam Fee",
+      "ILEP Programme Reference"
+    ];
 
   const handleOpenInviteModal = () => {
     setPortalInviteOpen(true);
@@ -658,10 +675,25 @@ const stats = getOverallAttendanceStats();
       // Fallback to attendance field if available
       return studentdetails?.Attendance?.toString() || "—";
     },
-    "Nationality": () => studentdetails?.Nationality || "—",
+    
     "Course Start Date": () => formatDateValue(studentdetails?.CourseStartDate),
     "Finished Course Date": () => formatDateValue(studentdetails?.FinishedCourseDate),
     "Course Level": () => studentdetails?.CourseLevel || "—",
+
+
+    "Nationality": () => studentdetails?.Nationality || "—",
+    "Attendance": () => {
+      // Try to get attendance percentage from stats or calculate it
+      if (attendanceStats && attendanceStats.length > 0) {
+        const presentStat = attendanceStats.find((stat: any) => stat.Status?.toLowerCase() === "present");
+        if (presentStat?.Percentage !== undefined) {
+          return `${presentStat.Percentage.toFixed(1)}%`;
+        }
+      }
+      // Fallback to attendance field if available
+      return studentdetails?.Attendance?.toString() || "—";
+    },
+
     "External Exam": () => studentdetails?.ExternalExam || "—",
     "Date of External Exam": () => formatDateValue(studentdetails?.ExternalExamDate),
     "Score External Exam": () => studentdetails?.ScoreExternalExam || "—",
