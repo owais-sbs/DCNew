@@ -22,10 +22,18 @@ interface ApiClass {
   ClassSubject: string;
   ClassLevel: string;
   ClassDescription: string;
+  ClassRoomId: number;
   TeacherId: number;
+  Teacher: Teacher;
   StartDate: string;
+  RecurringSchedule: string;
   EndDate: string;
   IsActive: boolean;
+}
+
+interface Teacher {
+  TeacherId: number;
+  Name: string;
 }
 
 // Type for the data our component will use (the old 'sampleClasses' format)
@@ -37,6 +45,7 @@ interface ClassData {
   status: string;
   teacher: string; // NOTE: API gives TeacherId, UI expects name
   classroom: string; // NOTE: This is missing from your API response
+  classroomid: number; // Classroom ID
   starts: string;
   ends: string;
   recurringDayTime: string; // Recurring Day/Time
@@ -185,10 +194,11 @@ export default function ClassesScreen() {
             students: dummyStudentCount,
             status: apiClass.IsActive ? "Active" : "Inactive",
             teacher: `Teacher ID: ${apiClass.TeacherId}`,
-            classroom: "N/A",
+            teacherName: apiClass.Teacher?.Name || "N/A",
+            classroom: apiClass.ClassRoomId || "N/A",
             starts: formatDate(apiClass.StartDate),
             ends: formatDate(apiClass.EndDate),
-            recurringDayTime: "N/A",
+            recurringDayTime: apiClass.RecurringSchedule || "N/A",
             paymentFrequency: "None",
             paymentFees: "N/A",
           };
@@ -595,7 +605,7 @@ const pageButtons = () => {
                     {cls.status}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.teacher}</td>
+                <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.teacherName}</td>
                 <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.classroom}</td>
                 <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.starts}</td>
                 <td className="px-4 py-3 text-gray-700 border-r border-gray-300">{cls.ends}</td>

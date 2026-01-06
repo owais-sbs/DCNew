@@ -214,6 +214,7 @@ export default function AddClassForm() {
         if (formData.awardingBody) formDataToSend.append("AwardingBody", formData.awardingBody);
         if (formData.bookCode) formDataToSend.append("BookCode", formData.bookCode);
         if (formData.classType) formDataToSend.append("ClassType", formData.classType);
+        formDataToSend.append("TeacherId", formData.days[0].teacherId || "0"); // Primary teacher
         
         formDataToSend.append("StartDate", new Date(formData.startDate).toISOString());
         formDataToSend.append("EndDate", new Date(formData.endDate).toISOString());

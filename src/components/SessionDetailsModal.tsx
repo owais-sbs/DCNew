@@ -111,6 +111,10 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
   const [attendanceApplyTo, setAttendanceApplyTo] = useState<"all" | "selected">("all");
   const [bulkAttendanceStatus, setBulkAttendanceStatus] = useState<"Present" | "Absent" | "Late" | null>(null);
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
+  const [showEditLessonModal, setShowEditLessonModal] = useState(false);
+  const [editStartTime, setEditStartTime] = useState("");
+  const [editEndTime, setEditEndTime] = useState("");
+
 
   const numericSessionId = useMemo(() => Number(sessionId), [sessionId]);
 
@@ -256,6 +260,37 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
     }
   };
 
+  const updateLessonTime = async () => {
+  try {
+
+    const startDateTime = `${currentDate}T${editStartTime}:00`;
+    const endDateTime   = `${currentDate}T${editEndTime}:00`;
+
+    const payload = {
+      SessionId: numericSessionId,
+      StartTime: startDateTime,
+      EndTime: endDateTime,
+    };
+
+    
+
+     const res = await axiosInstance.post(
+      "/Class/UpdateSessionTime",
+      payload // ✅ BODY
+    );
+
+    if (res.data?.IsSuccess) {
+      setShowEditLessonModal(false);
+      alert("Lesson time updated");
+      //window.location.reload(); // or refetch lesson
+    }
+  } catch (err) {
+    console.error("Failed to update lesson time", err);
+    alert("Failed to update lesson time");
+  }
+};
+
+
   const clearAttendance = async () => {
     const studentsToClear = attendanceApplyTo === "all" 
       ? sessionStudents 
@@ -322,6 +357,45 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
       setIsBulkUpdating(false);
     }
   };
+
+ const to24Hour = (time: string) => {
+  if (!time) return "";
+  const date = new Date(`1970-01-01 ${time}`);
+  if (isNaN(date.getTime())) return "";
+  return date.toTimeString().slice(0, 5); // HH:mm
+};
+
+console.log("B;AFDASDF", lesson, showEditLessonModal)
+
+useEffect(() => {
+  if (!lesson || !showEditLessonModal) return;
+
+  // lesson.time = "9:00 am"
+  const start = to24Hour(lesson.time);
+
+  if (!start) return;
+
+  setEditStartTime(start);
+
+  // derive end time using duration
+  if (lesson.duration) {
+    const minutes =
+      lesson.duration.includes("hour")
+        ? parseInt(lesson.duration) * 60 +
+          (lesson.duration.includes("min")
+            ? parseInt(lesson.duration.split("min")[0].split(" ").pop() || "0")
+            : 0)
+        : 0;
+
+    if (minutes > 0) {
+      const [h, m] = start.split(":").map(Number);
+      const end = new Date(1970, 0, 1, h, m + minutes);
+      setEditEndTime(end.toTimeString().slice(0, 5));
+    }
+  }
+}, [lesson, showEditLessonModal]);
+
+
 
   const renderStudents = () => {
     if (isLoadingStudents) {
@@ -579,6 +653,13 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
     >
       {selectedStudents.length === sessionStudents.length ? "Deselect all" : "Select all"} ({selectedStudents.length})
     </button>
+    <button
+  onClick={() => setShowEditLessonModal(true)}
+  className="h-9 px-3 bg-indigo-600 text-white text-xs font-bold flex items-center gap-2 hover:bg-indigo-700 transition shadow-sm rounded-sm"
+>
+  ✏️ Edit lesson
+</button>
+
 
     <div className="w-px h-5 bg-gray-300 mx-1"></div>
 
@@ -979,6 +1060,67 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
         </div>
       </div>
     )}
+
+    {showEditLessonModal && (
+  <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4"
+       onClick={() => setShowEditLessonModal(false)}>
+    <div
+      className="bg-white border border-gray-300 shadow-2xl w-full max-w-md"
+      onClick={(e) => e.stopPropagation()}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-3 bg-[#1e293b] text-white">
+        <h2 className="text-sm font-bold">Edit Lesson Time</h2>
+        <button onClick={() => setShowEditLessonModal(false)}>✕</button>
+      </div>
+
+      {/* Body */}
+      <div className="p-5 space-y-4">
+        <div>
+          <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">
+            Start Time
+          </label>
+          <input
+            type="time"
+            value={editStartTime}
+            onChange={(e) => setEditStartTime(e.target.value)}
+            className="w-full px-2 py-2 border border-gray-300 text-xs"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">
+            End Time
+          </label>
+          <input
+            type="time"
+            value={editEndTime}
+            onChange={(e) => setEditEndTime(e.target.value)}
+            className="w-full px-2 py-2 border border-gray-300 text-xs"
+          />
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="flex justify-end gap-2 p-4 border-t border-gray-200 bg-[#f1f5f9]">
+        <button
+          onClick={() => setShowEditLessonModal(false)}
+          className="px-4 h-8 border border-gray-300 bg-white text-xs font-bold"
+        >
+          Cancel
+        </button>
+
+        <button
+          onClick={updateLessonTime}
+          className="px-5 h-8 bg-indigo-600 text-white text-xs font-bold hover:bg-indigo-700"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
   </div>
 );
 };
