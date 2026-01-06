@@ -168,116 +168,111 @@ export default function AddClassForm() {
   // ## CHANGED: This entire function is updated to match your C# model ##
   // ####################################################################
   const handleSubmit = async () => {
-    // ✅ Basic form validation
+    // 1. Basic form validation
     if (!formData.title.trim()) {
-      return Swal.fire("Required", "Class title is required.", "warning");
+        return Swal.fire("Required", "Class title is required.", "warning");
     }
     if (!formData.startDate.trim() || !formData.endDate.trim()) {
-      return Swal.fire("Required", "Start Date and End Date are required.", "warning");
+        return Swal.fire("Required", "Start Date and End Date are required.", "warning");
     }
     if (formData.days.length === 0) {
-      return Swal.fire("Required", "Please add at least one schedule day.", "warning");
+        return Swal.fire("Required", "Please add at least one schedule day.", "warning");
     }
-
     if (!formData.classRoomId) {
-      return Swal.fire("Required", "Please select a classroom.", "warning")
+        return Swal.fire("Required", "Please select a classroom.", "warning");
     }
 
     const scheduleEntries = formData.days.map((day) => ({
-      WeekDay: day.day,
-      StartTime: day.startTime,
-      EndTime: day.endTime,
-      TeacherIds: day.teacherId ? [Number(day.teacherId)].filter((id) => !Number.isNaN(id)) : [],
-    }))
+        WeekDay: day.day,
+        StartTime: day.startTime,
+        EndTime: day.endTime,
+        TeacherIds: day.teacherId ? [Number(day.teacherId)].filter((id) => !Number.isNaN(id)) : [],
+    }));
 
     if (scheduleEntries.some((entry) => !entry.StartTime || !entry.EndTime)) {
-      return Swal.fire("Required", "Please enter start and end time for each schedule day.", "warning")
+        return Swal.fire("Required", "Please enter start and end time for each schedule day.", "warning");
     }
 
     if (scheduleEntries.some((entry) => !entry.TeacherIds.length)) {
-      return Swal.fire("Required", "Please select a teacher for each schedule day.", "warning")
+        return Swal.fire("Required", "Please select a teacher for each schedule day.", "warning");
     }
 
     try {
-      // Create FormData for [FromForm] endpoint
-      const formDataToSend = new FormData();
+        // Create FormData (Crucial: Backend MUST have [FromForm] ClassDto dto)
+        const formDataToSend = new FormData();
 
-      // Append basic class properties
-      formDataToSend.append("Id", "0");
-      formDataToSend.append("ClassTitle", formData.title);
-      formDataToSend.append("ClassRooomId", String(formData.classRoomId));
-      if (formData.subject) formDataToSend.append("ClassSubject", formData.subject);
-      if (formData.level) formDataToSend.append("ClassLevel", formData.level);
-      if (formData.description) formDataToSend.append("ClassDescription", formData.description);
-      if (formData.classCode) formDataToSend.append("ClassCode", formData.classCode);
-      if (formData.year) formDataToSend.append("Year", formData.year);
-      if (formData.creditHours) formDataToSend.append("CreditHours", formData.creditHours);
-      if (formData.awardingBody) formDataToSend.append("AwardingBody", formData.awardingBody);
-      if (formData.bookCode) formDataToSend.append("BookCode", formData.bookCode);
-      if (formData.classType) formDataToSend.append("ClassType", formData.classType);
-      
-      if (formData.startDate) {
+        // --- Append basic class properties ---
+        formDataToSend.append("Id", "0");
+        formDataToSend.append("ClassTitle", formData.title);
+        formDataToSend.append("ClassRooomId", String(formData.classRoomId));
+        if (formData.subject) formDataToSend.append("ClassSubject", formData.subject);
+        if (formData.level) formDataToSend.append("ClassLevel", formData.level);
+        if (formData.description) formDataToSend.append("ClassDescription", formData.description);
+        if (formData.classCode) formDataToSend.append("ClassCode", formData.classCode);
+        if (formData.year) formDataToSend.append("Year", formData.year);
+        if (formData.creditHours) formDataToSend.append("CreditHours", formData.creditHours);
+        if (formData.awardingBody) formDataToSend.append("AwardingBody", formData.awardingBody);
+        if (formData.bookCode) formDataToSend.append("BookCode", formData.bookCode);
+        if (formData.classType) formDataToSend.append("ClassType", formData.classType);
+        
         formDataToSend.append("StartDate", new Date(formData.startDate).toISOString());
-      }
-      if (formData.endDate) {
         formDataToSend.append("EndDate", new Date(formData.endDate).toISOString());
-      }
-      if (formData.publishDate) {
-        formDataToSend.append("PublishDate", new Date(formData.publishDate).toISOString());
-      }
-      
-      formDataToSend.append("IsDeleted", "false");
-      formDataToSend.append("IsActive", "true");
-      formDataToSend.append("CreatedOn", new Date().toISOString());
-      formDataToSend.append("UpdatedOn", new Date().toISOString());
-      formDataToSend.append("CreatedBy", "system");
-      formDataToSend.append("UpdatedBy", "system");
+        
+        if (formData.publishDate) {
+            formDataToSend.append("PublishDate", new Date(formData.publishDate).toISOString());
+        }
+        
+        formDataToSend.append("IsDeleted", "false");
+        formDataToSend.append("IsActive", "true");
+        formDataToSend.append("CreatedOn", new Date().toISOString());
 
-      // Append Schedule entries
-      scheduleEntries.forEach((schedule, index) => {
-        formDataToSend.append(`Schedule[${index}].WeekDay`, schedule.WeekDay);
-        formDataToSend.append(`Schedule[${index}].StartTime`, schedule.StartTime);
-        formDataToSend.append(`Schedule[${index}].EndTime`, schedule.EndTime);
-        schedule.TeacherIds.forEach((teacherId, teacherIndex) => {
-          formDataToSend.append(`Schedule[${index}].TeacherIds[${teacherIndex}]`, String(teacherId));
+        // --- Append Schedule entries (Correct array indexing for .NET) ---
+        scheduleEntries.forEach((schedule, index) => {
+            formDataToSend.append(`Schedule[${index}].WeekDay`, schedule.WeekDay);
+            formDataToSend.append(`Schedule[${index}].StartTime`, schedule.StartTime);
+            formDataToSend.append(`Schedule[${index}].EndTime`, schedule.EndTime);
+            schedule.TeacherIds.forEach((teacherId, teacherIndex) => {
+                formDataToSend.append(`Schedule[${index}].TeacherIds[${teacherIndex}]`, String(teacherId));
+            });
         });
-      });
 
-      // Append Attachments with actual File objects
-      syllabusFiles.forEach((file, index) => {
-        const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
-        formDataToSend.append(`Attachments[${index}].Id`, "0");
-        formDataToSend.append(`Attachments[${index}].FileDetails`, file);
-        formDataToSend.append(`Attachments[${index}].FileType`, fileExtension);
-        formDataToSend.append(`Attachments[${index}].URL`, "");
-        formDataToSend.append(`Attachments[${index}].ClassID`, "0");
-      });
+        // --- Append Attachments (Actual File objects) ---
+        syllabusFiles.forEach((file, index) => {
+            const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+            formDataToSend.append(`Attachments[${index}].Id`, "0");
+            formDataToSend.append(`Attachments[${index}].FileDetails`, file); // IFormFile on backend
+            formDataToSend.append(`Attachments[${index}].FileType`, fileExtension);
+            formDataToSend.append(`Attachments[${index}].ClassID`, "0");
+        });
 
-      console.log("Sending FormData to API with", syllabusFiles.length, "attachment(s)");
+        const response = await axiosInstance.post("/Class/AddOrUpdateClass", formDataToSend, {
+            headers: {
+                // Important: Do not manually set Content-Type to 'application/json'
+                'Content-Type': 'multipart/form-data',
+            },
+        });
 
-      const response = await axiosInstance.post("/Class/AddOrUpdateClass", formDataToSend, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      Swal.fire({
-        icon: "success",
-        title: "Class Created",
-        text: response.data || "Your class has been added successfully.",
-        confirmButtonColor: "#2563eb"
-      });
-      // You might want to reset the form here
-      // setFormData({ ...initialState }); 
-    } catch (error: any) {
-      console.error("API Error:", error.response || error);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: error.response?.data?.title || error.response?.data || "Something went wrong.",
-        confirmButtonColor: "#dc2626"
-      });
+        // Parse result string from your Controller logic
+        const resultString = typeof response.data === 'string' ? response.data : response.data.Message;
+        const isSuccess = resultString?.toLowerCase().includes("successfully");
+
+        Swal.fire({
+            icon: isSuccess ? "success" : "error",
+            title: isSuccess ? "Success" : "Error",
+            text: resultString || "Process completed.",
+            confirmButtonColor: isSuccess ? "#2563eb" : "#dc2626"
+        });
+
+    } catch (error) {
+        console.error("API Error:", error.response || error);
+        Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: error.response?.data?.Message || "An error occurred while communicating with the server.",
+            confirmButtonColor: "#dc2626"
+        });
     }
-  };
+};
 
   const updateDay = (index: number, field: string, value: string) => {
     setFormData(prev => ({
