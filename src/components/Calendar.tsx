@@ -940,35 +940,50 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                         <div className="text-sm font-bold text-slate-800 truncate">{student.name}</div>
                         
                         <div className="relative mt-2 group max-w-[240px]">
-                          <button
-                            className={`w-full h-8 -sm border text-[11px] font-bold uppercase tracking-tight transition-all
-                              ${student.status === "Present" ? "bg-green-50 text-green-700 border-green-200"
-                              : student.status === "Absent" ? "bg-red-50 text-red-700 border-red-200"
-                              : student.status === "Late" ? "bg-amber-50 text-amber-700 border-amber-200"
-                              : student.status === "Excused" ? "bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed"
-                              : "bg-white text-slate-600 border-gray-300 hover:bg-slate-50 shadow-sm" }
-                            `}
-                            disabled={student.status === "Excused" || updatingStudent === student.id}
-                          >
-                            {updatingStudent === student.id ? (
-                              <Loader2 className="animate-spin w-4 h-4 mx-auto" />
-                            ) : (
-                              student.status ?? "Record Attendance"
-                            )}
-                          </button>
-
-                          {student.status !== "Excused" && (
-                            <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto shadow-lg">
-                              <div className="w-full h-8 border border-gray-400 bg-white overflow-hidden flex text-[10px] font-bold uppercase -sm">
-                                <button className="flex-1 hover:bg-green-100 text-green-700" onClick={() => markAttendance(student.classId, student.id, "Present")}>Present</button>
-                                <div className="w-px bg-gray-200" />
-                                <button className="flex-1 hover:bg-red-100 text-red-700" onClick={() => markAttendance(student.classId, student.id, "Absent")}>Absent</button>
-                                <div className="w-px bg-gray-200" />
-                                <button className="flex-1 hover:bg-amber-100 text-amber-700" onClick={() => markAttendance(student.classId, student.id, "Late")}>Late</button>
-                              </div>
-                            </div>
+                        <button
+                          className={`w-full h-8 rounded-sm border text-[11px] font-bold uppercase tracking-tight transition-all
+                            ${student.status === "Present" ? "bg-[#0f9d58] text-white border-[#0f9d58]" 
+                            : student.status === "Absent" ? "bg-[#db4437] text-white border-[#db4437]" 
+                            : student.status === "Late" ? "bg-[#e67c00] text-white border-[#e67c00]" 
+                            : student.status === "Excused" ? "bg-slate-100 text-slate-500 border-slate-200 cursor-not-allowed" 
+                            : "bg-white text-[#5f6368] border-gray-300 hover:bg-slate-50 shadow-sm"}
+                          `}
+                          disabled={student.status === "Excused" || updatingStudent === student.id}
+                        >
+                          {updatingStudent === student.id ? (
+                            <Loader2 className="animate-spin w-4 h-4 mx-auto" />
+                          ) : (
+                            student.status ?? "Record Attendance"
                           )}
-                        </div>
+                        </button>
+
+                        {student.status !== "Excused" && (
+                          <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto shadow-lg">
+                            <div className="w-full h-8 border border-gray-400 bg-white overflow-hidden flex text-[10px] font-bold uppercase rounded-sm">
+                              <button 
+                                className="flex-1 hover:bg-green-600 text-black transition-colors" 
+                                onClick={() => markAttendance(student.classId, student.id, "Present")}
+                              >
+                                Present
+                              </button>
+                              <div className="w-px bg-gray-200" />
+                              <button 
+                                className="flex-1 hover:bg-red-600 text-black transition-colors" 
+                                onClick={() => markAttendance(student.classId, student.id, "Absent")}
+                              >
+                                Absent
+                              </button>
+                              <div className="w-px bg-gray-200" />
+                              <button 
+                                className="flex-1 hover:bg-amber-600 text-black transition-colors" 
+                                onClick={() => markAttendance(student.classId, student.id, "Late")}
+                              >
+                                Late
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                       </div>
 
                       <div className="flex items-center gap-1">
