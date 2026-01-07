@@ -115,6 +115,16 @@ export default function StudentProfile() {
   const [includeSignature, setIncludeSignature] = useState<boolean>(true)
   const [profileImageError, setProfileImageError] = useState(false)
   const [signatureBase64Map, setSignatureBase64Map] = useState<Record<number, string>>({})
+
+
+
+    const [currentPage, setCurrentPage] = useState(1)
+    const [pageSize, setPageSize] = useState(10)
+    const [totalCount, setTotalCount] = useState(0)
+    const [fromDate, setFromDate] = useState("")
+    const [toDate, setToDate] = useState("")
+
+
   const [attendanceStats, setAttendanceStats] = useState<any[]>([])
   const [loadingAttendanceStats, setLoadingAttendanceStats] = useState(false)
   const [attendanceStatsError, setAttendanceStatsError] = useState<string | null>(null)
@@ -496,67 +506,62 @@ const stats = getOverallAttendanceStats();
   }
 
   // Fetch lessons for selected class using GetAttendanceForStudentInClass
-  const fetchLessons = async (classId: number) => {
-    setSelectedClassId(classId)
-    setLoadingLessons(true)
-    setAttendanceData({}) // Clear previous attendance data
-    
-    if (!id) {
-      setLoadingLessons(false)
-      return
-    }
-    
-    try {
-      const response = await axiosInstance.get("/Class/GetAttendanceForStudentInClass", {
-        params: { 
-          classId,
-          studentId: Number(id)
-        }
-      })
-
-      console.log("Lessons response from GetAttendanceForStudentInClass:", response.data)
-      if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
-        // Map the attendance API response to lessons format
-        const mapped = response.data.Data.map((s: any) => ({
-          scheduleId: s.SessionId,
-          classId: classId,
-          date: s.AttendanceDate || s.SessionStartTime,
-          startTime: s.SessionStartTime,
-          endTime: s.SessionEndTime,
-          className: s.ClassTitle || "—",
-          dayOfWeek: s.SessionDayOfWeek || null,
-          attendance: s.AttendanceStatus || null,
-        }))
-        setLessons(mapped)
-        setClassesSubTab('lessons')
+  const fetchLessons = async (classId: number, page: number = 1) => {
+        if (!id) return
         
-        // Also create attendance data map for easy lookup (used in modal)
-        const attendanceMap: Record<number, any> = {}
-        response.data.Data.forEach((item: any) => {
-          if (item.SessionId) {
-            attendanceMap[item.SessionId] = {
-              attendanceStatus: item.AttendanceStatus,
-              attendanceDate: item.AttendanceDate,
-              sessionDayOfWeek: item.SessionDayOfWeek,
-              sessionStartTime: item.SessionStartTime,
-              sessionEndTime: item.SessionEndTime,
-              classTitle: item.ClassTitle
+        setSelectedClassId(classId)
+        setLoadingLessons(true)
+        setCurrentPage(page)
+
+        try {
+            const response = await axiosInstance.get("/Class/GetAttendanceForStudentInClasspagination", {
+                params: {
+                    classId: classId,
+                    studentId: Number(id),
+                    fromDate: fromDate || null,
+                    toDate: toDate || null,
+                    page: page,
+                    pageSize: pageSize
+                }
+            })
+
+            if (response.data?.IsSuccess) {
+                // API returns { TotalCount, Items }
+                const result = response.data.Data;
+                const mapped = result.Items.map((s: any) => ({
+                    scheduleId: s.SessionId,
+                    classId: classId,
+                    date: s.AttendanceDate || s.SessionStartTime,
+                    startTime: s.SessionStartTime,
+                    endTime: s.SessionEndTime,
+                    className: s.ClassTitle || "—",
+                    dayOfWeek: s.SessionDayOfWeek || null,
+                    attendance: s.AttendanceStatus || null,
+                }))
+                
+                setLessons(mapped)
+                setTotalCount(result.TotalCount)
+                setClassesSubTab('lessons')
+            } else {
+                setLessons([])
+                setTotalCount(0)
             }
-          }
-        })
-        setAttendanceData(attendanceMap)
-      } else {
-        setLessons([])
-        Swal.fire("Error", "Failed to load lessons", "error")
-      }
-    } catch (error: any) {
-      console.error("Error fetching lessons:", error)
-      Swal.fire("Error", "Failed to load lessons. Please try again.", "error")
-      setLessons([])
-    } finally {
-      setLoadingLessons(false)
+        } catch (error) {
+            console.error("Error fetching paginated lessons:", error)
+            setLessons([])
+        } finally {
+            setLoadingLessons(false)
+        }
     }
-  }
+
+    // Effect to trigger fetch when page or dates change
+    useEffect(() => {
+        if (selectedClassId && classesSubTab === 'lessons') {
+            fetchLessons(selectedClassId, currentPage)
+        }
+    }, [currentPage, fromDate, toDate])
+
+    const tabs = ["Profile", "Activity", "Classes", "Attendance", "Attachments", "Create documents"]
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -822,14 +827,7 @@ const stats = getOverallAttendanceStats();
       })())
   }
 
-  const tabs = [
-    "Profile",
-    "Activity",
-    "Classes",
-    "Attendance",
-    "Attachments",
-    "Create documents"
-  ]
+  
 
  const renderActivityContent = () => (
   <div className="bg-white border border-gray-200 p-6 shadow-sm">
@@ -957,61 +955,79 @@ const stats = getOverallAttendanceStats();
 
 
 {classesSubTab === 'lessons' && (
-        <div>
-          {selectedClassId && (
-            <div className="mb-4 flex items-center gap-2">
-              <button
-                onClick={() => {
-                  setClassesSubTab('classes')
-                  setSelectedClassId(null)
-                  setLessons([])
-                }}
-                className="text-sm text-blue-600 hover:text-blue-700"
-              >
-                ← Back to classes
-              </button>
-            </div>
-          )}
-          <div className="flex items-center gap-4 mb-4">
-            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
-              <option>Attendance: All</option>
-            </select>
-            <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
-              <option>Class: All</option>
-            </select>
-            <div className="relative">
-              <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
-                Date: 01-01-2013 - 01-01-2030 <ChevronDown size={14} />
-              </button>
-            </div>
-            <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center">
-              <Clock size={16} className="text-gray-500" />
+      <div>
+        {selectedClassId && (
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              onClick={() => {
+                setClassesSubTab('classes')
+                setSelectedClassId(null)
+                setLessons([])
+                setCurrentPage(1) // Reset page
+              }}
+              className="text-sm text-blue-600 hover:text-blue-700"
+            >
+              &larr; Back to classes
             </button>
           </div>
-          {loadingLessons ? (
-            <div className="py-12 text-center text-gray-500">
-              Loading lessons...
-            </div>
-          ) : lessons.length === 0 ? (
-            <div className="py-12 text-center text-gray-500">
-              {selectedClassId ? "No lessons found for this class." : "Select a class and click 'View lessons' to see lessons."}
-            </div>
-          ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
+        )}
+
+        {/* Filter Section */}
+        <div className="flex items-center gap-4 mb-4">
+          <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+            <option>Attendance: All</option>
+          </select>
+          <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
+            <option>Class: All</option>
+          </select>
+          
+          {/* 🔹 Date Filters Integrated */}
+          <div className="flex items-center gap-2">
+            <input 
+              type="date" 
+              value={fromDate} 
+              onChange={(e) => { setFromDate(e.target.value); setCurrentPage(1); }}
+              className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm"
+            />
+            <span className="text-gray-400">to</span>
+            <input 
+              type="date" 
+              value={toDate} 
+              onChange={(e) => { setToDate(e.target.value); setCurrentPage(1); }}
+              className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm"
+            />
+          </div>
+
+          <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center">
+            <Clock size={16} className="text-gray-500" />
+          </button>
+        </div>
+
+        {loadingLessons ? (
+          <div className="py-12 text-center text-gray-500">
+            Loading lessons...
+          </div>
+        ) : lessons.length === 0 ? (
+          <div className="py-12 text-center text-gray-500">
+            {selectedClassId ? "No lessons found for this class." : "Select a class and click 'View lessons' to see lessons."}
+          </div>
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Day</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
                   </tr>
-               </thead>
+                </thead>
 
                 <tbody>
                   {lessons.map((lesson, i) => {
-                    const formatLessonDate = (dateString?: string) => {
+                    const formatLessonDate = (dateString) => {
                       if (!dateString) return "—"
                       const date = new Date(dateString)
                       if (Number.isNaN(date.getTime())) return "—"
@@ -1019,8 +1035,8 @@ const stats = getOverallAttendanceStats();
                       const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
                       return `${dateStr} ${timeStr}`
                     }
-                    
-                    const getAttendanceColor = (status: string | null) => {
+
+                    const getAttendanceColor = (status) => {
                       if (!status) return ""
                       switch (status.toLowerCase()) {
                         case "present": return "bg-green-100 text-green-800"
@@ -1031,20 +1047,17 @@ const stats = getOverallAttendanceStats();
                         default: return "bg-gray-100 text-gray-800"
                       }
                     }
-                    
+
                     const lessonDate = formatLessonDate(lesson.date || lesson.startTime)
-                    const lessonTime = lesson.startTime && lesson.endTime 
+                    const lessonTime = lesson.startTime && lesson.endTime
                       ? `${new Date(lesson.startTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}-${new Date(lesson.endTime).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
                       : ""
-                    
-                    // Get attendance data from the lesson object (already mapped from API)
+
                     const attendanceStatus = lesson.attendance || null
-                    
-                    // Format attendance status for display (exclude "NotTaken")
-                    const displayAttendanceStatus = attendanceStatus && attendanceStatus.toLowerCase() !== "nottaken" 
-                      ? attendanceStatus 
+                    const displayAttendanceStatus = attendanceStatus && attendanceStatus.toLowerCase() !== "nottaken"
+                      ? attendanceStatus
                       : null
-                    
+
                     return (
                       <tr key={lesson.scheduleId || i} className="border-b border-gray-100 hover:bg-gray-50">
                         <td className="py-3 px-4 text-gray-700">
@@ -1054,43 +1067,120 @@ const stats = getOverallAttendanceStats();
                         <td className="py-3 px-4 text-gray-700">
                           {lesson.dayOfWeek || "—"}
                         </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-red-500" />
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 rounded-full bg-red-500" />
                             <div>
                               <div className="font-medium text-gray-900">{lesson.className || "Unnamed Class"}</div>
                             </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
                           {displayAttendanceStatus ? (
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getAttendanceColor(displayAttendanceStatus)}`}>
                               {displayAttendanceStatus}
-                      </span>
+                            </span>
                           ) : (
                             <span className="text-gray-400">—</span>
                           )}
-                    </td>
-                    <td className="py-3 px-4">
-                          <button 
+                        </td>
+                        <td className="py-3 px-4">
+                          <button
                             className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
                             onClick={() => {
                               setSelectedLesson(lesson)
                               setShowAttendanceModal(true)
                             }}
                           >
-                        <FileText size={16} />
-                      </button>
-                    </td>
-                  </tr>
+                            <FileText size={16} />
+                          </button>
+                        </td>
+                      </tr>
                     )
                   })}
-              </tbody>
-            </table>
-          </div>
-          )}
-        </div>
-      )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* 🔹 Pagination Controls Added */}
+            <div className="flex items-center justify-between mt-6 px-4 bg-white py-3 border-t border-gray-100">
+      {/* Left Side: Entries Info */}
+      <div className="flex items-center gap-4">
+        <p className="text-sm text-gray-500">
+          Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> - <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span> of <span className="font-medium">{totalCount}</span>
+        </p>
+        
+        {/* Page Size Selector (Optional as per screenshot) */}
+        <select 
+          value={pageSize}
+          onChange={(e) => {
+            setPageSize(Number(e.target.value));
+            setCurrentPage(1);
+          }}
+          className="border border-gray-300 rounded px-2 py-1 text-sm bg-white"
+        >
+          <option value={10}>10</option>
+          <option value={20}>20</option>
+          <option value={50}>50</option>
+          <option value={100}>100</option>
+          <option value={200}>200</option>
+        </select>
+      </div>
+
+      {/* Right Side: Pagination Controls */}
+      <div className="flex items-center gap-1">
+        {/* Previous Button */}
+        <button
+          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+          disabled={currentPage === 1}
+          className="px-3 py-1.5 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+        >
+          Previous
+        </button>
+
+        {/* Dynamic Page Numbers */}
+        {(() => {
+          const pages = [];
+          const totalPages = Math.ceil(totalCount / pageSize);
+          
+          // Kitne page numbers dikhane hain uska logic
+          for (let i = 1; i <= totalPages; i++) {
+            // Sirf current page ke aas-paas ke numbers dikhane ke liye (agar pages bahut zyada hon)
+            if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+              pages.push(
+                <button
+                  key={i}
+                  onClick={() => setCurrentPage(i)}
+                  className={`px-3 py-1.5 text-sm font-medium rounded border ${
+                    currentPage === i
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {i}
+                </button>
+              );
+            } else if (i === currentPage - 2 || i === currentPage + 2) {
+              pages.push(<span key={i} className="px-2">...</span>);
+            }
+          }
+          return pages;
+        })()}
+
+        {/* Next Button */}
+        <button
+          onClick={() => setCurrentPage(prev => prev + 1)}
+          disabled={currentPage * pageSize >= totalCount}
+          className="px-3 py-1.5 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
+    </div>
+          </>
+        )}
+      </div>
+    )}
                
 
     {/* TABLE */}

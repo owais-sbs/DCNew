@@ -337,20 +337,12 @@ export default function ClassDetailsScreen() {
     </li>
 
     <li className="flex items-center gap-2">
-      📍 <span>Classroom: {classInfo.ClassRoomName || "—"}</span>
+      📍 <span>ClassLevel: {classInfo.ClassLevel || "—"}</span>
     </li>
 
-    <li className="flex items-center gap-2">
-      ✏️ <span>Total Lessons: {classInfo.TotalLessons}</span>
-    </li>
+    
 
-    <li className="flex items-center gap-2">
-      ⏱️ <span>Total Lessons Hours: {classInfo.TotalLessonHours}</span>
-    </li>
-
-    <li className="flex items-center gap-2">
-      🕒 <span>Total Hours Taught: {classInfo.TotalHoursTaught}</span>
-    </li>
+  
   </ul>
 
   {/* FOOTER */}
