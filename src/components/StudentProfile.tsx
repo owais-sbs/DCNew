@@ -46,12 +46,20 @@ type DocumentTemplateContent = {
 }
 
 const formatDateValue = (value?: string | null) => {
-  if (!value) return "—"
-  const date = new Date(value)
+  if (!value) return "—";
+  const date = new Date(value);
+  
   if (Number.isNaN(date.getTime())) {
-    return value.split("T")[0] ?? value
+    const parts = value.split("T")[0].split("-");
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`; 
+    return value.split("T")[0] ?? value;
   }
-  return date.toLocaleDateString("en-GB")
+
+  return date.toLocaleDateString("en-GB", {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
 }
 
 const formatCurrency = (value?: number | string | null) => {
@@ -2510,9 +2518,9 @@ const stats = getOverallAttendanceStats();
       {/* DATES */}
       <Row3
         label1="Registration Date"
-        value1={studentdetails?.RegistrationDate?.split("T")[0]}
+        value1={formatDateValue(studentdetails?.RegistrationDate)}
         label2="Date of Birth"
-        value2={studentdetails?.DateOfBirth?.split("T")[0]}
+        value2={formatDateValue(studentdetails?.DateOfBirth)}
         sub2="Birthday is in 8 days"
         label3="Id. Number"
         value3={studentdetails?.IdNumber}
@@ -2564,23 +2572,23 @@ const stats = getOverallAttendanceStats();
         label2="Passport Number"
         value2={studentdetails?.PassportNumber}
         label3="Passport Expiry Date"
-        value3={studentdetails?.PassportExpiryDate?.split("T")[0]}
+        value3={formatDateValue(studentdetails?.PassportExpiryDate)}
       />
 
       {/* COURSE DATES */}
       <Row3
         label1="GNIB Expiry Date"
-        value1={studentdetails?.GnibExpiryDate?.split("T")[0]}
+        value1={formatDateValue(studentdetails?.GnibExpiryDate)}
         label2="Course Start Date"
-        value2={studentdetails?.CourseStartDate?.split("T")[0]}
+        value2={formatDateValue(studentdetails?.CourseStartDate)}
         label3="Course End Date"
-        value3={studentdetails?.CourseEndDate?.split("T")[0]}
+        value3={formatDateValue(studentdetails?.CourseEndDate)}
       />
 
       {/* COURSE INFO */}
       <Row3
         label1="Finished Course Date"
-        value1={studentdetails?.FinishedCourseDate?.split("T")[0]}
+        value1={formatDateValue(studentdetails?.FinishedCourseDate)}
         label2="Attendance"
         value2={studentdetails?.Attendance}
         label3="Course Title"
@@ -2619,11 +2627,11 @@ const stats = getOverallAttendanceStats();
       {/* EXAM */}
       <Row3
         label1="Date of External Exam"
-        value1={studentdetails?.ExternalExamDate?.split("T")[0]}
+        value1={formatDateValue(studentdetails?.ExternalExamDate)}
         label2="Score External Exam"
         value2={studentdetails?.ScoreExternalExam}
         label3="Date of Payment"
-        value3={studentdetails?.DateOfPayment?.split("T")[0]}
+        value3={formatDateValue(studentdetails?.DateOfPayment)}
       />
 
       <Row3
@@ -2699,7 +2707,7 @@ const stats = getOverallAttendanceStats();
       {/* FOOTER */}
       <div className="px-6 py-3 text-xs text-gray-500 bg-gray-50">
         Created By: {studentdetails?.CreatedByName || "Asif Omer"} <br />
-        Created Date: {studentdetails?.CreatedOn?.split("T")[0]}
+        Created Date: {formatDateValue(studentdetails.CreatedOn) || "-"} <br />
       </div>
     </div>
   )

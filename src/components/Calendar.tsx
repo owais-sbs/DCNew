@@ -117,17 +117,28 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
   const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [showAddStudent, setShowAddStudent] = useState(false)
 
+  const [allStudentSearch, setAllStudentSearch] = useState("");
+
+
+  const filteredAllStudents = useMemo(() => {
+    return allStudents.filter((s) => {
+      const fullName = `${s.FirstName ?? ""} ${s.Surname ?? ""}`.toLowerCase();
+      return fullName.includes(allStudentSearch.toLowerCase());
+    });
+  }, [allStudents, allStudentSearch]);
+
   const navigate = useNavigate()
   const location = useLocation()
 
   const dayString = useMemo(() => {
-    return currentDate.toLocaleDateString("en-US", {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }, [currentDate])
+  return currentDate.toLocaleDateString("en-GB", {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  }, [currentDate]);
+
 
   const datasets: Record<string, string[]> = {
     Student: [ "Abdurrakhim Umirbyek", "Abraham Emmanuel Acosta Garcia" ],
@@ -546,23 +557,25 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
           </div>
 
           {/* Center date label */}
-          <div className="flex-1 flex items-center justify-center text-sm font-semibold text-gray-800">
-            {viewMode === "Day" && dayString}
-            {viewMode === "Week" && (
-              <>
-                {weekStart.toLocaleDateString("en-US", { month: 'short', day: 'numeric' })}{" "}
-                –{" "}
-                {addDays(weekStart,6).toLocaleDateString("en-US", {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
-              </>
-            )}
-            {viewMode === "Month" && (
-              <>{currentDate.toLocaleString('default', { month: 'short', year: 'numeric' })}</>
-            )}
-          </div>
+<div className="flex-1 flex items-center justify-center text-sm font-semibold text-gray-800">
+  {viewMode === "Day" && dayString}
+  
+  {viewMode === "Week" && (
+    <>
+      {weekStart.toLocaleDateString("en-GB", { day: 'numeric', month: 'short' })}
+      {" – "}
+      {addDays(weekStart, 6).toLocaleDateString("en-GB", {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      })}
+    </>
+  )}
+
+  {viewMode === "Month" && (
+    <>{currentDate.toLocaleString('en-GB', { month: 'short', year: 'numeric' })}</>
+  )}
+</div>
 
           {/* View mode buttons (right) */}
           <div className="flex items-stretch">
@@ -1153,39 +1166,96 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Left Side: All Students */}
           <div className="flex flex-col">
-            <h4 className="text-[10px] font-bold text-slate-700 mb-2 px-2 uppercase tracking-widest">All students</h4>
-            <div className="border border-gray-300  bg-white h-72 overflow-y-auto shadow-inner p-1">
-              {isLoadingAllStudents ? (
-                <div className="flex items-center justify-center h-40">
-                  <Loader2 className="animate-spin text-blue-500" size={28} />
-                </div>
-              ) : (
-                allStudents.map((s: any) => {
-                  const disabled = alreadyEnrolled.includes(s.Id);
-                  const selectedFlag = selectedToEnroll.includes(s.Id);
-                  return (
-                    <div
-                      key={s.Id}
-                      onClick={() => !disabled && setSelectedToEnroll(prev =>
-                        prev.includes(s.Id) ? prev.filter(id => id !== s.Id) : [...prev, s.Id]
-                      )}
-                      className={`px-3 py-2 text-[11px] border-b border-slate-50 flex justify-between items-center cursor-pointer transition-colors
-                        ${ disabled ? "bg-slate-100 text-slate-400 cursor-not-allowed" : 
-                           selectedFlag ? "bg-blue-50 text-blue-700 font-bold" : "hover:bg-slate-50 text-slate-600 font-medium" }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <div className={`w-3 h-3 border -sm flex items-center justify-center ${selectedFlag ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}>
-                           {selectedFlag && <div className="w-1.5 h-1.5 bg-white -full"></div>}
-                        </div>
-                        {s.FirstName} {s.Surname}
-                      </span>
-                      {disabled && <span className="text-[9px] font-bold bg-slate-200 px-1  uppercase tracking-tighter">Enrolled</span>}
-                    </div>
-                  );
-                })
-              )}
-            </div>
+  <h4 className="text-[10px] font-bold text-slate-700 mb-2 px-2 uppercase tracking-widest flex justify-between">
+    <span>All students</span>
+    {allStudentSearch && (
+      <span className="text-blue-600 font-bold normal-case">
+        {filteredAllStudents.length} found
+      </span>
+    )}
+  </h4>
+
+  {/* Search Input Area */}
+  <div className="px-2 mb-2">
+    <div className="relative group">
+      <input
+        type="text"
+        placeholder="Search by name..."
+        value={allStudentSearch}
+        onChange={(e) => setAllStudentSearch(e.target.value)}
+        className="w-full h-8 pl-8 pr-2 text-[11px] border border-gray-300 bg-slate-50 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-200 outline-none transition-all"
+      />
+      <svg
+        className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-slate-400 group-focus-within:text-blue-500"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      {allStudentSearch && (
+        <button
+          onClick={() => setAllStudentSearch("")}
+          className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
+        >
+          <X size={14} />
+        </button>
+      )}
+    </div>
+  </div>
+
+  <div className="border border-gray-300 bg-white h-72 overflow-y-auto shadow-inner p-1">
+    {isLoadingAllStudents ? (
+      <div className="flex items-center justify-center h-40">
+        <Loader2 className="animate-spin text-blue-500" size={28} />
+      </div>
+    ) : filteredAllStudents.length === 0 ? (
+      <div className="flex flex-col items-center justify-center h-40 text-slate-400">
+        <span className="text-[11px] italic">No students match your search</span>
+      </div>
+    ) : (
+      filteredAllStudents.map((s: any) => {
+        const disabled = alreadyEnrolled.includes(s.Id);
+        const selectedFlag = selectedToEnroll.includes(s.Id);
+        return (
+          <div
+            key={s.Id}
+            onClick={() =>
+              !disabled &&
+              setSelectedToEnroll((prev) =>
+                prev.includes(s.Id) ? prev.filter((id) => id !== s.Id) : [...prev, s.Id]
+              )
+            }
+            className={`px-3 py-2 text-[11px] border-b border-slate-50 flex justify-between items-center cursor-pointer transition-colors
+              ${
+                disabled
+                  ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                  : selectedFlag
+                  ? "bg-blue-50 text-blue-700 font-bold"
+                  : "hover:bg-slate-50 text-slate-600 font-medium"
+              }`}
+          >
+            <span className="flex items-center gap-2">
+              <div
+                className={`w-3 h-3 border -sm flex items-center justify-center ${
+                  selectedFlag ? "bg-blue-600 border-blue-600" : "bg-white border-gray-300"
+                }`}
+              >
+                {selectedFlag && <div className="w-1.5 h-1.5 bg-white -full"></div>}
+              </div>
+              {s.FirstName} {s.Surname}
+            </span>
+            {disabled && (
+              <span className="text-[9px] font-bold bg-slate-200 px-1 uppercase tracking-tighter">
+                Enrolled
+              </span>
+            )}
           </div>
+        );
+      })
+    )}
+  </div>
+</div>
 
           {/* Right Side: Selected Students */}
           <div className="flex flex-col">
