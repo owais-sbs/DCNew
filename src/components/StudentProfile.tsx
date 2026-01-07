@@ -134,6 +134,7 @@ export default function StudentProfile() {
 
 
   const [openMoreMenu, setOpenMoreMenu] = useState(false)
+  
 
   // Ref hooks
   const documentContentRef = useRef<HTMLDivElement | null>(null)
@@ -752,7 +753,13 @@ const stats = getOverallAttendanceStats();
   // Replace placeholders in document body with student data
   const replacePlaceholders = (text: string) => {
     if (!text) return ""
-    return text
+    const visaWorkText = "Please note that visa students are allowed to work full-time (up to 40 hours ) only during the set periods of June to September inclusive. At all other times, students are only allowed to work part-time.";
+
+    // 2. Remove the text from the document content
+    let updatedText = text.replace(visaWorkText, "");
+    
+    return updatedText
+       .replace(/Carla Kerr/g, "Colm Delmar")
       .replace(/\{StudentName\}/g, studentName || "—")
       .replace(/\{StudentID\}/g, studentdetails.IdNumber || "—")
       .replace(/\{Address\}/g, studentAddress || "—")
@@ -1143,9 +1150,7 @@ const stats = getOverallAttendanceStats();
           const pages = [];
           const totalPages = Math.ceil(totalCount / pageSize);
           
-          // Kitne page numbers dikhane hain uska logic
           for (let i = 1; i <= totalPages; i++) {
-            // Sirf current page ke aas-paas ke numbers dikhane ke liye (agar pages bahut zyada hon)
             if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
               pages.push(
                 <button
@@ -2216,8 +2221,11 @@ const stats = getOverallAttendanceStats();
     
     // Process document body with placeholders replaced
     const processedBody = replacePlaceholders(selectedDocument.Body || "")
-    const processedTo = replacePlaceholders(selectedDocument.To || "")
     const processedFooter = replacePlaceholders(selectedDocument.Footer || "")
+
+    const processedTo = selectedDocument.To 
+? replacePlaceholders(selectedDocument.To) 
+: (isReferenceLetter ? "\nTo\nColm Delmar\nGarda National Immigration Bureau:\n13-14 Burgh Quay, Dublin 2." : "");
 
     return (
       <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setSelectedDocument(null)}>
@@ -2611,7 +2619,6 @@ const stats = getOverallAttendanceStats();
         value1={formatDateValue(studentdetails?.RegistrationDate)}
         label2="Date of Birth"
         value2={formatDateValue(studentdetails?.DateOfBirth)}
-        sub2="Birthday is in 8 days"
         label3="Id. Number"
         value3={studentdetails?.IdNumber}
       />

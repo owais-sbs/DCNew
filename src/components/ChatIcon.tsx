@@ -39,14 +39,14 @@ export default function ChatIcon() {
   return (
     <>
       {/* Floating Chat Icon */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* <div className="fixed bottom-6 right-6 z-50">
         <button
           onClick={handleChatClick}
           className="h-14 w-14 bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-105"
         >
           <MessageCircle className="h-7 w-7 text-white" />
         </button>
-      </div>
+      </div> */}
 
       {/* Modals */}
       {activeModal === 'home' && (
