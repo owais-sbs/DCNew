@@ -347,6 +347,40 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
     const [classSearchQuery, setClassSearchQuery] = useState("");
     const [classSearchDebounced, setClassSearchDebounced] = useState("");
 
+
+    const [countrySuggestions, setCountrySuggestions] = useState<string[]>([]);
+    const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+    const [countrySearch, setCountrySearch] = useState("");
+
+
+    const fetchCountrySuggestions = async (name: string) => {
+
+    if (!name || name.length < 1) {
+        setCountrySuggestions([]);
+        setShowCountryDropdown(false);
+        return;
+    }
+
+    try {
+        const response = await axiosInstance.get("/Student/GetCountry", {
+            params: { name }
+        });
+
+        if (response.data?.IsSuccess) {
+            setCountrySuggestions(response.data.Data || []);
+            setShowCountryDropdown(true);
+        }
+        else {
+            setCountrySuggestions([]);
+            setShowCountryDropdown(false);
+        }
+    } catch (err) {
+        console.error(err);
+        setShowCountryDropdown(false);
+    }
+};
+
+
     // Fetch next student ID when form opens
     useEffect(() => {
         const fetchNextStudentId = async () => {
@@ -782,7 +816,40 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                     <SectionHeader title="Custom Fields" />
                     <div className="p-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Nationality</label><input type="text" value={formData.nationality} onChange={(e)=>handleInputChange('nationality', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Nationality</label>                            
+                            
+<input
+  type="text"
+  value={countrySearch}
+  onChange={(e) => {
+      const val = e.target.value;
+      setCountrySearch(val);
+      fetchCountrySuggestions(val);
+  }}
+  className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white"
+/>
+
+{showCountryDropdown && countrySuggestions.length > 0 && (
+  <div className="absolute bg-white border border-gray-300 mt-1 z-10 w-100">
+    {countrySuggestions.map((c) => (
+      <div
+        key={c}
+        className="px-2 py-1 text-[13px] hover:bg-gray-100 cursor-pointer"
+        onClick={() => {
+            setCountrySearch(c);
+            setFormData(prev => ({ ...prev, nationality: c }));
+            setShowCountryDropdown(false);
+        }}
+      >
+        {c}
+      </div>
+    ))}
+  </div>
+)}
+                            
+                            </div>
+                            
+                            
                             <div><label className="block text-[13px] text-gray-700 mb-1">Passport Number</label><input type="text" value={formData.passportNumber} onChange={(e)=>handleInputChange('passportNumber', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Passport Expiry Date</label><input type="date" value={formData.passportExpiryDate} onChange={(e)=>handleInputChange('passportExpiryDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 
@@ -828,15 +895,76 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">Finished Course Date</label><input type="date" value={formData.finishedCourseDate} onChange={(e)=>handleInputChange('finishedCourseDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                             <div><label className="block text-[13px] text-gray-700 mb-1">Attendance</label><input type="text" value={formData.attendance} onChange={(e)=>handleInputChange('attendance', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Course Title</label><input type="text" value={formData.courseTitle} onChange={(e)=>handleInputChange('courseTitle', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+<div>
+  <label className="block text-[13px] text-gray-700 mb-1">Course Title</label>
+
+  <input
+    type="text"
+    value="General English with Exam Preparation"
+    readOnly
+    className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white"
+  />
+</div>
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">Course Level</label><input type="text" value={formData.courseLevel} onChange={(e)=>handleInputChange('courseLevel', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Mode of Study</label><input type="text" value={formData.modeOfStudy} onChange={(e)=>handleInputChange('modeOfStudy', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Number of Weeks</label><input type="number" value={formData.numberOfWeeks} onChange={(e)=>handleInputChange('numberOfWeeks', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+<div>
+  <label className="block text-[13px] text-gray-700 mb-1">Mode of Study</label>
 
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Hours Per Week</label><input type="number" value={formData.hoursPerWeek} onChange={(e)=>handleInputChange('hoursPerWeek', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Tuition Fees</label><input type="text" value={formData.tuitionFees} onChange={(e)=>handleInputChange('tuitionFees', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Department</label><input type="text" value={formData.department} onChange={(e)=>handleInputChange('department', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+  <input
+    type="text"
+    value="Full Time"
+    readOnly
+    className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white"
+  />
+</div>
+
+<div>
+  <label className="block text-[13px] text-gray-700 mb-1">Number of Weeks</label>
+
+  <input
+    type="number"
+    value={25}
+    readOnly
+    className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white"
+  />
+</div>
+
+                            <div>
+  <label className="block text-[13px] text-gray-700 mb-1">Hours Per Week</label>
+
+  <input
+    type="number"
+    value={15}
+    readOnly
+    className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white"
+  />
+</div>
+
+                            <div>
+  <label className="block text-[13px] text-gray-700 mb-1">Tuition Fees</label>
+
+  <input
+    type="text"
+    value="Fully Paid"
+    readOnly
+    className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white"
+  />
+</div>
+
+                            <div>
+  <label className="block text-[13px] text-gray-700 mb-1">Department</label>
+
+  <select
+    value={formData.department}
+    onChange={(e) => handleInputChange('department', e.target.value)}
+    className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white"
+  >
+    <option value="">Select Department</option>
+    <option value="Dublin 1">Dublin 1</option>
+    <option value="Dublin 7">Dublin 7</option>
+  </select>
+</div>
+
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">External Exam</label><input type="text" value={formData.externalExam} onChange={(e)=>handleInputChange('externalExam', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
                         </div>
