@@ -434,8 +434,15 @@ function LessonsContent({
       }
     };
     fetchClass();
-    fetchLessons();
   }, [id]);
+
+  // Fetch lessons when sessionsFromParent, classInfo, or currentDate changes
+  useEffect(() => {
+    if (id && (sessionsFromParent || classInfo)) {
+      fetchLessons();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, sessionsFromParent, classInfo, currentDate]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -508,31 +515,58 @@ function LessonsContent({
   const fetchLessons = async () => {
   try {
     setLoading(true);
-    const res = await axiosInstance.get(`/Class/GetSessionsForClass`, {
-      params: { classId: Number(id) },
-    });
+    
+    // Use sessions from GetClassById if available (preferred), otherwise fetch from GetSessionsForClass
+    let sessionsData: any[] = [];
+    
+    // First try sessionsFromParent (passed from parent component)
+    if (sessionsFromParent && Array.isArray(sessionsFromParent) && sessionsFromParent.length > 0) {
+      sessionsData = sessionsFromParent;
+    } 
+    // Then try classInfo.Sessions (from local fetch)
+    else if (classInfo?.Sessions && Array.isArray(classInfo.Sessions) && classInfo.Sessions.length > 0) {
+      sessionsData = classInfo.Sessions;
+    } 
+    // Fallback to GetSessionsForClass
+    else {
+      const res = await axiosInstance.get(`/Class/GetSessionsForClass`, {
+        params: { classId: Number(id) },
+      });
+      if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
+        sessionsData = res.data.Data;
+      }
+    }
 
-    if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
-      const mapped = res.data.Data.map((s: any) => {
-        // Date object create karein StartTime se
-        const dateObj = new Date(s.StartTime);
+    if (sessionsData.length > 0) {
+      // Get the day of week from the selected date
+      const selectedDate = new Date(currentDate);
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const selectedDayOfWeek = dayNames[selectedDate.getDay()];
+      
+      // Filter sessions to only show those matching the selected date's day of week
+      const filteredSessions = sessionsData.filter((s: any) => {
+        return s.DayOfWeek === selectedDayOfWeek;
+      });
+
+      const mapped = filteredSessions.map((s: any) => {
+        // Use DayOfWeek directly from API response
+        const dayOfWeek = s.DayOfWeek || "";
+        // Get short day format (e.g., "Friday" -> "FRI")
+        const dayShort = dayOfWeek.substring(0, 3).toUpperCase();
+        
+        // Format time range from StartTime and EndTime
+        const startTime = formatTime(s.StartTime);
+        const endTime = formatTime(s.EndTime);
+        const timeRange = `${startTime} - ${endTime}`;
 
         return {
           scheduleId: s.ScheduleId,
-          // Format: 17-Dec-2025
-          date: dateObj.toLocaleDateString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-          }).replace(/ /g, "-"), 
-          
-          // Format: FRI (short weekday)
-          day: dateObj.toLocaleDateString("en-GB", { weekday: 'short' }).toUpperCase(),
-          
-          time: formatTime(s.StartTime),
+          day: dayShort, // e.g., "FRI", "MON", "TUE"
+          dayOfWeek: dayOfWeek, // Full day name for reference
+          time: timeRange, // e.g., "9:00 AM - 10:30 AM"
           duration: calculateDuration(s.StartTime, s.EndTime),
-          className: s.ClassTitle,
-          subject: s.ClassSubject,
+          className: s.ClassTitle || classInfo?.ClassTitle,
+          subject: s.ClassSubject || classInfo?.ClassSubject,
           classroom: s.ClassRoomName || s.DayOfWeek,
           teacherNames: s.TeacherNames || [],
           totalStudents: s.TotalStudents || 0,
@@ -601,8 +635,14 @@ function LessonsContent({
 
     {/* FILTERS */}
     <div className="flex justify-end items-center gap-2 mb-6">
-      <div className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600">
-        DATE: <span className="font-medium">Most Relevant</span>
+      <div className="flex items-center gap-2">
+        <label className="text-sm text-gray-600 font-medium">Select Date:</label>
+        <input
+          type="date"
+          value={currentDate}
+          onChange={(e) => setCurrentDate(e.target.value)}
+          className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        />
       </div>
 
       <div className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600">
@@ -634,16 +674,15 @@ function LessonsContent({
             {/* CARD TOP ROW */}
 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
   <div className="text-sm text-gray-900 font-medium">
-    {/* Display Date */}
-    {l.date} &nbsp;
-    
-    {/* Display Day (e.g., TUE) */}
-    <span className="uppercase text-gray-600">
+    {/* Display Day (e.g., MON) */}
+    <span className="uppercase text-gray-900">
       {l.day}
     </span>
     
-    {/* Display Time */}
-    , {l.time}
+    {/* Display Time Range */}
+    <span className="text-gray-600">
+      , {l.time}
+    </span>
   </div>
 
   <div className="flex items-center gap-2">
