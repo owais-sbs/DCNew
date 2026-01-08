@@ -753,13 +753,10 @@ const stats = getOverallAttendanceStats();
   // Replace placeholders in document body with student data
   const replacePlaceholders = (text: string) => {
     if (!text) return ""
-    const visaWorkText = "Please note that visa students are allowed to work full-time (up to 40 hours ) only during the set periods of June to September inclusive. At all other times, students are only allowed to work part-time.";
 
     // 2. Remove the text from the document content
-    let updatedText = text.replace(visaWorkText, "");
     
-    return updatedText
-       .replace(/Carla Kerr/g, "Colm Delmar")
+    return text      
       .replace(/\{StudentName\}/g, studentName || "—")
       .replace(/\{StudentID\}/g, studentdetails.IdNumber || "—")
       .replace(/\{Address\}/g, studentAddress || "—")
@@ -2272,7 +2269,7 @@ const stats = getOverallAttendanceStats();
                 height: "calc(100% - 20px)",
                 boxSizing: "border-box",
                 display: "flex",
-                marginTop: "0px",
+                marginTop: "50px",
                 flexDirection: "column"
               }}>
                 {/* To/Recipient */}
@@ -2294,7 +2291,7 @@ const stats = getOverallAttendanceStats();
                 <h2 className="mb-2 font-bold" style={{ 
                   fontSize: "12pt",
                   textAlign: "center",
-                  marginTop: "6px",
+                  marginTop: "2px",
                   marginBottom: "8px",
                   lineHeight: "1.2",
                   fontFamily: "'Times New Roman', Times, serif"
@@ -2305,7 +2302,7 @@ const stats = getOverallAttendanceStats();
                 {/* Body Content */}
                 <div className="mb-4 whitespace-pre-wrap" style={{ 
                   fontSize: "12pt", 
-                  lineHeight: "1",
+                  lineHeight: "1.2",
                   textAlign: "left",
                   fontFamily: "'Times New Roman', Times, serif"
                 }}>
@@ -2368,12 +2365,12 @@ const stats = getOverallAttendanceStats();
                 {processedFooter && (
                   <div className=" whitespace-pre-wrap " style={{ 
                     fontSize: "12pt", 
-                    lineHeight: "1",
+                    lineHeight: "1.2",
                     textAlign: "left",
                     fontFamily: "'Times New Roman', Times, serif",
                     position: "relative",
                     zIndex: 10,
-                    marginBottom: "10px"
+                    marginBottom: "1px"
                   }}>
                     {processedFooter}
                   </div>
@@ -2389,8 +2386,8 @@ const stats = getOverallAttendanceStats();
                     if (signatureImageSrc) {
                       return (
                         <div style={{ 
-                          marginTop: "10px",
-                          marginBottom: "15px",
+                          marginTop: "0px",
+                          marginBottom: "0px",
                           position: "relative",
                           zIndex: 1
                         }}>
@@ -2401,8 +2398,7 @@ const stats = getOverallAttendanceStats();
                                 alt={selectedSignature.name}
                                 className="block"
                                 style={{ 
-                                  maxHeight: "100px",
-                                  maxWidth: "100px",
+                                  maxHeight: "70px",
                                   objectFit: "contain"
                                 }}
                                 onLoad={(e) => {
@@ -2418,8 +2414,9 @@ const stats = getOverallAttendanceStats();
                                 <div className="mt-0.5 font-medium" style={{ 
                                   fontSize: "9pt",
                                   color: "#000000",
-                                  lineHeight: "1.3",
-                                  fontFamily: "'Times New Roman', Times, serif"
+                                  lineHeight: "0",
+                                  fontFamily: "'Times New Roman', Times, serif",
+                                  textTransform: "capitalize"
                                 }}>
                                   {selectedSignature.name}
                                 </div>
