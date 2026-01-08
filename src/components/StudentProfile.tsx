@@ -31,6 +31,9 @@ type StudentFieldKey =
   | "Course Code"
   | "ILEP programme reference"
   | "End of the Course Exam Fee"
+  | "Duration"
+  | "Schedule"
+
 
 type DocumentTemplateContent = {
   id: string
@@ -596,10 +599,24 @@ const stats = getOverallAttendanceStats();
         .filter(Boolean)
         .join(", ")
     : ""
-
+    const isLeapCardLetter = selectedDocument?.Title?.toLowerCase().includes("leap card letter");
     const isReferenceLetter = selectedDocument?.Title?.toLowerCase().includes("reference letter");
     
-  const defaultFieldKeys: StudentFieldKey[] = isReferenceLetter 
+  const defaultFieldKeys: StudentFieldKey[] = isLeapCardLetter 
+    ? [
+      "Name",
+      "Student ID",
+      "Date of Birth",
+      "Course Start Date",
+      "Course End Date",
+      "Course Title",
+      "Course Level",
+      "Mode of Study",
+      "Duration",
+      "Schedule",
+      "Tuition Fees"
+    ]
+  : isReferenceLetter
   ? [
       "Name",
       "Student ID",
@@ -718,6 +735,8 @@ const stats = getOverallAttendanceStats();
     "Course End Date": () => formatDateValue(studentdetails?.CourseEndDate),
     "Course Title": () => studentdetails?.CourseTitle || "—",
     "Mode of Study": () => studentdetails?.ModeOfStudy || "—",
+    "Duration": () => studentdetails?.Duration || "—",
+    "Schedule": () => studentdetails?.Schedule || "—",
     "Number of Weeks": () => {
       const weeks = studentdetails?.NumberOfWeeks;
       return weeks ? `${weeks} Weeks` : "—";
