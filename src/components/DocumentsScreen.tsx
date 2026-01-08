@@ -180,10 +180,10 @@ const handleDelete = async (id: number) => {
   return (
     <div className="px-6 py-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Documents</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-semibold text-gray-800">Documents</h1>
+          <p className="text-sm text-gray-600 mt-1">
             Manage and create enrollment confirmation documents
           </p>
         </div>
@@ -192,21 +192,24 @@ const handleDelete = async (id: number) => {
             setEditingDocument(null);
             setShowCreateModal(true);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          className="h-[34px] px-3 border border-gray-300 bg-white text-[13px] text-gray-700 hover:bg-gray-100 flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
           Create document
         </button>
       </div>
 
+      {/* Dotted divider to match retro look */}
+      <div className="border-b border-dotted border-gray-300 mb-4" />
+
       {/* Search */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="relative w-full max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
             placeholder="Search documents..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full h-[34px] pl-9 pr-3 border border-gray-300 bg-white text-[13px] focus:outline-none focus:ring-0"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -503,27 +506,25 @@ function DocumentFormModal({
 };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 flex-shrink-0">
-          <h2 className="text-xl font-semibold text-gray-800">
-            {document?.Id ? "Edit document" : "Create document"}
-          </h2>
+    <div className="fixed inset-0 bg-black/30 z-50 grid place-items-center px-4">
+      <div className="bg-white border border-gray-300 overflow-hidden max-w-5xl w-full max-h-[90vh] flex flex-col">
+        {/* Retro dark header bar */}
+        <div className="bg-[#2b2b2e] px-4 py-2 text-white text-sm font-semibold flex items-center justify-between">
+          <div>{document?.Id ? "Edit document template" : "Create document template"}</div>
           <button
             onClick={onClose}
-            className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+            className="text-white opacity-80 hover:opacity-100"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
-          <div className="p-6 space-y-6">
+          <div className="p-4 space-y-4">
             {/* Title */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-[13px] text-gray-700 mb-1">
                 Title <span className="text-red-500">*</span>
               </label>
               <input
@@ -532,27 +533,27 @@ function DocumentFormModal({
                 value={formData.Title}
                 onChange={(e) => handleInputChange("Title", e.target.value)}
                 placeholder="e.g., Confirmation of Enrolment"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
               />
             </div>
 
             {/* To (Recipient) */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-[13px] text-gray-700 mb-1">
                 To (Recipient)
               </label>
               <textarea
                 value={formData.To}
                 onChange={(e) => handleInputChange("To", e.target.value)}
                 placeholder="e.g., Garda National Immigration Bureau"
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                rows={3}
+                className="w-full px-2 py-2 border border-gray-300 bg-white text-[13px]"
               />
             </div>
 
             {/* Body */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-[13px] text-gray-700 mb-1">
                 Body <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -560,31 +561,31 @@ function DocumentFormModal({
                 value={formData.Body}
                 onChange={(e) => handleInputChange("Body", e.target.value)}
                 placeholder="Enter the main content of the document. You can use placeholders like {StudentName}, {StudentID}, {Address}, etc."
-                rows={12}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                rows={10}
+                className="w-full px-2 py-2 border border-gray-300 bg-white text-[13px] font-mono"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-[11px] text-gray-500 mt-1">
                 Use placeholders: {"{StudentName}"}, {"{StudentID}"}, {"{Address}"}, {"{DateOfBirth}"}, {"{Nationality}"}, {"{PassportNumber}"}, {"{CourseStartDate}"}, {"{CourseEndDate}"}, {"{CourseTitle}"}, {"{CourseLevel}"}, {"{ModeOfStudy}"}, {"{NumberOfWeeks}"}, {"{HoursPerWeek}"}, {"{TuitionFees}"}, {"{CourseCode}"}
               </p>
             </div>
 
             {/* Footer */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-[13px] text-gray-700 mb-1">
                 Footer (Signature Section)
               </label>
               <textarea
                 value={formData.Footer}
                 onChange={(e) => handleInputChange("Footer", e.target.value)}
                 placeholder="e.g., Yours faithfully, Colm Delmar, Director of Studies"
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                rows={3}
+                className="w-full px-2 py-2 border border-gray-300 bg-white text-[13px]"
               />
             </div>
 
             {/* Note */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-[13px] text-gray-700 mb-1">
                 Note (Optional)
               </label>
               <textarea
@@ -592,7 +593,7 @@ function DocumentFormModal({
                 value={formData.Note}
                 onChange={(e) => handleInputChange("Note", e.target.value)}
                 placeholder="Internal notes about this document"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-2 py-2 border border-gray-300 bg-white text-[13px]"
               />
             </div>
 
@@ -604,18 +605,18 @@ function DocumentFormModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 flex-shrink-0">
+          <div className="flex items-center justify-end gap-3 px-4 py-3 border-t border-gray-200 bg-white flex-shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="h-[34px] px-3 text-[13px] text-gray-700 border border-gray-300 bg-white hover:bg-gray-50"
               disabled={submitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="h-[34px] px-3 text-[13px] bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               disabled={submitting}
             >
               {submitting && <Loader2 className="animate-spin h-4 w-4" />}
