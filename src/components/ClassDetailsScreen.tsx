@@ -404,18 +404,19 @@ function LessonsContent({
   const [loading, setLoading] = useState(false);
 
   const [scheduledId, setScheduledId] = useState<number | null>(null);
-  const [currentDate, setCurrentDate] = useState<string>(() => {
+
+  const todayIso = (() => {
     const d = new Date();
     return d.toISOString().slice(0, 10); // yyyy-mm-dd
-  });
-  
+  })();
+
+  // New: from & to date states for range filter
+  const [currentDate, setCurrentDate] = useState<string>(todayIso);
+  const [fromDate, setFromDate] = useState<string>(todayIso);
+  const [toDate, setToDate] = useState<string>(todayIso);
+
   const { id } = useParams();
-
-  console.log(id)
   const navigate = useNavigate();
-
-
-  
 
   useEffect(() => {
     if (!id) return;
@@ -436,13 +437,13 @@ function LessonsContent({
     fetchClass();
   }, [id]);
 
-  // Fetch lessons when sessionsFromParent, classInfo, or currentDate changes
+  // Fetch lessons when sessionsFromParent, classInfo, or dates change
   useEffect(() => {
     if (id && (sessionsFromParent || classInfo)) {
       fetchLessons();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, sessionsFromParent, classInfo, currentDate]);
+  }, [id, sessionsFromParent, classInfo, currentDate, fromDate, toDate]);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -455,11 +456,12 @@ function LessonsContent({
 
   const formatTime = (dateString: string): string => {
     try {
+      // if API gives time-only (e.g. "09:00") Date will parse in local timezone
       const date = new Date(dateString);
       return date.toLocaleTimeString(undefined, {
         hour: "numeric",
         minute: "2-digit",
-        hour12: true
+        hour12: true,
       });
     } catch (e) {
       return "12:00 AM";
@@ -472,11 +474,9 @@ function LessonsContent({
       const end = new Date(endString).getTime();
       const diffMs = end - start;
       if (diffMs <= 0) return "N/A";
-
       const totalMinutes = Math.floor(diffMs / 60000);
       const hours = Math.floor(totalMinutes / 60);
       const minutes = totalMinutes % 60;
-
       if (hours > 0) {
         return `${hours} hr${hours > 1 ? "s" : ""}${
           minutes > 0 ? ` ${minutes} min${minutes > 1 ? "s" : ""}` : ""
@@ -512,58 +512,118 @@ function LessonsContent({
     );
   };
 
-  const fetchLessons = async () => {
-  try {
-    setLoading(true);
-    
-    // Use sessions from GetClassById if available (preferred), otherwise fetch from GetSessionsForClass
-    let sessionsData: any[] = [];
-    
-    // First try sessionsFromParent (passed from parent component)
-    if (sessionsFromParent && Array.isArray(sessionsFromParent) && sessionsFromParent.length > 0) {
-      sessionsData = sessionsFromParent;
-    } 
-    // Then try classInfo.Sessions (from local fetch)
-    else if (classInfo?.Sessions && Array.isArray(classInfo.Sessions) && classInfo.Sessions.length > 0) {
-      sessionsData = classInfo.Sessions;
-    } 
-    // Fallback to GetSessionsForClass
-    else {
-      const res = await axiosInstance.get(`/Class/GetSessionsForClass`, {
-        params: { classId: Number(id) },
-      });
-      if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
-        sessionsData = res.data.Data;
-      }
+  // Helper: get array of dates between start and end (inclusive)
+  const getDatesInRange = (startIso: string, endIso: string) => {
+    const dates: Date[] = [];
+    if (!startIso || !endIso) return dates;
+    const start = new Date(startIso + "T00:00:00");
+    const end = new Date(endIso + "T00:00:00");
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) return dates;
+    if (end < start) return dates;
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dates.push(new Date(d));
     }
+    return dates;
+  };
 
-    if (sessionsData.length > 0) {
-      // Get the day of week from the selected date
+  const fetchLessons = async () => {
+    try {
+      setLoading(true);
+
+      // 1) get sessions from available sources (same as you had)
+      let sessionsData: any[] = [];
+      if (sessionsFromParent && Array.isArray(sessionsFromParent) && sessionsFromParent.length > 0) {
+        sessionsData = sessionsFromParent;
+      } else if (classInfo?.Sessions && Array.isArray(classInfo.Sessions) && classInfo.Sessions.length > 0) {
+        sessionsData = classInfo.Sessions;
+      } else {
+        const res = await axiosInstance.get(`/Class/GetSessionsForClass`, {
+          params: { classId: Number(id) },
+        });
+        if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
+          sessionsData = res.data.Data;
+        }
+      }
+
+      // if no sessions -> empty list
+      if (!sessionsData || sessionsData.length === 0) {
+        setLessons([]);
+        return;
+      }
+
+      // If user provided a from/to range, produce occurrences for each date in range
+      let occurrences: any[] = [];
+
+      if (fromDate && toDate) {
+        const dates = getDatesInRange(fromDate, toDate);
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+        dates.forEach((date) => {
+          const weekdayName = dayNames[date.getDay()]; // full day name
+          sessionsData.forEach((s: any) => {
+            if (s.DayOfWeek === weekdayName) {
+              const startTime = formatTime(s.StartTime);
+              const endTime = formatTime(s.EndTime);
+              const timeRange = `${startTime} - ${endTime}`;
+              const dayShort = weekdayName.substring(0, 3).toUpperCase();
+              occurrences.push({
+                scheduleId: s.ScheduleId,
+                dateIso: date.toISOString().slice(0, 10), // yyyy-mm-dd for sorting/display
+                day: dayShort,
+                dayOfWeek: weekdayName,
+                time: timeRange,
+                duration: calculateDuration(s.StartTime, s.EndTime),
+                className: s.ClassTitle || classInfo?.ClassTitle,
+                subject: s.ClassSubject || classInfo?.ClassSubject,
+                classroom: s.ClassRoomName || s.DayOfWeek,
+                teacherNames: s.TeacherNames || [],
+                totalStudents: s.TotalStudents || 0,
+                presentCount: s.PresentCount || 0,
+                absentCount: s.AbsentCount || 0,
+              });
+            }
+          });
+        });
+
+        // sort by date then time (if needed)
+        occurrences.sort((a, b) => {
+          if (a.dateIso < b.dateIso) return -1;
+          if (a.dateIso > b.dateIso) return 1;
+          // fallback: sort by time string
+          if (a.time < b.time) return -1;
+          if (a.time > b.time) return 1;
+          return 0;
+        });
+
+        // map to UI format (include formatted date)
+        const mapped = occurrences.map((o) => ({
+          ...o,
+          displayDate: formatDate(o.dateIso),
+        }));
+
+        setLessons(mapped);
+        return;
+      }
+
+      // fallback: single date behavior (existing currentDate logic)
+      // get day of week from currentDate
       const selectedDate = new Date(currentDate);
       const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const selectedDayOfWeek = dayNames[selectedDate.getDay()];
-      
-      // Filter sessions to only show those matching the selected date's day of week
-      const filteredSessions = sessionsData.filter((s: any) => {
-        return s.DayOfWeek === selectedDayOfWeek;
-      });
+
+      const filteredSessions = sessionsData.filter((s: any) => s.DayOfWeek === selectedDayOfWeek);
 
       const mapped = filteredSessions.map((s: any) => {
-        // Use DayOfWeek directly from API response
         const dayOfWeek = s.DayOfWeek || "";
-        // Get short day format (e.g., "Friday" -> "FRI")
         const dayShort = dayOfWeek.substring(0, 3).toUpperCase();
-        
-        // Format time range from StartTime and EndTime
         const startTime = formatTime(s.StartTime);
         const endTime = formatTime(s.EndTime);
         const timeRange = `${startTime} - ${endTime}`;
-
         return {
           scheduleId: s.ScheduleId,
-          day: dayShort, // e.g., "FRI", "MON", "TUE"
-          dayOfWeek: dayOfWeek, // Full day name for reference
-          time: timeRange, // e.g., "9:00 AM - 10:30 AM"
+          day: dayShort,
+          dayOfWeek: dayOfWeek,
+          time: timeRange,
           duration: calculateDuration(s.StartTime, s.EndTime),
           className: s.ClassTitle || classInfo?.ClassTitle,
           subject: s.ClassSubject || classInfo?.ClassSubject,
@@ -572,193 +632,170 @@ function LessonsContent({
           totalStudents: s.TotalStudents || 0,
           presentCount: s.PresentCount || 0,
           absentCount: s.AbsentCount || 0,
+          // keep date fields empty for single-date mode
+          dateIso: currentDate,
+          displayDate: formatDate(currentDate),
         };
       });
 
       setLessons(mapped);
+    } catch (err) {
+      console.error("Error fetching lessons:", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Error fetching lessons:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     if (selectedLessonIdx !== null) {
       const selectedLesson = lessons[selectedLessonIdx];
       setScheduledId(selectedLesson.scheduleId);
     }
-  }, [selectedLessonIdx]);
+  }, [selectedLessonIdx, lessons]);
 
-  // const fetchLessons = async () => {
-  //   try {
-  //     const response = await axiosInstance.get(`/Class/GetClassById`, {
-  //       params: { classId }  // <-- correct API parameter
-  //     });
-
-  //     // ✅ map backend model to your UI format
-  //     const formatted = (response.data.lessons || []).map((item: any) => ({
-  //       date: item.date,                       // e.g., "17-10-2025"
-  //       weekday: item.weekday,                 // e.g., "Fri"
-  //       time: `${item.startTime} - ${item.endTime}`,
-  //       room: item.classroom,
-  //       teacher: {
-  //         name: item.teacherName,
-  //         initials: typeof item.teacherName === "string"
-  //           ? item.teacherName.split(" ").map((n: any[]) => n?.[0] ?? "").join("")
-  //           : ""
-  //       },
-  //       students: item.studentsCount ?? 0
-  //     }));
-
-  //     setLessons(formatted);
-  //   } catch (error) {
-  //     console.error("Error fetching lessons:", error);
-  //   }
-  // };
-
+  // UI: I added two date inputs in the filters area (From / To) alongside your existing single-date input.
   return (
-  <>
-    {/* HEADER */}
-    <div className="flex items-center justify-between border-b border-gray-300 pb-3 mb-4">
-      <h2 className="text-lg font-semibold text-gray-900">Lessons</h2>
-
-      <button
-        onClick={() => setShowAddLessonModal(true)}
-        className="px-3 py-1.5 bg-gray-100 border border-gray-300 rounded text-sm flex items-center gap-1 hover:bg-gray-200"
-      >
-        <Plus size={14} />
-        Add a Lesson
-      </button>
-    </div>
-
-    {/* FILTERS */}
-    <div className="flex justify-end items-center gap-2 mb-6">
-      <div className="flex items-center gap-2">
-        <label className="text-sm text-gray-600 font-medium">Select Date:</label>
-        <input
-          type="date"
-          value={currentDate}
-          onChange={(e) => setCurrentDate(e.target.value)}
-          className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        />
+    <>
+      {/* HEADER */}
+      <div className="flex items-center justify-between border-b border-gray-300 pb-3 mb-4">
+        <h2 className="text-lg font-semibold text-gray-900">Lessons</h2>
+        <button
+          onClick={() => setShowAddLessonModal(true)}
+          className="px-3 py-1.5 bg-gray-100 border border-gray-300 rounded text-sm flex items-center gap-1 hover:bg-gray-200"
+        >
+          <Plus size={14} />
+          Add a Lesson
+        </button>
       </div>
 
-      <div className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600">
-        SORT: <span className="font-medium">Ascending</span>
-      </div>
-
-      <button className="p-2 border border-gray-300 rounded text-gray-600">
-        <Clock size={16} />
-      </button>
-    </div>
-
-    {/* LESSON LIST */}
-    <div className="space-y-6 relative">
-      {lessons.map((l, i) => (
-        <div key={i} className="relative pl-8">
-          {/* TIMELINE DOT */}
-          <span
-            className={`absolute left-0 top-5 h-4 w-4 rounded-full ${
-              i === 1 ? "bg-blue-500" : "bg-gray-300"
-            }`}
+      {/* FILTERS */}
+      <div className="flex justify-end items-center gap-2 mb-6">
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-600 font-medium">From:</label>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900 bg-white"
           />
+        </div>
 
-          {/* CARD */}
-          <div
-            onClick={() => setSelectedLessonIdx(i)}
-            className="border border-gray-300 bg-white cursor-pointer"
-          >
-            {/* TOP ROW */}
-            {/* CARD TOP ROW */}
-<div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-  <div className="text-sm text-gray-900 font-medium">
-    {/* Display Day (e.g., MON) */}
-    <span className="uppercase text-gray-900">
-      {l.day}
-    </span>
-    
-    {/* Display Time Range */}
-    <span className="text-gray-600">
-      , {l.time}
-    </span>
-  </div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-600 font-medium">To:</label>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900 bg-white"
+          />
+        </div>
 
-  <div className="flex items-center gap-2">
-    <span className="text-sm text-gray-700">
-      {/* Agar TeacherNames null hai to default value dikhayein */}
-      {l.teacherNames?.[0] || "No Teacher"}
-    </span>
-    <div className="h-8 w-8 rounded-full border flex items-center justify-center text-gray-600">
-      <Users size={16} />
-    </div>
-  </div>
-</div>
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-600 font-medium">Or single date:</label>
+          <input
+            type="date"
+            value={currentDate}
+            onChange={(e) => setCurrentDate(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900 bg-white"
+          />
+        </div>
 
-            {/* BOTTOM ROW */}
-            <div className="flex items-center justify-between px-4 py-3 text-sm text-gray-600">
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-1">
-                  <Users2 size={16} />
-                  {l.totalStudents || 1}
+        <div className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-600">
+          SORT: <span className="font-medium">Ascending</span>
+        </div>
+
+        <button className="p-2 border border-gray-300 rounded text-gray-600">
+          <Clock size={16} />
+        </button>
+      </div>
+
+      {/* LESSON LIST */}
+      <div className="space-y-6 relative">
+        {lessons.map((l, i) => (
+          <div key={i} className="relative pl-8">
+            <span
+              className={`absolute left-0 top-5 h-4 w-4 rounded-full ${i === 1 ? "bg-blue-500" : "bg-gray-300"}`}
+            />
+            <div
+              onClick={() => setSelectedLessonIdx(i)}
+              className="border border-gray-300 bg-white cursor-pointer"
+            >
+              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                <div className="text-sm text-gray-900 font-medium">
+                  <span className="uppercase text-gray-900">{l.day}</span>
+                  <span className="text-gray-600">, {l.time}</span>
+                  {l.displayDate && <span className="ml-2 text-xs text-gray-500">• {l.displayDate}</span>}
                 </div>
 
-                <div className="flex items-center gap-1 opacity-40">
-                  <Plus size={16} /> 0
-                </div>
-
-                <div className="flex items-center gap-1 opacity-40">
-                  <Copy size={16} /> 0
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-700">{l.teacherNames?.[0] || "No Teacher"}</span>
+                  <div className="h-8 w-8 rounded-full border flex items-center justify-center text-gray-600">
+                    <Users size={16} />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <Star size={16} className="opacity-30" />
-                <div className="h-5 w-32 bg-gray-100 rounded" />
-                <div className="h-5 w-32 bg-gray-100 rounded" />
+              <div className="flex items-center justify-between px-4 py-3 text-sm text-gray-600">
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-1">
+                    <Users2 size={16} />
+                    {l.totalStudents || 1}
+                  </div>
+
+                  <div className="flex items-center gap-1 opacity-40">
+                    <Plus size={16} /> 0
+                  </div>
+
+                  <div className="flex items-center gap-1 opacity-40">
+                    <Copy size={16} /> 0
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <Star size={16} className="opacity-30" />
+                  <div className="h-5 w-32 bg-gray-100 rounded" />
+                  <div className="h-5 w-32 bg-gray-100 rounded" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
 
-    {/* MODALS */}
-    {showAddLessonModal && (
-      <AddLessonModal
-        classId={classId}
-        onClose={() => setShowAddLessonModal(false)}
-        onSuccess={() => {
-          setShowAddLessonModal(false);
-          fetchLessons();
-        }}
-      />
-    )}
+      {/* MODALS */}
+      {showAddLessonModal && (
+        <AddLessonModal
+          classId={classId}
+          onClose={() => setShowAddLessonModal(false)}
+          onSuccess={() => {
+            setShowAddLessonModal(false);
+            fetchLessons();
+          }}
+        />
+      )}
 
-    {selectedLessonIdx !== null && lessons[selectedLessonIdx] && (
-      <SessionDetailsModal
-        context="class"
-        lesson={{
-          id: lessons[selectedLessonIdx].scheduleId?.toString() || "",
-          time: lessons[selectedLessonIdx].time || "",
-          duration: lessons[selectedLessonIdx].duration || "",
-          className: lessons[selectedLessonIdx].className || "",
-          subject: lessons[selectedLessonIdx].subject,
-          classroom: lessons[selectedLessonIdx].classroom,
-          teacherNames: lessons[selectedLessonIdx].teacherNames || [],
-          totalStudents: lessons[selectedLessonIdx].totalStudents || 0,
-          presentCount: lessons[selectedLessonIdx].presentCount || 0,
-          absentCount: lessons[selectedLessonIdx].absentCount || 0,
-        }}
-        sessionId={lessons[selectedLessonIdx].scheduleId || 0}
-        currentDate={currentDate}
-        onClose={() => setSelectedLessonIdx(null)}
-      />
-    )}
-  </>
-);
-
+      {selectedLessonIdx !== null && lessons[selectedLessonIdx] && (
+        <SessionDetailsModal
+          context="class"
+          lesson={{
+            id: lessons[selectedLessonIdx].scheduleId?.toString() || "",
+            time: lessons[selectedLessonIdx].time || "",
+            duration: lessons[selectedLessonIdx].duration || "",
+            className: lessons[selectedLessonIdx].className || "",
+            subject: lessons[selectedLessonIdx].subject,
+            classroom: lessons[selectedLessonIdx].classroom,
+            teacherNames: lessons[selectedLessonIdx].teacherNames || [],
+            totalStudents: lessons[selectedLessonIdx].totalStudents || 0,
+            presentCount: lessons[selectedLessonIdx].presentCount || 0,
+            absentCount: lessons[selectedLessonIdx].absentCount || 0,
+          }}
+          sessionId={lessons[selectedLessonIdx].scheduleId || 0}
+          currentDate={currentDate}
+          onClose={() => setSelectedLessonIdx(null)}
+        />
+      )}
+    </>
+  );
 }
 
 function StudentsContent({ classId }: { classId: number }) {
