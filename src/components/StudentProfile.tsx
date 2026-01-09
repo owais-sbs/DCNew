@@ -2288,7 +2288,7 @@ const stats = getOverallAttendanceStats();
                 height: "calc(100% - 20px)",
                 boxSizing: "border-box",
                 display: "flex",
-                marginTop: "50px",
+                marginTop: "140px",
                 flexDirection: "column"
               }}>
                 {/* To/Recipient */}
@@ -2310,8 +2310,8 @@ const stats = getOverallAttendanceStats();
                 <h2 className="mb-2 font-bold" style={{ 
                   fontSize: "12pt",
                   textAlign: "center",
-                  marginTop: "2px",
-                  marginBottom: "8px",
+                  marginTop: ".1px",
+                  marginBottom: "1px",
                   lineHeight: "1.2",
                   fontFamily: "'Times New Roman', Times, serif"
                 }}>
@@ -2319,7 +2319,7 @@ const stats = getOverallAttendanceStats();
                 </h2>
 
                 {/* Body Content */}
-                <div className="mb-4 whitespace-pre-wrap" style={{ 
+                <div className="mb-3 whitespace-pre-wrap" style={{ 
                   fontSize: "12pt", 
                   lineHeight: "1.2",
                   textAlign: "left",
@@ -2329,14 +2329,13 @@ const stats = getOverallAttendanceStats();
                 </div>
 
                 {/* Student Details Table */}
-                <div className="mb-2" style={{ flexShrink: 0 }}>
+                <div className="mb-1" style={{ flexShrink: 0 }}>
                   <table className="w-full" style={{ 
                     borderCollapse: "collapse",
-                    fontSize: "14px",
+                    fontSize: "12px",
                     width: "100%",
                     // Use standard PDF-safe fonts to avoid spacing issues in jsPDF/html2canvas
                     fontFamily: "Arial, Helvetica, sans-serif",
-                    border: "0.5px solid black"
                   }}>
                 
                     <tbody>
@@ -2347,26 +2346,23 @@ const stats = getOverallAttendanceStats();
                             <td
                               className="font-medium"
                               style={{ 
-                                border: "0.5px solid black",
-                                padding: "6px 3px",
+                                border: "0.1px solid black",
+                                padding: "0px 6px 8px 6px",
                                 backgroundColor: "#ffffff",
-                                verticalAlign: "top",
                                 width: "26%",
-                                lineHeight: "1.2",
                                 fontFamily: "Arial, Helvetica, sans-serif",
                                 fontWeight: "bold",
+                                fontSize: "12px",
                               }}
                             >
                               {fieldKey}
                             </td>
                             <td
                               style={{ 
-                                border: "0.5px solid black",
-                                padding: "7px 9px",
+                                border: "0.1px solid black",
+                                padding: "0px 6px 8px 6px",
                                 backgroundColor: "#ffffff",
-                                verticalAlign: "top",
                                 width: "65%",
-                                lineHeight: "1.2",
                                 fontFamily: "Arial, Helvetica, sans-serif",
                                 fontWeight: "normal",
                                 whiteSpace: isAddressRow ? "nowrap" : "normal",
@@ -2417,7 +2413,7 @@ const stats = getOverallAttendanceStats();
                                 alt={selectedSignature.name}
                                 className="block"
                                 style={{ 
-                                  maxHeight: "70px",
+                                  maxHeight: "100px",
                                   objectFit: "contain"
                                 }}
                                 onLoad={(e) => {
