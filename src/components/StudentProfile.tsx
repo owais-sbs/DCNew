@@ -2241,7 +2241,7 @@ const stats = getOverallAttendanceStats();
 
     const processedTo = selectedDocument.To 
 ? replacePlaceholders(selectedDocument.To) 
-: (isReferenceLetter ? "\nTo\nColm Delmar\nGarda National Immigration Bureau:\n13-14 Burgh Quay, Dublin 2." : "");
+: (isReferenceLetter ? "\nTo:\nGarda National Immigration Bureau,\n13-14 Burgh Quay, Dublin 2." : "");
 
     return (
       <div className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4" onClick={() => setSelectedDocument(null)}>
