@@ -116,6 +116,51 @@ function calculateDuration(startString: string, endString: string): string {
   }
 }
 
+
+function LessonAttendanceBar({
+  total,
+  present,
+  absent
+}: {
+  total: number
+  present: number
+  absent: number
+}) {
+  const notMarked = Math.max(total - (present + absent), 0)
+  const sum = present + absent + notMarked || 1
+
+  const pPct = (present / sum) * 100
+  const aPct = (absent / sum) * 100
+  const nPct = 100 - pPct - aPct
+
+  return (
+    <div className="flex h-2 w-full max-w-48 rounded-full overflow-hidden bg-gray-200">
+      {present > 0 && (
+        <div
+          className="h-full bg-green-500"
+          style={{ width: `${pPct}%` }}
+          title={`Present: ${present}`}
+        />
+      )}
+      {absent > 0 && (
+        <div
+          className="h-full bg-red-500"
+          style={{ width: `${aPct}%` }}
+          title={`Absent: ${absent}`}
+        />
+      )}
+      {notMarked > 0 && (
+        <div
+          className="h-full bg-gray-300"
+          style={{ width: `${nPct}%` }}
+          title={`Not marked: ${notMarked}`}
+        />
+      )}
+    </div>
+  )
+}
+
+
 // --- REMOVED: makeSampleLessons and lessonsSample ---
 
 /* -------------------------
@@ -504,8 +549,12 @@ export default function Dashboard() {
                                   <span>0</span>
                                 </div>
                                 <div className="flex items-center flex-1 justify-end min-w-0 ml-2">
-                                  <div className="h-2 bg-gray-200 rounded-full w-full max-w-48"></div>
-                                </div>
+                                <LessonAttendanceBar
+                                  total={l.totalStudents}
+                                  present={l.presentCount}
+                                  absent={l.absentCount}
+                                />
+                              </div>
                                 <div className="flex items-center flex-shrink-0 ml-1">
                                   <MoreVertical size={16} className="text-gray-500" />
                                 </div>
