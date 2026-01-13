@@ -197,25 +197,39 @@ const initialFormData: FormDataState = {
 // -------------------------------------------------------------
 // Data Mapping Helpers (Repeated for context)
 // -------------------------------------------------------------
+// const parseDate = (dateString: string): string | null => {
+//   if (!dateString) return null;
+
+//   // yyyy-mm-dd (from input[type="date"])
+//   if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+//     return new Date(dateString).toISOString();
+//   }
+
+//   // dd-mm-yyyy (from DatePicker / manual input)
+//   const parts = dateString.split("-");
+//   if (parts.length === 3) {
+//     const [dd, mm, yyyy] = parts.map(Number);
+//     if (!isNaN(dd) && !isNaN(mm) && !isNaN(yyyy)) {
+//       return new Date(yyyy, mm - 1, dd).toISOString();
+//     }
+//   }
+
+//   return null;
+// };
+
 const parseDate = (dateString: string): string | null => {
   if (!dateString) return null;
 
-  // yyyy-mm-dd (from input[type="date"])
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    return new Date(dateString).toISOString();
-  }
-
-  // dd-mm-yyyy (from DatePicker / manual input)
+  // dd-mm-yyyy
   const parts = dateString.split("-");
   if (parts.length === 3) {
-    const [dd, mm, yyyy] = parts.map(Number);
-    if (!isNaN(dd) && !isNaN(mm) && !isNaN(yyyy)) {
-      return new Date(yyyy, mm - 1, dd).toISOString();
-    }
+    const [dd, mm, yyyy] = parts;
+    return `${yyyy}-${mm}-${dd}`; // YYYY-MM-DD (NO timezone)
   }
 
   return null;
 };
+
 
 
 
