@@ -247,13 +247,17 @@ export default function Dashboard() {
 
   // date state for "Today" + date picker
   const [currentDate, setCurrentDate] = useState<string>(() => {
-    const d = new Date()
-    return d.toISOString().slice(0, 10) // yyyy-mm-dd
+    return toLocalDateString(new Date()) // yyyy-mm-dd
   })
   // datepicker dropdown open
   const [dateOpen, setDateOpen] = useState(false)
   // Add lesson modal
   const [addOpen, setAddOpen] = useState(false)
+
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
+  const [isRangeFilterActive, setIsRangeFilterActive] = useState(false)
+
   
 
   // This useEffect will now work correctly
@@ -263,9 +267,22 @@ export default function Dashboard() {
         setIsLoading(true)
         setError(null)
 
+        let response
+
+        if(isRangeFilterActive && fromDate && toDate){
+          response = await axiosInstance<ApiResponse>("/Class/GetTodaySessionFlattenedFiltered",{
+            params: {
+              fromDate,
+              toDate
+            }
+          })
+        }else{
+          response = await axiosInstance.get<ApiResponse>("/Class/GetTodaySessionFlattened")
+        }
+
         // TODO: Update this endpoint to use `currentDate`
         // e.g. /Class/GetSessionsFlattened?date=${currentDate}
-        const response = await axiosInstance.get<ApiResponse>("/Class/GetTodaySessionFlattened")
+        
 
         if (response.data && response.data.IsSuccess) {
           // Map API data to our Lesson[] type
@@ -296,7 +313,7 @@ export default function Dashboard() {
 
     fetchLessons()
     // This hook re-runs whenever `currentDate` changes
-  }, [currentDate])
+  }, [isRangeFilterActive, fromDate, toDate, currentDate])
 
   // compute attendance totals for the widget
   const attendance = useMemo(() => {
@@ -318,6 +335,14 @@ export default function Dashboard() {
       return iso
     }
   }
+
+  function toLocalDateString(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
 
 
   return (
@@ -346,13 +371,55 @@ export default function Dashboard() {
               </div>
               {/* Controls inline on the right */}
               <div className="ml-auto flex items-center gap-2">
+                <div className = "flex items-end gap-3">
+                  <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-600 font-medium">From:</label>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => setFromDate(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900 bg-white"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-600 font-medium">To:</label>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => setToDate(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-900 bg-white"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <button 
+            disabled = {!fromDate || !toDate}
+            onClick = {() => setIsRangeFilterActive(true)}
+            className = "h-10 px-4 bg-blue-600 text-white rounded-lg text-sm disabled:bg-gray-300"
+          >
+            Apply
+          </button>
+          {isRangeFilterActive && (
+            <button 
+              onClick = {() => {
+                setFromDate("")
+                setToDate("")
+                setIsRangeFilterActive(false)
+              }}
+              className = "h-10 px-3 border rounded-lg text-sm"
+            >
+              Reset
+            </button>
+          )}
+        </div>
+                </div>
                 <button
                   title="Previous"
                   className="h-10 w-10 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition"
                   onClick={() => {
                     const d = new Date(currentDate)
-                    d.setDate(d.getDate() - 1)
-                    setCurrentDate(d.toISOString().slice(0, 10))
+d.setDate(d.getDate() - 1)
+setCurrentDate(toLocalDateString(d))
                   }}
                 >
                   <ArrowLeft size={18} />
@@ -362,8 +429,8 @@ export default function Dashboard() {
                   className="h-10 w-10 grid place-items-center rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 transition"
                   onClick={() => {
                     const d = new Date(currentDate)
-                    d.setDate(d.getDate() + 1)
-                    setCurrentDate(d.toISOString().slice(0, 10))
+d.setDate(d.getDate() + 1)
+setCurrentDate(toLocalDateString(d))
                   }}
                 >
                   <ArrowRight size={18} />
@@ -382,11 +449,17 @@ export default function Dashboard() {
                   {dateOpen && (
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-gray-200 shadow-lg z-30 p-4">
                       <div className="flex items-center justify-between mb-4">
-                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() - 1); setCurrentDate(d.toISOString().slice(0, 10)) }} className="p-1 hover:bg-gray-100 rounded">
+                        <button onClick={() => { const d = new Date(currentDate)
+d.setMonth(d.getMonth() - 1)
+setCurrentDate(toLocalDateString(d))
+ }} className="p-1 hover:bg-gray-100 rounded">
                           <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                         </button>
                         <div className="text-lg font-semibold text-gray-800">{new Date(currentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
-                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() + 1); setCurrentDate(d.toISOString().slice(0, 10)) }} className="p-1 hover:bg-gray-100 rounded">
+                        <button onClick={() => { const d = new Date(currentDate)
+d.setMonth(d.getMonth() + 1)
+setCurrentDate(toLocalDateString(d))
+ }} className="p-1 hover:bg-gray-100 rounded">
                           <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </button>
                       </div>
@@ -395,13 +468,15 @@ export default function Dashboard() {
                         {(() => {
                           const date = new Date(currentDate); const year = date.getFullYear(); const month = date.getMonth(); const firstDay = new Date(year, month, 1); const startDate = new Date(firstDay); startDate.setDate(startDate.getDate() - firstDay.getDay() + 1);
                           const days: any[] = [];
-                          for (let i = 0; i < 42; i++) { const currentDay = new Date(startDate); currentDay.setDate(startDate.getDate() + i); const isCurrentMonth = currentDay.getMonth() === month; const isSelected = currentDay.toISOString().slice(0, 10) === currentDate; const isToday = currentDay.toDateString() === new Date().toDateString();
-                            days.push(<button key={i} onClick={() => { setCurrentDate(currentDay.toISOString().slice(0, 10)); setDateOpen(false) }} className={`h-8 w-8 rounded-full text-sm ${isSelected ? 'bg-blue-600 text-white' : isToday ? 'bg-blue-100 text-blue-600 font-semibold' : isCurrentMonth ? 'text-gray-900 hover:bg-gray-100' : 'text-gray-400'}`}>{currentDay.getDate()}</button>) }
+                          for (let i = 0; i < 42; i++) { const currentDay = new Date(startDate); currentDay.setDate(startDate.getDate() + i); const isCurrentMonth = currentDay.getMonth() === month; const isSelected =
+  toLocalDateString(currentDay) === currentDate
+; const isToday = currentDay.toDateString() === new Date().toDateString();
+                            days.push(<button key={i} onClick={() => { setCurrentDate(toLocalDateString(currentDay)); setDateOpen(false) }} className={`h-8 w-8 rounded-full text-sm ${isSelected ? 'bg-blue-600 text-white' : isToday ? 'bg-blue-100 text-blue-600 font-semibold' : isCurrentMonth ? 'text-gray-900 hover:bg-gray-100' : 'text-gray-400'}`}>{currentDay.getDate()}</button>) }
                           return days;
                         })()}
                       </div>
                       <div className="flex justify-center">
-                        <button onClick={() => { const today = new Date(); setCurrentDate(today.toISOString().slice(0, 10)); setDateOpen(false) }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Today</button>
+                        <button onClick={() => { const today = new Date(); setCurrentDate(toLocalDateString(today)); setDateOpen(false) }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Today</button>
                       </div>
                     </div>
                   )}
