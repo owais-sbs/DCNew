@@ -3330,9 +3330,9 @@ const stats = getOverallAttendanceStats();
 
             <div className="p-6 space-y-8 bg-gray-50 overflow-y-auto">
               <div className="bg-white border border-indigo-200  shadow-sm p-6">
-                <h2 className="text-2xl font-semibold text-gray-900 text-center mb-4">How to invite people to Teach 'n Go</h2>
+                <h2 className="text-2xl font-semibold text-gray-900 text-center mb-4">How to invite people to DCE</h2>
                 <p className="text-sm text-gray-700">
-                  Teach 'n Go is great for managing your classes and students. It gets better when teachers, students and related contacts are involved too!
+                  DCE is great for managing your classes and students. It gets better when teachers, students and related contacts are involved too!
                 </p>
                 <p className="text-sm text-gray-700 mt-2">
                   You can send email invites or print out invitations to hand out. If an email is available, we recommend emailing the link to your school members for a smoother sign up. Links to download the mobile app are also included in the email.
@@ -3364,15 +3364,15 @@ const stats = getOverallAttendanceStats();
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900">You're invited to our school portal</h3>
-                    <p className="text-sm text-gray-500">Teach 'n Go</p>
+                    <p className="text-sm text-gray-500">DCE</p>
                   </div>
-                  <img src="https://app.teachngo.com/static/media/logo.5ae04983d16bf1c3a4e3.svg" alt="Teach 'n Go" className="h-10" />
+                  <img src="https://app.teachngo.com/static/media/logo.5ae04983d16bf1c3a4e3.svg" alt="DCE" className="h-10" />
                 </div>
 
                 <div className="space-y-4">
                   <p className="text-gray-900 font-medium">Hello {studentName || "Student"},</p>
                   <p className="text-sm text-gray-600">
-                    DCE English Language School is using Teach 'n Go to keep students updated this year. By joining you will be able to view attendance, lesson notes, homework and even your payments.
+                    DCE English Language School is using DCE to keep students updated this year. By joining you will be able to view attendance, lesson notes, homework and even your payments.
                   </p>
                   <p className="text-sm text-gray-600 font-semibold">
                     Please create your account by our next lesson. It's super easy and only takes a minute!
@@ -3383,7 +3383,7 @@ const stats = getOverallAttendanceStats();
                   <div className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 text-sm">Join DCE English Language School</div>
                   <div className="p-4 text-sm text-gray-700 space-y-2">
                     <ol className="list-decimal space-y-2 pl-5">
-                      <li>Open your browser and go to <a href="https://app.teachngo.com/activate" className="text-blue-600 hover:underline">https://app.teachngo.com/activate</a></li>
+                      <li>Open your browser and go to <a href="https://admin-dc.netlify.app/" className="text-blue-600 hover:underline">https://admin-dc.netlify.app/</a></li>
                       <li>Enter your activation code found in the table below</li>
                       <li>Click on "Activate your code"</li>
                       <li>Type in a <strong>Username</strong></li>
@@ -3421,7 +3421,7 @@ const stats = getOverallAttendanceStats();
                     </div>
                     <div>
                       <div className="font-semibold text-gray-900">I forgot my password. What do I do?</div>
-                      <p>You can reset your password by going to <a href="https://app.teachngo.com/forgotPassword" className="text-blue-600 hover:underline">https://app.teachngo.com/forgotPassword</a>. If that doesn't work please contact your teacher at DCE English Language School and they can reset the password for you.</p>
+                      <p>You can reset your password by going to <a href="https://admin-dc.netlify.app/" className="text-blue-600 hover:underline">https://admin-dc.netlify.app/</a>. If that doesn't work please contact your teacher at DCE English Language School and they can reset the password for you.</p>
                     </div>
                   </div>
                 </div>
