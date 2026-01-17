@@ -55,6 +55,7 @@ type Lesson = {
   totalStudents: number
   presentCount: number
   absentCount: number
+  sessionDate: string
 }
 
 
@@ -257,7 +258,6 @@ export default function Dashboard() {
   const [fromDate, setFromDate] = useState("")
   const [toDate, setToDate] = useState("")
   const [isRangeFilterActive, setIsRangeFilterActive] = useState(false)
-
   
 
   // This useEffect will now work correctly
@@ -297,7 +297,8 @@ export default function Dashboard() {
             teacherNames: item.TeacherNames || [],
             totalStudents: item.TotalStudents || 0,
             presentCount: item.PresentCount || 0,
-            absentCount: item.AbsentCount || 0
+            absentCount: item.AbsentCount || 0,
+            sessionDate: item.StartTime.split("T")[0]
           }))
           setLessons(mappedLessons)
         } else {
@@ -344,7 +345,8 @@ export default function Dashboard() {
 }
 
 
-
+const selectedLesson = lessons.find(l => l.id === selected) || null
+console.log("This is the selected lesson",selectedLesson)
   return (
     <div className="bg-slate-50 min-h-screen -mt-4">
       <div className="px-6 pt-4 pb-6">
@@ -864,12 +866,12 @@ setCurrentDate(toLocalDateString(d))
         </div>
       )}
 
-      {selected && (
+      {selected && selectedLesson && (
         <SessionDetailsModal
           context="dashboard"
           lesson={lessons.find((l) => l.id === selected) || null}
           sessionId={selected}
-          currentDate={currentDate}
+          currentDate={selectedLesson.sessionDate}
           onClose={() => setSelected(null)}
         />
       )}

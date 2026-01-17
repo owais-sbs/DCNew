@@ -128,6 +128,8 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
 
   const numericSessionId = useMemo(() => Number(sessionId), [sessionId]);
 
+  console.log(currentDate)
+
   const fetchSessionStudents = async () => {
     if (!numericSessionId) return;
     try {
@@ -238,6 +240,31 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
     setShowUnenrollModal(true);
     setOpenStudentMenu(null);
   };
+
+  const formattedSessionDate = useMemo(() => {
+  if (!currentDate) return "";
+
+  const session = new Date(currentDate);
+  const today = new Date();
+
+  const isToday =
+    session.getFullYear() === today.getFullYear() &&
+    session.getMonth() === today.getMonth() &&
+    session.getDate() === today.getDate();
+
+  if (isToday) return "Today";
+
+  return session.toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}, [currentDate]);
+
+
+
+console.log(formattedSessionDate)
 
   const enrollStudents = async () => {
     if (!numericSessionId || selectedToEnroll.length === 0) return;
@@ -633,7 +660,7 @@ useEffect(() => {
               </span>
             </div>
             <span className="text-xs text-slate-400 mt-0.5 block font-mono uppercase">
-              {context === "dashboard" ? "Today " : ""}
+              {formattedSessionDate + " "}
               #{lesson.id} 📍 {lesson.classroom}
             </span>
           </div>
