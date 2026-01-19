@@ -566,6 +566,9 @@ function LessonsContent({
               const endTime = formatTime(s.EndTime);
               const timeRange = `${startTime} - ${endTime}`;
               const dayShort = weekdayName.substring(0, 3).toUpperCase();
+              const startDateTime = new Date(
+  `${date.toISOString().slice(0, 10)}T${s.StartTime.slice(11, 16)}`
+);
               occurrences.push({
                 scheduleId: s.ScheduleId,
                 dateIso: date.toISOString().slice(0, 10), // yyyy-mm-dd for sorting/display
@@ -573,6 +576,7 @@ function LessonsContent({
                 dayOfWeek: weekdayName,
                 time: timeRange,
                 duration: calculateDuration(s.StartTime, s.EndTime),
+                startTimestamp: startDateTime.getTime(),
                 className: s.ClassTitle || classInfo?.ClassTitle,
                 subject: s.ClassSubject || classInfo?.ClassSubject,
                 classroom: s.ClassRoomName || s.DayOfWeek,
@@ -587,13 +591,12 @@ function LessonsContent({
 
         // sort by date then time (if needed)
         occurrences.sort((a, b) => {
-          if (a.dateIso < b.dateIso) return -1;
-          if (a.dateIso > b.dateIso) return 1;
-          // fallback: sort by time string
-          if (a.time < b.time) return -1;
-          if (a.time > b.time) return 1;
-          return 0;
-        });
+  if (a.dateIso !== b.dateIso) {
+    return a.dateIso.localeCompare(b.dateIso);
+  }
+  return a.startTimestamp - b.startTimestamp;
+});
+
 
         // map to UI format (include formatted date)
         const mapped = occurrences.map((o) => ({

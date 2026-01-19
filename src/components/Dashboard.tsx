@@ -260,6 +260,12 @@ export default function Dashboard() {
   const [isRangeFilterActive, setIsRangeFilterActive] = useState(false)
   
 
+  const isToday = (date: string) => {
+  const today = toLocalDateString(new Date());
+  return date === today;
+};
+
+
   // This useEffect will now work correctly
   useEffect(() => {
     const fetchLessons = async () => {
@@ -276,6 +282,13 @@ export default function Dashboard() {
               toDate
             }
           })
+        }else if(!isToday(currentDate)){
+          response = await axiosInstance.get<ApiResponse>(
+          "/Class/GetTodaySessionDateFilter",
+          {
+            params: { date: currentDate },
+          }
+        );
         }else{
           response = await axiosInstance.get<ApiResponse>("/Class/GetTodaySessionFlattened")
         }
@@ -347,6 +360,12 @@ export default function Dashboard() {
 
 const selectedLesson = lessons.find(l => l.id === selected) || null
 console.log("This is the selected lesson",selectedLesson)
+
+const modalDate = isRangeFilterActive
+  ? selectedLesson?.sessionDate 
+  : currentDate
+
+  console.log("This is the date", modalDate)
   return (
     <div className="bg-slate-50 min-h-screen -mt-4">
       <div className="px-6 pt-4 pb-6">
@@ -871,7 +890,7 @@ setCurrentDate(toLocalDateString(d))
           context="dashboard"
           lesson={lessons.find((l) => l.id === selected) || null}
           sessionId={selected}
-          currentDate={selectedLesson.sessionDate}
+          currentDate={modalDate!}
           onClose={() => setSelected(null)}
         />
       )}

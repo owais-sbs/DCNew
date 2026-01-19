@@ -656,7 +656,7 @@ useEffect(() => {
               <span className="text-blue-400">{lesson.time}</span>
               <span className="text-white">{lesson.className}</span>
               <span className="text-slate-400 font-normal">
-                ({lesson.subject || lesson.classroom})
+                ({lesson.subject || lesson.classroom})sde
               </span>
             </div>
             <span className="text-xs text-slate-400 mt-0.5 block font-mono uppercase">
