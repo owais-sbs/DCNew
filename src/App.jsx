@@ -19,6 +19,11 @@ import TeacherCreate from "./components/TeacherCreate";
 import StaffCreate from "./components/StaffCreate";
 import RelatedContactCreate from "./components/RelatedContactCreate";
 import ProspectCreate from "./components/ProspectCreate";
+import EmailLayout from "./components/EmailLayout"
+import EmailTemplates from "./components/EmailTemplates"
+import SendEmail from "./components/SendEmail"
+import EmailTemplate from "./components/EmailTemplates"
+import AddEmailTemplate from "./components/AddEmailTemplate"
 
 import NotesDashboard from "./components/NotesDashboard";
 import AccountCreation from "./components/AccountCreation";
@@ -160,6 +165,24 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+           
+           <Route
+  path="/email"
+  element={
+    <ProtectedRoute>
+      <PrivateLayout>
+        <EmailLayout />
+      </PrivateLayout>
+    </ProtectedRoute>
+  }
+>
+  <Route index element={<SendEmail />} />
+  <Route path="templates" element={<EmailTemplates />} />
+  <Route path="templates/new" element={<AddEmailTemplate />} />
+  <Route path="templates/:id/edit" element={<AddEmailTemplate />} />
+</Route>
+
+
 
 
               <Route

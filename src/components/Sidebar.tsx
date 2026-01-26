@@ -7,6 +7,7 @@ import {
   BookOpen,
   ChevronRight,
   ChevronLeft,
+  Mail,
   CreditCard,
   MessageSquare
 } from "lucide-react";
@@ -20,6 +21,7 @@ const adminTeacherItems = [
   { id: "calendar", icon: Calendar, label: "Calendar", path: "/calendar" },
   { id: "people", icon: Users, label: "People", path: "/people" },
   { id: "notes", icon: BookOpen, label: "Classes & events", path: "/notes" },
+  { id: "email", icon: Mail, label: "Email", path: "/email" },
   // { id: "payments", icon: CreditCard, label: "Payments", path: "/payments" },
   // { id: "messaging", icon: MessageSquare, label: "Group Messaging", path: "/messaging" },
   // { id: "reports", icon: FileText, label: "Reports", path: "/reports" },
