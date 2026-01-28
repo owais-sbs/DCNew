@@ -220,14 +220,18 @@ const initialFormData: FormDataState = {
 const parseDate = (dateString: string): string | null => {
   if (!dateString) return null;
 
-  // dd-mm-yyyy
-  const parts = dateString.split("-");
-  if (parts.length === 3) {
-    const [dd, mm, yyyy] = parts;
-    return `${yyyy}-${mm}-${dd}`; // YYYY-MM-DD (NO timezone)
+  // If already yyyy-mm-dd (from <input type="date">)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString;
   }
 
-  return null;
+  // dd-mm-yyyy
+  if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+    const [dd, mm, yyyy] = dateString.split("-");
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return null; // INVALID → backend won't break
 };
 
 
