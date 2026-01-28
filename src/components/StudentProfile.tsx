@@ -105,6 +105,7 @@ export default function StudentProfile() {
   const [loadingLessons, setLoadingLessons] = useState(false)
   const [attendanceData, setAttendanceData] = useState<Record<number, any>>({})
   const [openClassMenu, setOpenClassMenu] = useState<number | null>(null)
+  const [classMenuPositions, setClassMenuPositions] = useState<Record<number, { top: number; left: number }>>({})
   const [selectedLesson, setSelectedLesson] = useState<any | null>(null)
   const [showAttendanceModal, setShowAttendanceModal] = useState(false)
   const [attachments, setAttachments] = useState<any[]>([])
@@ -176,6 +177,14 @@ useEffect(() => {
     }
     return () => document.removeEventListener("click", close)
   }, [openMoreMenu])
+
+  useEffect(() => {
+    const close = () => setOpenClassMenu(null)
+    if (openClassMenu !== null) {
+      document.addEventListener("click", close)
+    }
+    return () => document.removeEventListener("click", close)
+  }, [openClassMenu])
 
 
   // Logic to derive the "True" attendance percentage
@@ -1287,13 +1296,33 @@ const stats = getOverallAttendanceStats();
                               className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setOpenClassMenu(openClassMenu === cls.ClassId ? null : cls.ClassId)
+                                const button = e.currentTarget
+                                const rect = button.getBoundingClientRect()
+                                if (openClassMenu === cls.ClassId) {
+                                  setOpenClassMenu(null)
+                                } else {
+                                  setClassMenuPositions({
+                                    ...classMenuPositions,
+                                    [cls.ClassId]: {
+                                      top: rect.bottom + 4,
+                                      left: rect.right - 192 // 192px = w-48 (12rem)
+                                    }
+                                  })
+                                  setOpenClassMenu(cls.ClassId)
+                                }
                               }}
                             >
                       <MoreHorizontal size={16} />
                     </button>
-                            {openClassMenu === cls.ClassId && (
-                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+                            {openClassMenu === cls.ClassId && classMenuPositions[cls.ClassId] && (
+                              <div 
+                                className="fixed w-48 bg-white rounded-lg shadow-xl border border-gray-200 z-[100]"
+                                style={{ 
+                                  top: `${classMenuPositions[cls.ClassId].top}px`, 
+                                  left: `${classMenuPositions[cls.ClassId].left}px` 
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <button
                                   className="w-full px-4 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
                                   onClick={(e) => {

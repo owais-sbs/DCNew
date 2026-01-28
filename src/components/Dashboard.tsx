@@ -282,15 +282,13 @@ export default function Dashboard() {
               toDate
             }
           })
-        }else if(!isToday(currentDate)){
+        }else{
           response = await axiosInstance.get<ApiResponse>(
           "/Class/GetTodaySessionDateFilter",
           {
             params: { date: currentDate },
           }
         );
-        }else{
-          response = await axiosInstance.get<ApiResponse>("/Class/GetTodaySessionFlattened")
         }
 
         // TODO: Update this endpoint to use `currentDate`
