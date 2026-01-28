@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import axiosInstance from "./axiosInstance";
+import { useParams } from "react-router-dom"
 import Swal from "sweetalert2";
 
 export default function ActivationPage() {
@@ -12,6 +13,56 @@ export default function ActivationPage() {
   const [accountId, setAccountId] = useState<number | null>(null);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const { code } = useParams<{ code?: string }>();
+
+
+useEffect(() => {
+  if (code && code.trim()) {
+    setActivationCode(code);
+    verifyCode(code.trim());
+  }
+}, [code]);
+
+
+
+console.log(code)
+
+
+const verifyCode = async (code: string) => {
+  setLoading(true);
+  try {
+    const response = await axiosInstance.post("/Account/VerifyActivationCode", {
+      Code: code,
+    });
+
+    if (response.data?.IsSuccess) {
+      const accountId =
+        response.data.Data?.accountId ||
+        response.data.Data?.AccountId ||
+        response.data.Data?.Id;
+
+      if (accountId) {
+        setAccountId(accountId);
+        setStep("password"); // 🚀 jump straight to password
+      } else {
+        Swal.fire("Error", "Account ID not found", "error");
+      }
+    } else {
+      Swal.fire("Error", response.data?.Message || "Invalid activation code", "error");
+    }
+  } catch (err: any) {
+    Swal.fire(
+      "Error",
+      err.response?.data?.Message || "Failed to verify activation code",
+      "error"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,6 +150,8 @@ export default function ActivationPage() {
       setLoading(false);
     }
   };
+
+  
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">

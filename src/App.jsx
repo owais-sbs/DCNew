@@ -80,7 +80,8 @@ export default function App() {
               {/* PUBLIC ROUTES */}
               <Route path="/" element={<Login />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/activate" element={<ActivationPage />} />
+               <Route path="/activate" element={<ActivationPage />} />
+              <Route path="/activate/:code" element={<ActivationPage />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/verify-otp" element={<VerifyOtp />} />
               <Route path="/reset-password" element={<ResetPassword />} />

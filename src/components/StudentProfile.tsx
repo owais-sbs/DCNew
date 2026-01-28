@@ -135,6 +135,8 @@ export default function StudentProfile() {
 
   const presentStat = attendanceStats.find((stat: any) => stat.Status === "Present");
   const percentage = presentStat?.Percentage ?? 0;
+  const [attendanceMode, setAttendanceMode] = useState<"single" | "bulk" | null>(null)
+
 
 
   const [openMoreMenu, setOpenMoreMenu] = useState(false)
@@ -148,6 +150,50 @@ export default function StudentProfile() {
   // Inside StudentProfile component
 const [activities, setActivities] = useState<any[]>([]);
 const [loadingActivity, setLoadingActivity] = useState(false);
+
+const [selectedSessions, setSelectedSessions] = useState<{ sessionId: number ; attendanceDate: string}[]>([])
+
+
+const isSessionSelected = (sessionId: number, attendanceDate: string) => {
+  return selectedSessions.some(
+    s => s.sessionId == sessionId && s.attendanceDate == attendanceDate
+  )
+}
+
+const toggleSession = (sessionId: number, attendanceDate: string) => {
+  setSelectedSessions(prev => {
+    const exist = prev.some(
+      s => s.sessionId == sessionId && s.attendanceDate == attendanceDate
+    )
+
+    if(exist){
+      return prev.filter(
+        s => !(s.sessionId == sessionId && s.attendanceDate == attendanceDate)
+      )
+    }
+
+    return [...prev, { sessionId, attendanceDate }]
+  })
+}
+
+const toggleSelectAll = (checked: boolean) => {
+  if(checked){
+    const all = lessons.map((l: any) => ({
+      sessionId: l.scheduleId,
+      attendanceDate: l.date
+    }))
+
+    setSelectedSessions(all)
+  }else{
+    setSelectedSessions([])
+  }
+}
+
+
+const isAllSelected = lessons.length > 0 && lessons.every((l: any) => isSessionSelected(l.scheduleId, l.date))
+
+
+console.log("selected sessions", selectedSessions)
 
 useEffect(() => {
   if (activeTab.toLowerCase() === "activity" && id) {
@@ -517,6 +563,17 @@ const stats = getOverallAttendanceStats();
       // Don't show error to user, just log it
     }
   }
+
+  const refreshAttendanceStats = async () => {
+  const response = await axiosInstance.get(
+    "/Dashboard/GetStudentAttendanceStats",
+    { params: { studentId: Number(id) } }
+  )
+  if (response.data?.IsSuccess) {
+    setAttendanceStats(response.data.Data)
+  }
+}
+
 
   // Fetch lessons for selected class using GetAttendanceForStudentInClass
   const fetchLessons = async (classId: number, page: number = 1) => {
@@ -1046,9 +1103,37 @@ const stats = getOverallAttendanceStats();
         ) : (
           <>
             <div className="overflow-x-auto">
+              <th className="px-4 py-3 text-right">
+  <input
+    type="checkbox"
+    checked={isAllSelected}
+    onChange={(e) => toggleSelectAll(e.target.checked)}
+  />
+</th>
+<th>
+  <button
+  disabled={selectedSessions.length === 0}
+  onClick={() => {
+    setAttendanceMode("bulk")
+    setShowAttendanceModal(true)
+  }}
+  className={`h-10 w-10 grid place-items-center rounded-lg border
+    ${
+      selectedSessions.length === 0
+        ? "text-gray-400 border-gray-200 cursor-not-allowed"
+        : "text-blue-600 border-blue-300 hover:bg-blue-50"
+    }`}
+>
+  <FileText size={18} />
+</button>
+
+</th>
+
+
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-700">Check Box</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Date</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Day</th>
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Class</th>
@@ -1092,6 +1177,23 @@ const stats = getOverallAttendanceStats();
 
                     return (
                       <tr key={lesson.scheduleId || i} className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="px-4 py-3">
+ <input
+  type="checkbox"
+  checked={isSessionSelected(
+    lesson.scheduleId,
+    lesson.date
+  )}
+  onChange={() =>
+    toggleSession(
+      lesson.scheduleId,
+      lesson.date
+    )
+  }
+/>
+
+</td>
+
                         <td className="py-3 px-4 text-gray-700">
                           <div>{lessonDate}</div>
                           {lessonTime && <div className="text-xs text-gray-500">{lessonTime}</div>}
@@ -1118,8 +1220,10 @@ const stats = getOverallAttendanceStats();
                         </td>
                         <td className="py-3 px-4">
                           <button
+                            disabled={selectedSessions.length !== 0}
                             className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"
                             onClick={() => {
+                              setAttendanceMode("single")
                               setSelectedLesson(lesson)
                               setShowAttendanceModal(true)
                             }}
@@ -3475,10 +3579,11 @@ const stats = getOverallAttendanceStats();
 
       {/* Student Attendance and Behaviour Modal */}
       {/* Inside StudentProfile return block */}
-{showAttendanceModal && selectedLesson && (
+{showAttendanceModal && attendanceMode == "single" && selectedLesson && (
   <StudentAttendanceModal
     studentId={parseInt(id!)}
     studentName={studentName}
+    mode={"single"}
     lesson={selectedLesson}
     onClose={() => {
       setShowAttendanceModal(false)
@@ -3502,8 +3607,27 @@ const stats = getOverallAttendanceStats();
       }
       fetchStats();
     }}
+
   />
 )}
+{showAttendanceModal && attendanceMode === "bulk" && (
+  <StudentAttendanceModal
+    studentId={parseInt(id!)}
+    studentName={studentName}
+    mode={"bulk"}
+    lessons={selectedSessions}
+    onClose={() => {
+      setShowAttendanceModal(false)
+      setSelectedSessions([])
+      setAttendanceMode(null)
+    }}
+    onSuccess={() => {
+      if (selectedClassId) fetchLessons(selectedClassId)
+    }}
+    refreshStats={refreshAttendanceStats}
+  />
+)}
+
     </div>
   )
 }
@@ -3512,77 +3636,131 @@ const stats = getOverallAttendanceStats();
 function StudentAttendanceModal({
   studentId,
   studentName,
+  mode,
   lesson,
+  lessons,
   onClose,
   onSuccess,
   refreshStats
 }: {
   studentId: number
   studentName: string
-  lesson: any
+  mode: "single" | "bulk"
+  lesson?: any
+  lessons?: { sessionId: number, attendanceDate: number }[]
   onClose: () => void
   onSuccess: () => void
   refreshStats: () => void
 }) {
-  const [attendanceStatus, setAttendanceStatus] = useState<"Present" | "Absent" | "Late" | "Excused" | null>(
-    lesson.attendance || null
-  )
-  const [isExcused, setIsExcused] = useState(lesson.attendance === "Excused")
+  // const [attendanceStatus, setAttendanceStatus] = useState<"Present" | "Absent" | "Late" | "Excused" | null>(
+  //   lesson.attendance || null
+  // )
+  const [attendanceStatus, setAttendanceStatus] = useState<
+  "Present" | "Absent" | "Late" | "Excused" | null
+>(mode === "single" ? lesson?.attendance ?? null : null)
+
+  const [isExcused, setIsExcused] = useState(
+  mode === "single" && lesson?.attendance === "Excused"
+)
+
   const [behaviourTab, setBehaviourTab] = useState<"gold" | "red">("gold")
   const [selectedGoldStars, setSelectedGoldStars] = useState<string[]>([])
   const [selectedRedFlags, setSelectedRedFlags] = useState<string[]>([])
-  const [grade, setGrade] = useState<string>(lesson.grade || "")
-  const [notes, setNotes] = useState<string>(lesson.notes || "")
+  const [grade, setGrade] = useState(
+  mode === "single" ? lesson?.grade || "" : ""
+)
+const [notes, setNotes] = useState(
+  mode === "single" ? lesson?.notes || "" : ""
+)
   const [loading, setLoading] = useState(false)
   const [loadingAttendance, setLoadingAttendance] = useState(true)
   const [attendanceData, setAttendanceData] = useState<any>(null)
 
   // Fetch attendance data when modal opens
-  useEffect(() => {
-    const fetchAttendanceData = async () => {
-      if (!lesson.classId || !lesson.scheduleId) {
-        setLoadingAttendance(false)
-        return
-      }
+  // useEffect(() => {
+  //   const fetchAttendanceData = async () => {
+  //     if (!lesson.classId || !lesson.scheduleId) {
+  //       setLoadingAttendance(false)
+  //       return
+  //     }
 
-      try {
-        const response = await axiosInstance.get("/Class/GetAttendanceForStudentInClass", {
-          params: { 
-            classId: lesson.classId,
-            studentId: studentId
-          }
-        })
+  //     try {
+  //       const response = await axiosInstance.get("/Class/GetAttendanceForStudentInClass", {
+  //         params: { 
+  //           classId: lesson.classId,
+  //           studentId: studentId
+  //         }
+  //       })
 
-        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
-          // Find the attendance record for this specific session
-          const sessionAttendance = response.data.Data.find(
-            (item: any) => item.SessionId === lesson.scheduleId
-          )
+  //       if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+  //         // Find the attendance record for this specific session
+  //         const sessionAttendance = response.data.Data.find(
+  //           (item: any) => item.SessionId === lesson.scheduleId
+  //         )
           
-          if (sessionAttendance) {
-            setAttendanceData(sessionAttendance)
-            // Update attendance status from API
-            const status = sessionAttendance.AttendanceStatus
-            if (status && status !== "NotTaken") {
-              if (status === "Excused") {
-                setAttendanceStatus("Excused")
-                setIsExcused(true)
-              } else {
-                setAttendanceStatus(status as "Present" | "Absent" | "Late")
-                setIsExcused(false)
-              }
-            }
+  //         if (sessionAttendance) {
+  //           setAttendanceData(sessionAttendance)
+  //           // Update attendance status from API
+  //           const status = sessionAttendance.AttendanceStatus
+  //           if (status && status !== "NotTaken") {
+  //             if (status === "Excused") {
+  //               setAttendanceStatus("Excused")
+  //               setIsExcused(true)
+  //             } else {
+  //               setAttendanceStatus(status as "Present" | "Absent" | "Late")
+  //               setIsExcused(false)
+  //             }
+  //           }
+  //         }
+  //       }
+  //     } catch (error: any) {
+  //       console.error("Error fetching attendance:", error)
+  //     } finally {
+  //       setLoadingAttendance(false)
+  //     }
+  //   }
+
+  //   fetchAttendanceData()
+  // }, [lesson.classId, lesson.scheduleId, studentId])
+
+  useEffect(() => {
+  if (mode !== "single" || !lesson) {
+    setLoadingAttendance(false)
+    return
+  }
+
+  const fetchAttendanceData = async () => {
+    try {
+      const response = await axiosInstance.get(
+        "/Class/GetAttendanceForStudentInClass",
+        {
+          params: {
+            classId: lesson.classId,
+            studentId
           }
         }
-      } catch (error: any) {
-        console.error("Error fetching attendance:", error)
-      } finally {
-        setLoadingAttendance(false)
-      }
-    }
+      )
 
-    fetchAttendanceData()
-  }, [lesson.classId, lesson.scheduleId, studentId])
+      const sessionAttendance = response.data?.Data?.find(
+        (x: any) => x.SessionId === lesson.scheduleId
+      )
+
+      if (sessionAttendance) {
+        setAttendanceData(sessionAttendance)
+        const status = sessionAttendance.AttendanceStatus
+        if (status && status !== "NotTaken") {
+          setAttendanceStatus(status)
+          setIsExcused(status === "Excused")
+        }
+      }
+    } finally {
+      setLoadingAttendance(false)
+    }
+  }
+
+  fetchAttendanceData()
+}, [mode, lesson, studentId])
+
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return "—"
@@ -3605,10 +3783,20 @@ function StudentAttendanceModal({
     })
   }
 
-  const lessonDate = formatDate(lesson.date || lesson.startTime)
-  const lessonTime = lesson.startTime && lesson.endTime
+  // const lessonDate = formatDate(lesson.date || lesson.startTime)
+  // const lessonTime = lesson.startTime && lesson.endTime
+  //   ? `${formatTime(lesson.startTime)}-${formatTime(lesson.endTime)}`
+  //   : "—"
+  const lessonDate =
+  mode === "single" && lesson
+    ? formatDate(lesson.date || lesson.startTime)
+    : "—"
+
+const lessonTime =
+  mode === "single" && lesson?.startTime && lesson?.endTime
     ? `${formatTime(lesson.startTime)}-${formatTime(lesson.endTime)}`
     : "—"
+
 
   // Format date to YYYY-MM-DD format for API
   const formatDateForAPI = (dateString?: string) => {
@@ -3622,6 +3810,10 @@ function StudentAttendanceModal({
   }
 
   const handleMarkAttendance = async (status: "Present" | "Absent" | "Late") => {
+    if (mode === "bulk") return
+
+    if (mode !== "single") return
+
   if (isExcused || loading) return;
 
   const previousStatus = attendanceStatus;
@@ -3709,6 +3901,48 @@ function StudentAttendanceModal({
     }
   }
 
+  const handleBulkMarkAttendance = async (
+  status: "Present" | "Absent" | "Late" | "Excused" | "None"
+) => {
+  if (mode !== "bulk" || !lessons || lessons.length === 0) return
+
+  try {
+    const payload = {
+      studentId,
+      attendanceStatus: status,
+      items: lessons.map(l => ({
+        scheduleId: l.sessionId,
+        date: l.attendanceDate
+      }))
+    }
+
+    const response = await axiosInstance.post(
+      "/Class/MarkAttendanceBulk",
+      payload
+    )
+
+    if (response.data?.IsSuccess !== false) {
+      Swal.fire({
+        icon: "success",
+        title: "Attendance Updated",
+        text: `Marked ${lessons.length} lesson(s) as ${status}`,
+        timer: 1500,
+        showConfirmButton: false
+      })
+
+      refreshStats()
+      onSuccess()
+      onClose()
+    } else {
+      throw new Error(response.data?.Message)
+    }
+  } catch (err) {
+    console.error(err)
+    Swal.fire("Error", "Bulk attendance update failed", "error")
+  }
+}
+
+
   const goldStarOptions = [
     "Being on Task",
     "Participating",
@@ -3759,12 +3993,26 @@ function StudentAttendanceModal({
             <div className="flex items-center gap-3 text-sm">
               <BookOpen size={16} className="text-gray-500" />
               <span className="text-gray-600">Class:</span>
-              <span className="font-medium text-gray-900">{lesson.className || "—"}</span>
+           <span className="font-medium text-gray-900">
+  {mode === "single" ? lesson?.className || "—" : "Multiple lessons"}
+</span>
+
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Calendar size={16} className="text-gray-500" />
               <span className="text-gray-600">Lesson date and time:</span>
-              <span className="font-medium text-gray-900">{lessonDate}, {lessonTime}</span>
+              <span className="font-medium text-gray-900">
+  {mode === "single"
+    ? `${lessonDate}, ${lessonTime}`
+    : lessons!
+        .map(l => {
+          const d = new Date(l.attendanceDate)
+          return d.toLocaleDateString("en-GB")
+        })
+        .join(", ")
+  }
+</span>
+
             </div>
           </div>
 
@@ -3798,8 +4046,18 @@ function StudentAttendanceModal({
             </div>
             <div className="flex items-center gap-4 mb-4">
               <button
-                onClick={() => handleMarkAttendance("Present")}
-                disabled={isExcused || loading}
+                onClick={() => {
+  if (mode === "bulk") {
+    setAttendanceStatus("Present")
+    setIsExcused(false)
+    handleBulkMarkAttendance("Present")
+  } else {
+    handleMarkAttendance("Present")
+  }
+}}
+
+                disabled={loading || (mode === "single" && isExcused)}
+
                 className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
                   attendanceStatus === "Present"
                     ? "bg-green-500 text-white"
@@ -3811,7 +4069,16 @@ function StudentAttendanceModal({
               <span className="text-sm font-medium text-gray-700">Present</span>
 
               <button
-                onClick={() => handleMarkAttendance("Absent")}
+                onClick={() => {
+  if (mode === "bulk") {
+    setAttendanceStatus("Absent")
+    setIsExcused(false)
+    handleBulkMarkAttendance("Absent")
+  } else {
+    handleMarkAttendance("Absent")
+  }
+}}
+
                 disabled={isExcused || loading}
                 className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
                   attendanceStatus === "Absent"
@@ -3824,7 +4091,16 @@ function StudentAttendanceModal({
               <span className="text-sm font-medium text-gray-700">Absent</span>
 
               <button
-                onClick={() => handleMarkAttendance("Late")}
+                onClick={() => {
+  if (mode === "bulk") {
+    setAttendanceStatus("Late")
+    setIsExcused(false)
+    handleBulkMarkAttendance("Late")
+  } else {
+    handleMarkAttendance("Late")
+  }
+}}
+
                 disabled={isExcused || loading}
                 className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
                   attendanceStatus === "Late"
@@ -3838,12 +4114,20 @@ function StudentAttendanceModal({
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
-                type="checkbox"
-                checked={isExcused}
-                onChange={handleToggleExcused}
-                disabled={loading}
-                className="w-4 h-4 text-blue-600 rounded border-gray-300"
-              />
+  type="checkbox"
+  checked={mode === "bulk" ? attendanceStatus === "Excused" : isExcused}
+  onChange={(e) => {
+    if (mode === "bulk") {
+      setAttendanceStatus(e.target.checked ? "Excused" : null)
+      handleBulkMarkAttendance(e.target.checked ? "Excused" : "None")
+    } else {
+      handleToggleExcused()
+    }
+  }}
+  disabled={loading}
+  className="w-4 h-4 text-blue-600 rounded border-gray-300"
+/>
+
               <span className="text-sm text-gray-700">Mark as excused</span>
             </label>
           </div>
