@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import Swal from "sweetalert2";
+import Swal from "sweetalert2"
+import * as XLSX from "xlsx"
 
 import {
   Users,
@@ -123,6 +124,19 @@ export default function PeopleDashboard() {
   const [teacherSearchDebounced, setTeacherSearchDebounced] = useState("")
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false)
 
+  // Export modal and filters
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportFilterMode, setExportFilterMode] = useState<"monthly" | "nationality" | null>(null)
+  const [exportFilterStep, setExportFilterStep] = useState<"choice" | "params">("choice")
+  const [exportMonth, setExportMonth] = useState<number | "">("")
+  const [exportYear, setExportYear] = useState<number | "">("")
+  const [selectedNationalities, setSelectedNationalities] = useState<string[]>([])
+  const [nationalitiesList, setNationalitiesList] = useState<string[]>([])
+  const [loadingNationalities, setLoadingNationalities] = useState(false)
+  const [nationalityDropdownOpen, setNationalityDropdownOpen] = useState(false)
+  const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set())
+  const [isExporting, setIsExporting] = useState(false)
+
   // derived pagination values
 const studentTotalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(totalCount / (pageSize as number)));
 const teacherTotalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(teacherTotalCount / (pageSize as number)));
@@ -166,25 +180,60 @@ const makePageButtons = (totalPages: number, current: number) => {
       setIsLoadingStudents(true)
       setStudentError(null)
       try {
-        const response = await axiosInstance.get("/Student/GetAllWithPagination", {
-          params: {
-            pageNumber,
-            pageSize: pageSize === "all" ? (totalCount > 0 ? totalCount : 1000000) : pageSize,
-            search: studentSearchDebounced || null
-          },
-          signal: controller.signal
-        })
-
-        console.log(response.data)
-        console.log(response.data.Data.Data)
-        console.log(response.data.Data.TotalCount)
-        if (response.data?.IsSuccess && Array.isArray(response.data.Data.Data)) {
-          setStudents(response.data.Data.Data)
-          setTotalCount(response.data.Data.TotalCount)
-        } else {
-          setStudents([])
-          setStudentError("No student data available.")
+        let url = "/Student/GetAllWithPagination"
+        const baseParams: Record<string, unknown> = {
+          pageNumber,
+          pageSize: pageSize === "all" ? (totalCount > 0 ? totalCount : 1000000) : pageSize,
+          search: studentSearchDebounced || null
         }
+        const validNationalities = selectedNationalities.filter((n) => n && String(n).trim())
+        if (exportFilterMode === "monthly" && exportMonth !== "" && exportYear !== "") {
+          url = "/Student/GetAllWithPaginationByMonthYear"
+          baseParams.month = exportMonth
+          baseParams.year = exportYear
+        } else if (exportFilterMode === "nationality" && validNationalities.length > 0) {
+          url = "/Student/GetAllWithPaginationByNationality"
+          baseParams.nationalities = validNationalities
+        }
+
+        const requestConfig: { params: Record<string, unknown>; signal: AbortSignal; paramsSerializer?: (p: Record<string, unknown>) => string } = {
+          params: baseParams,
+          signal: controller.signal
+        }
+        if (url.includes("Nationality") && Array.isArray(baseParams.nationalities)) {
+          requestConfig.paramsSerializer = (p) => {
+            const search = new URLSearchParams()
+            Object.entries(p).forEach(([k, v]) => {
+              if (Array.isArray(v)) v.forEach((x) => search.append(k, String(x)))
+              else if (v != null && v !== "") search.append(k, String(v))
+            })
+            return search.toString()
+          }
+        }
+
+        const response = await axiosInstance.get(url, requestConfig)
+
+        const data = response.data?.Data
+        const studentList = Array.isArray(data?.Data)
+          ? data.Data
+          : Array.isArray(data?.data)
+            ? data.data
+            : Array.isArray(data?.Items)
+              ? data.Items
+              : Array.isArray(data)
+                ? data
+                : []
+        const count = data?.TotalCount ?? data?.totalCount ?? data?.total ?? data?.Count ?? studentList.length
+
+        if (response.data?.IsSuccess) {
+  setStudents(studentList)
+  setTotalCount(count)
+  setStudentError(null)
+} else if (!response.data?.IsSuccess) {
+  setStudents([])
+  setStudentError(response.data?.Message || "No student data available.")
+}
+
       } catch (error: unknown) {
         if (controller.signal.aborted) return
         console.error("Failed to load students", error)
@@ -199,7 +248,31 @@ const makePageButtons = (totalPages: number, current: number) => {
     fetchStudents()
 
     return () => controller.abort()
-  }, [pageNumber, pageSize, studentSearchDebounced])
+  }, [pageNumber, pageSize, studentSearchDebounced, exportFilterMode, exportMonth, exportYear, selectedNationalities])
+
+  // Fetch nationalities when nationality filter is selected
+  useEffect(() => {
+    if (exportFilterMode !== "nationality" || !showExportModal) return
+    const controller = new AbortController()
+    const fetchNationalities = async () => {
+      setLoadingNationalities(true)
+      try {
+        const res = await axiosInstance.get("/Student/GetAllDistinctNationalities", { signal: controller.signal })
+        const data = res.data?.Data ?? res.data?.data
+        const raw = Array.isArray(data) ? data : (data?.Items ?? data?.Data ?? [])
+        const list = Array.isArray(raw) ? raw : []
+        const mapped = list.map((n: unknown) => typeof n === "string" ? n : (n && typeof n === "object" ? String((n as Record<string, unknown>).Name ?? (n as Record<string, unknown>).Value ?? (n as Record<string, unknown>).Nationality ?? "") : ""))
+        setNationalitiesList([...new Set(mapped.filter(Boolean))].sort())
+      } catch (e) {
+        console.error("Failed to fetch nationalities", e)
+        setNationalitiesList([])
+      } finally {
+        setLoadingNationalities(false)
+      }
+    }
+    fetchNationalities()
+    return () => controller.abort()
+  }, [exportFilterMode, showExportModal])
 
   // Debounce student search
   useEffect(() => {
@@ -528,6 +601,70 @@ const handleStaffDelete = async (id: number) => {
     return tab
   })
 
+  const toggleStudentSelection = (id: number) => {
+    setSelectedStudentIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAllStudents = () => {
+    if (selectedStudentIds.size === students.length) {
+      setSelectedStudentIds(new Set())
+    } else {
+      setSelectedStudentIds(new Set(students.map((s) => s.Id)))
+    }
+  }
+
+  const handleExportToExcel = useCallback(async () => {
+    const ids = Array.from(selectedStudentIds)
+    if (ids.length === 0) {
+      Swal.fire({ title: "No selection", text: "Please select at least one student to export.", icon: "warning" })
+      return
+    }
+    setIsExporting(true)
+    try {
+      const rows: Record<string, string | number>[] = []
+      for (const studentId of ids) {
+        const [detailRes, attendanceRes] = await Promise.all([
+          axiosInstance.get(`/Student/GetById/${studentId}`),
+          axiosInstance.get("/Dashboard/GetStudentAttendanceStats", { params: { studentId } })
+        ])
+        const d = detailRes.data?.Data || {}
+        const attendanceData = attendanceRes.data?.IsSuccess && Array.isArray(attendanceRes.data.Data) ? attendanceRes.data.Data : []
+        const presentStat = attendanceData.find((s: { Status?: string }) => (s.Status || "").toLowerCase() === "present")
+        const attendance = presentStat?.Percentage ?? presentStat?.Count ?? ""
+
+        rows.push({
+          Firstname: d.FirstName ?? "",
+          Surname: d.Surname ?? d.LastName ?? "",
+          RegistrationDate: d.RegistrationDate ?? "",
+          IdNumber: d.IdNumber ?? "",
+          MobilePhone: d.MobilePhone ?? "",
+          Email: d.Email ?? "",
+          StreetAddress: d.StreetAddress ?? "",
+          Country: d.Country ?? "",
+          CourseStartDate: d.CourseStartDate ?? "",
+          CourseTitle: d.CourseTitle ?? "",
+          Attendance: typeof attendance === "number" ? `${attendance}%` : attendance
+        })
+      }
+      const ws = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, "Students")
+      XLSX.writeFile(wb, `students_export_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      Swal.fire({ title: "Exported", text: `${ids.length} student(s) exported successfully.`, icon: "success" })
+      setSelectedStudentIds(new Set())
+    } catch (err) {
+      console.error("Export failed", err)
+      Swal.fire({ title: "Export failed", text: "Could not export students. Please try again.", icon: "error" })
+    } finally {
+      setIsExporting(false)
+    }
+  }, [selectedStudentIds])
+
   const renderStudentTableBody = () => {
     if (isLoadingStudents) {
       return (
@@ -569,7 +706,12 @@ const handleStaffDelete = async (id: number) => {
           className="border-b border-gray-300 last:border-b-0 hover:bg-[#f7f7f7]"
         >
           <td className="px-4 py-3 border-r border-gray-300">
-            <input type="checkbox" aria-label={`Select ${studentName}`} />
+            <input
+              type="checkbox"
+              checked={selectedStudentIds.has(student.Id)}
+              onChange={() => toggleStudentSelection(student.Id)}
+              aria-label={`Select ${studentName}`}
+            />
           </td>
           <td className="px-4 py-3 text-indigo-700 border-r border-gray-300">
             <button
@@ -787,10 +929,145 @@ const handleStaffDelete = async (id: number) => {
                   : `${totalCount}/${totalCount} Students`}
               </div>
             </div>
-            <button className="h-9 px-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50">
+            <button
+              type="button"
+              onClick={() => {
+                setShowExportModal(true)
+                setExportFilterMode(null)
+                setExportFilterStep("choice")
+                setExportMonth("")
+                setExportYear("")
+                setSelectedNationalities([])
+              }}
+              className="h-9 px-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50"
+            >
               <Download size={16} /> Export
             </button>
           </div>
+
+          {/* Export filter modal - centered overlay like reference */}
+          {showExportModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+                {exportFilterStep === "choice" ? (
+                  <>
+                    <div className="px-6 py-6 text-center">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-6">Filtering</h3>
+                      <div className="flex flex-col gap-3">
+                        <button
+                          type="button"
+                          onClick={() => { setExportFilterMode("monthly"); setExportFilterStep("params") }}
+                          className="w-full py-3 px-4 rounded-lg bg-indigo-800 text-white font-medium hover:bg-indigo-700"
+                        >
+                          Monthly
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setExportFilterMode("nationality"); setExportFilterStep("params") }}
+                          className="w-full py-3 px-4 rounded-lg bg-indigo-800 text-white font-medium hover:bg-indigo-700"
+                        >
+                          Nationality
+                        </button>
+                      </div>
+                    </div>
+                    <div className="px-6 pb-6 text-center">
+                      <button type="button" onClick={() => setShowExportModal(false)} className="text-gray-500 hover:text-gray-700 text-sm">
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="px-6 py-6">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
+                        {exportFilterMode === "monthly" ? "Filter by Month" : "Filter by Nationality"}
+                      </h3>
+                      {exportFilterMode === "monthly" ? (
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Month</label>
+                            <select value={exportMonth} onChange={(e) => setExportMonth(e.target.value === "" ? "" : Number(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm">
+                              <option value="">Select month</option>
+                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString("default", { month: "long" })}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Year</label>
+                            <select value={exportYear} onChange={(e) => setExportYear(e.target.value === "" ? "" : Number(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm">
+                              <option value="">Select year</option>
+                              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((y) => <option key={y} value={y}>{y}</option>)}
+                            </select>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => { if (exportMonth !== "" && exportYear !== "") { setPageNumber(1); setShowExportModal(false) } else { Swal.fire({ title: "Select both", text: "Please select Month and Year.", icon: "warning" }) } }}
+                            disabled={exportMonth === "" || exportYear === ""}
+                            className="w-full py-3 rounded-lg bg-indigo-800 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="relative">
+                            <label className="block text-sm font-medium text-gray-600 mb-1">Nationality (multi-select)</label>
+                            <button type="button" onClick={() => setNationalityDropdownOpen((o) => !o)} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm text-left flex items-center justify-between">
+                              <span className="truncate">{selectedNationalities.length === 0 ? "Select nationalities" : `${selectedNationalities.length} selected: ${selectedNationalities.slice(0, 2).join(", ")}${selectedNationalities.length > 2 ? "..." : ""}`}</span>
+                              <ChevronDown size={16} className="text-gray-500 flex-shrink-0" />
+                            </button>
+                            {nationalityDropdownOpen && (
+                              <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                                {loadingNationalities ? <div className="px-3 py-4 text-sm text-gray-500 text-center">Loading...</div> : nationalitiesList.length === 0 ? <div className="px-3 py-4 text-sm text-gray-500 text-center">No nationalities found</div> : nationalitiesList.map((nat) => (
+                                  <label key={nat} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox" checked={selectedNationalities.includes(nat)} onChange={(e) => setSelectedNationalities((prev) => e.target.checked ? [...prev, nat] : prev.filter((n) => n !== nat))} />
+                                    <span className="text-sm">{nat}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => { if (selectedNationalities.length > 0) { setPageNumber(1); setShowExportModal(false); setNationalityDropdownOpen(false) } else { Swal.fire({ title: "Select nationality", text: "Please select at least one nationality.", icon: "warning" }) } }}
+                            disabled={selectedNationalities.length === 0}
+                            className="w-full py-3 rounded-lg bg-indigo-800 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="px-6 pb-6 text-center">
+                      <button type="button" onClick={() => { setExportFilterStep("choice"); setExportFilterMode(null); setExportMonth(""); setExportYear(""); setSelectedNationalities([]); setNationalityDropdownOpen(false) }} className="text-gray-500 hover:text-gray-700 text-sm">
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {exportFilterMode && ((exportMonth !== "" && exportYear !== "") || selectedNationalities.length > 0) && (
+            <div className="mt-2 flex justify-end items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setExportFilterMode(null)
+                  setExportMonth("")
+                  setExportYear("")
+                  setSelectedNationalities([])
+                  setPageNumber(1)
+                }}
+                className="h-9 px-3 rounded border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-100"
+              >
+                Clear filter
+              </button>
+              <button type="button" onClick={handleExportToExcel} disabled={isExporting || selectedStudentIds.size === 0} className="h-9 px-4 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                {isExporting ? "Exporting..." : `Export ${selectedStudentIds.size} selected`}
+              </button>
+            </div>
+          )}
 
           {/* Filters row + table combined in one retro header bar */}
           <div className="mt-4 border border-gray-400 rounded-sm overflow-hidden bg-white">
@@ -828,7 +1105,15 @@ const handleStaffDelete = async (id: number) => {
             <table className="w-full text-sm border-collapse">
               <thead className="bg-[#f1f1f1] text-gray-700">
                 <tr>
-                  {["", "Name", "Phone", "Email", "Registration date", "ID Number", "Payments", "Actions"].map((heading, idx) => (
+                  <th className="px-4 py-2.5 font-medium text-left border-b border-gray-400 border-r w-10">
+                    <input
+                      type="checkbox"
+                      checked={students.length > 0 && selectedStudentIds.size === students.length}
+                      onChange={toggleSelectAllStudents}
+                      aria-label="Select all students"
+                    />
+                  </th>
+                  {["Name", "Phone", "Email", "Registration date", "ID Number", "Payments", "Actions"].map((heading, idx) => (
                     <th
                       key={idx}
                       className="px-4 py-2.5 font-medium text-left border-b border-gray-400 border-r last:border-r-0"

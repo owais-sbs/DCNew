@@ -23,7 +23,8 @@
     "react-phone-number-input": "^3.4.14",
     "react-router-dom": "^7.9.4",
     "recharts": "^3.3.0",
-    "sweetalert2": "^11.26.4"
+    "sweetalert2": "^11.26.4",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
