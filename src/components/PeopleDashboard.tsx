@@ -627,11 +627,32 @@ const handleStaffDelete = async (id: number) => {
     setIsExporting(true)
     try {
       const rows: Record<string, string | number>[] = []
+      let filterTitle = ""
+
+if (exportFilterMode === "monthly" && exportMonth && exportYear) {
+  const monthName = new Date(exportYear, exportMonth - 1)
+    .toLocaleString("default", { month: "long" })
+  filterTitle = `Monthly - ${monthName} ${exportYear}`
+}
+
+if (exportFilterMode === "nationality" && selectedNationalities.length > 0) {
+  filterTitle = `Nationality - ${selectedNationalities.join(", ")}`
+}
+
       for (const studentId of ids) {
-        const [detailRes, attendanceRes] = await Promise.all([
+        const [detailRes, attendanceRes, classRes] = await Promise.all([
           axiosInstance.get(`/Student/GetById/${studentId}`),
-          axiosInstance.get("/Dashboard/GetStudentAttendanceStats", { params: { studentId } })
+          axiosInstance.get("/Dashboard/GetStudentAttendanceStats", { params: { studentId } }),
+          axiosInstance.get("/Class/GetClassesByStudent", { params: { studentId } })
         ])
+        const classes = classRes.data?.IsSuccess && Array.isArray(classRes.data.Data)
+  ? classRes.data.Data
+  : []
+
+const enrolledClassName = classes.length > 0
+  ? classes.map((c: any) => c.ClassTitle).join(", ")
+  : ""
+
         const d = detailRes.data?.Data || {}
         const attendanceData = attendanceRes.data?.IsSuccess && Array.isArray(attendanceRes.data.Data) ? attendanceRes.data.Data : []
        const presentStat = attendanceData.find(
@@ -656,12 +677,34 @@ const absentPercentage = absentStat?.Percentage ?? 0
           StreetAddress: d.StreetAddress ?? "",
           Nationality: d.Nationality ?? "",
           CourseStartDate: d.CourseStartDate ?? "",
+            enrolledclassname: enrolledClassName,
           CourseTitle: d.CourseTitle ?? "",
           "Present %": `${presentPercentage}%`,
   "Absent %": `${absentPercentage}%`
         })
       }
-      const ws = XLSX.utils.json_to_sheet(rows)
+      // ---------- REPORT HEADING ----------
+const reportTitle = "Student  Report"
+
+const filterLine = filterTitle
+  ? `Filtered by: ${filterTitle}`
+  : "Filtered by: All students"
+
+const generatedOn = `Generated on: ${new Date().toLocaleDateString()}`
+
+// Create sheet with heading rows
+const ws = XLSX.utils.aoa_to_sheet([
+  [reportTitle],
+  [filterLine],
+  [generatedOn],
+  [], // empty row before table
+])
+
+// Add table data starting from row 5
+XLSX.utils.sheet_add_json(ws, rows, {
+  origin: "A5",
+})
+
       const wb = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(wb, ws, "Students")
       XLSX.writeFile(wb, `students_export_${new Date().toISOString().slice(0, 10)}.xlsx`)
