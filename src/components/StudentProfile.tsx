@@ -119,7 +119,7 @@ export default function StudentProfile() {
   const [includeSignature, setIncludeSignature] = useState<boolean>(true)
   const [profileImageError, setProfileImageError] = useState(false)
   const [signatureBase64Map, setSignatureBase64Map] = useState<Record<number, string>>({})
-
+  const [emailStatus, setEmailStatus] = useState<string | null>(null);
 
 
     const [currentPage, setCurrentPage] = useState(1)
@@ -175,6 +175,41 @@ const toggleSession = (sessionId: number, attendanceDate: string) => {
     return [...prev, { sessionId, attendanceDate }]
   })
 }
+
+
+useEffect(() => {
+  const fetchEmailStatus = async () => {
+    if (!id) return;
+    try {
+      const response = await axiosInstance.get(`/Student/GetStudentEmailStatus`, {
+        params: { studentId: id }
+      });
+      if (response.data?.IsSuccess) {
+        // Assuming Data contains the Enum integer (0, 1, 2, etc.)
+        setEmailStatus(response.data.Data);
+      }
+    } catch (error) {
+      console.error("Error fetching email status:", error);
+    }
+  };
+  fetchEmailStatus();
+}, [id]);
+
+// Helper to convert the C# Enum to Text
+const getEmailStatusLabel = (status: string | null) => {
+  if (!status || status === "None") return null;
+
+  // Map the C# Enum String to a User-Friendly Label
+  const statusMap: Record<string, string> = {
+    "FirstWarning": "First Warning",
+    "SecondWarning": "Second Warning",
+    "ThirdWarning": "Third Warning",
+    "FourthWarning": "Fourth Warning",
+    "FifthWarning": "Fifth Warning"
+  };
+
+  return statusMap[status] || status;
+};
 
 const toggleSelectAll = (checked: boolean) => {
   if(checked){
@@ -256,6 +291,8 @@ const getOverallAttendanceStats = () => {
 };
 
 const stats = getOverallAttendanceStats();
+const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
+
 
 
   useEffect(() => {
@@ -366,6 +403,53 @@ const stats = getOverallAttendanceStats();
       }
     }
   }
+
+
+  const handleSendWarning = async () => {
+  if (!id || !emailStatus || emailStatus === "None") {
+    Swal.fire("Notice", "No warning status is currently active for this student.", "info");
+    return;
+  }
+
+  const currentLabel = getEmailStatusLabel(emailStatus);
+
+  // Confirm sending the CURRENT status again
+  const result = await Swal.fire({
+    title: "Resend Warning?",
+    html: `Are you sure you want to resend the <b style="color: #dc2626;">${currentLabel}</b> to this student?`,
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#2563eb",
+    confirmButtonText: "Yes, Send Email",
+    cancelButtonText: "Cancel"
+  });
+
+  if (result.isConfirmed) {
+    Swal.fire({
+      title: "Sending Email...",
+      didOpen: () => Swal.showLoading(),
+      allowOutsideClick: false,
+    });
+
+    try {
+      // Hits your API with the existing status value
+      const response = await axiosInstance.post("/Student/SendWarningEmail", null, {
+        params: { 
+          studentId: id, 
+          status: emailStatus // Sending the same value: "ThirdWarning", etc.
+        },
+      });
+
+      if (response.data?.IsSuccess) {
+        Swal.fire("Sent!", `The ${currentLabel} email has been resent.`, "success");
+      } else {
+        Swal.fire("Error", response.data?.Message || "Failed to send email.", "error");
+      }
+    } catch (error) {
+      Swal.fire("Error", "An error occurred while calling the server.", "error");
+    }
+  }
+};
 
   // Fetch signatures when document modal opens
   useEffect(() => {
@@ -719,6 +803,35 @@ const stats = getOverallAttendanceStats();
   const handleOpenInviteModal = () => {
     setPortalInviteOpen(true);
   };
+
+
+  useEffect(() => {
+  const fetchAttendanceStats = async () => {
+    // Only stop if there is no student ID
+    if (!id) return;
+
+    setLoadingAttendanceStats(true);
+    setAttendanceStatsError(null);
+    try {
+      const response = await axiosInstance.get("/Dashboard/GetStudentAttendanceStats", {
+        params: { studentId: Number(id) }
+      });
+
+      if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+        setAttendanceStats(response.data.Data);
+      } else {
+        setAttendanceStats([]);
+      }
+    } catch (error: any) {
+      console.error("Error fetching attendance stats:", error);
+      setAttendanceStats([]);
+    } finally {
+      setLoadingAttendanceStats(false);
+    }
+  };
+
+  fetchAttendanceStats();
+}, [id]);
 
   const handleSendInviteEmail = async () => {
     if (!studentdetails?.Id) {
@@ -2990,6 +3103,68 @@ const stats = getOverallAttendanceStats();
 
   <div className="flex items-center gap-2">
     <div className="flex items-center gap-2 relative">
+
+    <div 
+    className="flex items-center gap-2 h-9 px-3 border border-gray-300 bg-white rounded shadow-sm cursor-pointer hover:bg-gray-50 relative"
+    onClick={() => setShowAttendanceDropdown(!showAttendanceDropdown)}
+  >
+    <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance:</span>
+    <span className={`text-sm font-bold flex items-center gap-1 ${
+      stats.percentage >= 85 ? 'text-green-600' : 
+      stats.percentage >= 75 ? 'text-orange-600' : 'text-red-600'
+    }`}>
+      {loadingAttendanceStats ? "..." : `${stats.percentage.toFixed(1)}%`}
+      <ChevronDown size={14} className="text-gray-400" />
+    </span>
+
+    {/* Dropdown Menu */}
+    {showAttendanceDropdown && (
+      <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-200 shadow-xl rounded-md z-[100] py-2">
+        <div className="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50 mb-1">
+          Stats Breakdown
+        </div>
+        
+        {/* Present (Default) */}
+        <div className="px-4 py-2 flex justify-between hover:bg-gray-50">
+          <span className="text-sm text-gray-700">Present</span>
+          <span className="text-sm font-bold text-green-600">{stats.percentage}%</span>
+        </div>
+
+        {/* Other Statuses */}
+        {attendanceStats
+          .filter(s => s.Status !== "Present" && s.Status !== "None" && s.Status !== "NotTaken")
+          .map((stat, idx) => (
+            <div key={idx} className="px-4 py-2 flex justify-between hover:bg-gray-50 border-t border-gray-50">
+              <span className="text-sm text-gray-700">{stat.Status}</span>
+              <span className={`text-sm font-bold ${
+                stat.Status === 'Absent' ? 'text-red-600' : 
+                stat.Status === 'Late' ? 'text-orange-500' : 'text-blue-600'
+              }`}>
+                {stat.Percentage}%
+              </span>
+            </div>
+          ))}
+      </div>
+    )}
+  </div>
+
+  {/* NEW: Email Status Warning Badge */}
+  {emailStatus && emailStatus !== "None" && (
+  <div 
+    onClick={handleSendWarning}
+    className="group flex items-center gap-2 h-9 px-3 border border-red-200 bg-red-50 rounded shadow-sm cursor-pointer hover:bg-red-100 transition-all active:scale-95"
+  >
+    <Flag size={14} className="text-red-600 group-hover:rotate-12 transition-transform" />
+    <span className="text-xs font-bold text-red-700 uppercase tracking-tight">
+      {getEmailStatusLabel(emailStatus)}
+    </span>
+    {/* Clean hover indicator */}
+    <span className="text-[10px] text-red-400 font-medium hidden group-hover:inline ml-1 border-l border-red-200 pl-2">
+      Click to resend
+    </span>
+  </div>
+)}
+
   <button className="h-9 px-3 border border-gray-300 bg-gray-100 text-sm text-gray-700 rounded hover:bg-gray-200">
     Payment
   </button>
