@@ -180,38 +180,17 @@ const makePageButtons = (totalPages: number, current: number) => {
       setIsLoadingStudents(true)
       setStudentError(null)
       try {
-        let url = "/Student/GetAllWithPagination"
+        const url = "/Student/GetAllWithPagination"
         const baseParams: Record<string, unknown> = {
           pageNumber,
           pageSize: pageSize === "all" ? (totalCount > 0 ? totalCount : 1000000) : pageSize,
           search: studentSearchDebounced || null
         }
-        const validNationalities = selectedNationalities.filter((n) => n && String(n).trim())
-        if (exportFilterMode === "monthly" && exportMonth !== "" && exportYear !== "") {
-          url = "/Student/GetAllWithPaginationByMonthYear"
-          baseParams.month = exportMonth
-          baseParams.year = exportYear
-        } else if (exportFilterMode === "nationality" && validNationalities.length > 0) {
-          url = "/Student/GetAllWithPaginationByNationality"
-          baseParams.nationalities = validNationalities
-        }
 
-        const requestConfig: { params: Record<string, unknown>; signal: AbortSignal; paramsSerializer?: (p: Record<string, unknown>) => string } = {
+        const response = await axiosInstance.get(url, {
           params: baseParams,
           signal: controller.signal
-        }
-        if (url.includes("Nationality") && Array.isArray(baseParams.nationalities)) {
-          requestConfig.paramsSerializer = (p) => {
-            const search = new URLSearchParams()
-            Object.entries(p).forEach(([k, v]) => {
-              if (Array.isArray(v)) v.forEach((x) => search.append(k, String(x)))
-              else if (v != null && v !== "") search.append(k, String(v))
-            })
-            return search.toString()
-          }
-        }
-
-        const response = await axiosInstance.get(url, requestConfig)
+        })
 
         const data = response.data?.Data
         const studentList = Array.isArray(data?.Data)
@@ -248,7 +227,7 @@ const makePageButtons = (totalPages: number, current: number) => {
     fetchStudents()
 
     return () => controller.abort()
-  }, [pageNumber, pageSize, studentSearchDebounced, exportFilterMode, exportMonth, exportYear, selectedNationalities])
+  }, [pageNumber, pageSize, studentSearchDebounced, totalCount])
 
   // Fetch nationalities when nationality filter is selected
   useEffect(() => {
@@ -716,7 +695,131 @@ XLSX.utils.sheet_add_json(ws, rows, {
     } finally {
       setIsExporting(false)
     }
-  }, [selectedStudentIds])
+  }, [selectedStudentIds, exportFilterMode, exportMonth, exportYear, selectedNationalities])
+
+  const handleDirectExportToExcel = useCallback(async () => {
+    const validNationalities = selectedNationalities.filter((n) => n && String(n).trim())
+    if (exportFilterMode === "monthly") {
+      if (exportMonth === "" || exportYear === "") {
+        Swal.fire({ title: "Select both", text: "Please select Month and Year.", icon: "warning" })
+        return
+      }
+    } else if (exportFilterMode === "nationality") {
+      if (validNationalities.length === 0) {
+        Swal.fire({ title: "Select nationality", text: "Please select at least one nationality.", icon: "warning" })
+        return
+      }
+    } else return
+
+    setIsExporting(true)
+    try {
+      let url: string
+      const baseParams: Record<string, unknown> = {}
+      if (exportFilterMode === "monthly") {
+        url = "/Student/GetAllByMonthYear"
+        baseParams.month = exportMonth
+        baseParams.year = exportYear
+      } else {
+        url = "/Student/GetAllByNationality"
+        baseParams.nationalities = validNationalities
+      }
+      const requestConfig: { params: Record<string, unknown>; paramsSerializer?: (p: Record<string, unknown>) => string } = {
+        params: baseParams
+      }
+      const nationalityParam = baseParams.nationalities ?? baseParams.nationality
+      if (url.includes("Nationality") && Array.isArray(nationalityParam) && (nationalityParam as string[]).length > 0) {
+        requestConfig.paramsSerializer = (p) => {
+          const search = new URLSearchParams()
+          const natArr = ((p.nationalities ?? p.nationality) as string[]) || []
+          natArr.filter((x) => x != null && String(x).trim()).forEach((x) => search.append("nationalities", String(x).trim()))
+          return search.toString()
+        }
+      }
+
+      const res = await axiosInstance.get(url, requestConfig)
+      if (!res.data?.IsSuccess && res.data?.Message) {
+        Swal.fire({ title: "Error", text: res.data.Message, icon: "error" })
+        setIsExporting(false)
+        return
+      }
+      const data = res.data?.Data
+      let studentList: unknown[] = Array.isArray(data?.Data)
+        ? data.Data
+        : Array.isArray(data?.Items)
+          ? data.Items
+          : Array.isArray(data)
+            ? data
+            : []
+      if (studentList.length === 0 && data != null && typeof data === "object" && !Array.isArray(data)) {
+        studentList = [data]
+      }
+      const students = studentList as Array<{
+        StudentId?: number
+        FirstName?: string | null
+        Surname?: string | null
+        RegistrationDate?: string | null
+        IdNumber?: string | null
+        MobilePhone?: string | null
+        Email?: string | null
+        StreetAddress?: string | null
+        Nationality?: string | null
+        CourseStartDate?: string | null
+        EnrolledClassName?: string | null
+        CourseTitle?: string | null
+        PresentPercentage?: number | null
+        AbsentPercentage?: number | null
+      }>
+      if (students.length === 0) {
+        Swal.fire({ title: "No data", text: "No students found for the selected filter.", icon: "info" })
+        setIsExporting(false)
+        return
+      }
+
+      let filterTitle = ""
+      if (exportFilterMode === "monthly" && exportMonth && exportYear) {
+        filterTitle = `Monthly - ${new Date(exportYear, (exportMonth as number) - 1).toLocaleString("default", { month: "long" })} ${exportYear}`
+      } else if (exportFilterMode === "nationality") {
+        filterTitle = `Nationality - ${validNationalities.join(", ")}`
+      }
+
+      const rows: Record<string, string | number>[] = students.map((s) => ({
+        Firstname: s.FirstName ?? "",
+        Surname: s.Surname ?? "",
+        RegistrationDate: s.RegistrationDate ?? "",
+        IdNumber: s.IdNumber ?? "",
+        MobilePhone: s.MobilePhone ?? "",
+        Email: s.Email ?? "",
+        StreetAddress: s.StreetAddress ?? "",
+        Nationality: s.Nationality ?? "",
+        CourseStartDate: s.CourseStartDate ?? "",
+        enrolledclassname: s.EnrolledClassName ?? "",
+        CourseTitle: s.CourseTitle ?? "",
+        "Present %": `${s.PresentPercentage ?? 0}%`,
+        "Absent %": `${s.AbsentPercentage ?? 0}%`
+      }))
+
+      const reportTitle = "Student Report"
+      const filterLine = filterTitle ? `Filtered by: ${filterTitle}` : "Filtered by: All students"
+      const generatedOn = `Generated on: ${new Date().toLocaleDateString()}`
+      const ws = XLSX.utils.aoa_to_sheet([[reportTitle], [filterLine], [generatedOn], []])
+      XLSX.utils.sheet_add_json(ws, rows, { origin: "A5" })
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, ws, "Students")
+      XLSX.writeFile(wb, `students_export_${new Date().toISOString().slice(0, 10)}.xlsx`)
+      Swal.fire({ title: "Exported", text: `${rows.length} student(s) exported successfully.`, icon: "success" })
+      setShowExportModal(false)
+      setExportFilterStep("choice")
+      setExportFilterMode(null)
+      setExportMonth("")
+      setExportYear("")
+      setSelectedNationalities([])
+    } catch (err) {
+      console.error("Export failed", err)
+      Swal.fire({ title: "Export failed", text: "Could not export students. Please try again.", icon: "error" })
+    } finally {
+      setIsExporting(false)
+    }
+  }, [exportFilterMode, exportMonth, exportYear, selectedNationalities])
 
   const renderStudentTableBody = () => {
     if (isLoadingStudents) {
@@ -1001,7 +1104,7 @@ XLSX.utils.sheet_add_json(ws, rows, {
           {/* Export filter modal - centered overlay like reference */}
           {showExportModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-visible">
                 {exportFilterStep === "choice" ? (
                   <>
                     <div className="px-6 py-6 text-center">
@@ -1031,10 +1134,18 @@ XLSX.utils.sheet_add_json(ws, rows, {
                   </>
                 ) : (
                   <>
-                    <div className="px-6 py-6">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">
-                        {exportFilterMode === "monthly" ? "Filter by Month" : "Filter by Nationality"}
-                      </h3>
+                    <div className="px-6 pt-6">
+                      <div className="flex items-center justify-between gap-4 mb-4">
+                        <h3 className="text-lg font-semibold text-gray-800">Filtering</h3>
+                        <button
+                          type="button"
+                          onClick={handleDirectExportToExcel}
+                          disabled={isExporting || (exportFilterMode === "monthly" && (exportMonth === "" || exportYear === "")) || (exportFilterMode === "nationality" && selectedNationalities.length === 0)}
+                          className="flex-shrink-0 h-9 px-4 rounded-lg bg-indigo-800 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isExporting ? "Exporting..." : "Apply"}
+                        </button>
+                      </div>
                       {exportFilterMode === "monthly" ? (
                         <div className="space-y-4">
                           <div>
@@ -1051,14 +1162,6 @@ XLSX.utils.sheet_add_json(ws, rows, {
                               {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((y) => <option key={y} value={y}>{y}</option>)}
                             </select>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => { if (exportMonth !== "" && exportYear !== "") { setPageNumber(1); setShowExportModal(false) } else { Swal.fire({ title: "Select both", text: "Please select Month and Year.", icon: "warning" }) } }}
-                            disabled={exportMonth === "" || exportYear === ""}
-                            className="w-full py-3 rounded-lg bg-indigo-800 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Apply
-                          </button>
                         </div>
                       ) : (
                         <div className="space-y-4">
@@ -1069,7 +1172,7 @@ XLSX.utils.sheet_add_json(ws, rows, {
                               <ChevronDown size={16} className="text-gray-500 flex-shrink-0" />
                             </button>
                             {nationalityDropdownOpen && (
-                              <div className="absolute z-10 mt-1 w-full max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg">
+                              <div className="absolute z-50 mt-1 w-full min-w-full max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl py-1">
                                 {loadingNationalities ? <div className="px-3 py-4 text-sm text-gray-500 text-center">Loading...</div> : nationalitiesList.length === 0 ? <div className="px-3 py-4 text-sm text-gray-500 text-center">No nationalities found</div> : nationalitiesList.map((nat) => (
                                   <label key={nat} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
                                     <input type="checkbox" checked={selectedNationalities.includes(nat)} onChange={(e) => setSelectedNationalities((prev) => e.target.checked ? [...prev, nat] : prev.filter((n) => n !== nat))} />
@@ -1079,18 +1182,10 @@ XLSX.utils.sheet_add_json(ws, rows, {
                               </div>
                             )}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => { if (selectedNationalities.length > 0) { setPageNumber(1); setShowExportModal(false); setNationalityDropdownOpen(false) } else { Swal.fire({ title: "Select nationality", text: "Please select at least one nationality.", icon: "warning" }) } }}
-                            disabled={selectedNationalities.length === 0}
-                            className="w-full py-3 rounded-lg bg-indigo-800 text-white font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            Apply
-                          </button>
                         </div>
                       )}
                     </div>
-                    <div className="px-6 pb-6 text-center">
+                    <div className="px-6 pb-6 pt-4 text-center">
                       <button type="button" onClick={() => { setExportFilterStep("choice"); setExportFilterMode(null); setExportMonth(""); setExportYear(""); setSelectedNationalities([]); setNationalityDropdownOpen(false) }} className="text-gray-500 hover:text-gray-700 text-sm">
                         Cancel
                       </button>
@@ -1098,27 +1193,6 @@ XLSX.utils.sheet_add_json(ws, rows, {
                   </>
                 )}
               </div>
-            </div>
-          )}
-
-          {exportFilterMode && ((exportMonth !== "" && exportYear !== "") || selectedNationalities.length > 0) && (
-            <div className="mt-2 flex justify-end items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setExportFilterMode(null)
-                  setExportMonth("")
-                  setExportYear("")
-                  setSelectedNationalities([])
-                  setPageNumber(1)
-                }}
-                className="h-9 px-3 rounded border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-100"
-              >
-                Clear filter
-              </button>
-              <button type="button" onClick={handleExportToExcel} disabled={isExporting || selectedStudentIds.size === 0} className="h-9 px-4 rounded bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                {isExporting ? "Exporting..." : `Export ${selectedStudentIds.size} selected`}
-              </button>
             </div>
           )}
 
