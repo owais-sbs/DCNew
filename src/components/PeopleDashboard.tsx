@@ -634,8 +634,17 @@ const handleStaffDelete = async (id: number) => {
         ])
         const d = detailRes.data?.Data || {}
         const attendanceData = attendanceRes.data?.IsSuccess && Array.isArray(attendanceRes.data.Data) ? attendanceRes.data.Data : []
-        const presentStat = attendanceData.find((s: { Status?: string }) => (s.Status || "").toLowerCase() === "present")
-        const attendance = presentStat?.Percentage ?? presentStat?.Count ?? ""
+       const presentStat = attendanceData.find(
+  (s: { Status?: string }) => (s.Status || "").toLowerCase() === "present"
+)
+
+const absentStat = attendanceData.find(
+  (s: { Status?: string }) => (s.Status || "").toLowerCase() === "absent"
+)
+
+const presentPercentage = presentStat?.Percentage ?? 0
+const absentPercentage = absentStat?.Percentage ?? 0
+
 
         rows.push({
           Firstname: d.FirstName ?? "",
@@ -645,10 +654,11 @@ const handleStaffDelete = async (id: number) => {
           MobilePhone: d.MobilePhone ?? "",
           Email: d.Email ?? "",
           StreetAddress: d.StreetAddress ?? "",
-          Country: d.Country ?? "",
+          Nationality: d.Nationality ?? "",
           CourseStartDate: d.CourseStartDate ?? "",
           CourseTitle: d.CourseTitle ?? "",
-          Attendance: typeof attendance === "number" ? `${attendance}%` : attendance
+          "Present %": `${presentPercentage}%`,
+  "Absent %": `${absentPercentage}%`
         })
       }
       const ws = XLSX.utils.json_to_sheet(rows)
