@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import axiosInstance from "./axiosInstance"
@@ -40,38 +40,44 @@ const [showResults, setShowResults] = useState(false);
   const subscriptionEnded = true; 
 
 
-  const [searchQuery, setSearchQuery] = useState(""); // Add this
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchVersionRef = useRef(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 1. Reusable search function
-const executeSearch = async (query?: string) => {
-  const trimmedQuery = (query ?? searchQuery).trim();
+  const executeSearch = async (query?: string) => {
+    const trimmedQuery = (query ?? searchQuery).trim();
 
-  if (!trimmedQuery) {
-    setShowResults(false);
-    return;
-  }
+    if (!trimmedQuery) {
+      setShowResults(false);
+      return;
+    }
 
-  try {
-    setIsSearching(true);
+    const myVersion = ++searchVersionRef.current;
 
-    const response = await axiosInstance.get(
-      "/Student/GetAllStudent",
-      {
-        params: {
-          search: trimmedQuery,
-         
+    try {
+      setIsSearching(true);
+
+      const response = await axiosInstance.get(
+        "/Student/GetAllStudent",
+        {
+          params: { search: trimmedQuery },
         }
-      }
-    );
+      );
 
-    setStudents(response.data?.Data?.Data || []);
-    setShowResults(true);
-  } catch (error) {
-    console.error("Student search error", error);
-  } finally {
-    setIsSearching(false);
-  }
-};
+      if (myVersion === searchVersionRef.current) {
+        setStudents(response.data?.Data?.Data || []);
+        setShowResults(true);
+      }
+    } catch (error) {
+      if (myVersion === searchVersionRef.current) {
+        console.error("Student search error", error);
+      }
+    } finally {
+      if (myVersion === searchVersionRef.current) {
+        setIsSearching(false);
+      }
+    }
+  };
 
 
 
@@ -105,7 +111,10 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
 
   document.addEventListener("click", handleClickOutside);
 
-  return () => document.removeEventListener("mousedown", handleClickOutside);
+  return () => {
+    document.removeEventListener("click", handleClickOutside);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  };
 }, []);
 
 
@@ -178,8 +187,9 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchQuery(value);
 
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (value.trim().length >= 2) {
-      executeSearch(value);
+      debounceRef.current = setTimeout(() => executeSearch(value), 300);
     } else {
       setShowResults(false);
       setStudents([]);

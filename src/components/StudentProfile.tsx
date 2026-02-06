@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom"
-import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle,Printer, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck, Flag, Star, X } from "lucide-react"
+import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Printer, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck, Flag, Star, X, ShieldCheck } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import axiosInstance from "./axiosInstance"
 import { jsPDF } from "jspdf"
@@ -195,17 +195,16 @@ useEffect(() => {
   fetchEmailStatus();
 }, [id]);
 
-// Helper to convert the C# Enum to Text
+// Helper to convert the C# Enum to Text (matches EmailStatus: None, FirstWarning, SecondWarning, ThirdWarning, FinalWarning, Expulsion)
 const getEmailStatusLabel = (status: string | null) => {
   if (!status || status === "None") return null;
 
-  // Map the C# Enum String to a User-Friendly Label
   const statusMap: Record<string, string> = {
-    "FirstWarning": "First Warning",
-    "SecondWarning": "Second Warning",
-    "ThirdWarning": "Third Warning",
-    "FourthWarning": "Fourth Warning",
-    "FifthWarning": "Fifth Warning"
+    FirstWarning: "First Warning",
+    SecondWarning: "Second Warning",
+    ThirdWarning: "Third Warning",
+    FinalWarning: "Final Warning",
+    Expulsion: "Expulsion",
   };
 
   return statusMap[status] || status;
@@ -412,42 +411,98 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
   }
 
   const currentLabel = getEmailStatusLabel(emailStatus);
+  const isFinalWarning = emailStatus === "FinalWarning";
 
-  // Confirm sending the CURRENT status again
-  const result = await Swal.fire({
-    title: "Resend Warning?",
-    html: `Are you sure you want to resend the <b style="color: #dc2626;">${currentLabel}</b> to this student?`,
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#2563eb",
-    confirmButtonText: "Yes, Send Email",
-    cancelButtonText: "Cancel"
-  });
+  let statusToSend: string;
+  let expelStudentChosen = false;
+  if (isFinalWarning) {
+    // When at Final Warning: choose either Resend Final Warning or Expel Student (calls UnenrollStudentFromAll)
+    const result = await Swal.fire({
+      title: "Final Warning",
+      html: "Choose an action for this student:",
+      icon: "warning",
+      showCancelButton: true,
+      showDenyButton: true,
+      confirmButtonColor: "#2563eb",
+      denyButtonColor: "#dc2626",
+      confirmButtonText: "Resend Final Warning",
+      denyButtonText: "Expel Student",
+      cancelButtonText: "Cancel",
+      customClass: { denyButton: "swal2-deny" },
+    });
+    if (result.isDismissed) return;
+    expelStudentChosen = result.isDenied;
+    statusToSend = result.isDenied ? "Expulsion" : "FinalWarning";
+  } else {
+    // For other statuses: confirm resend current warning
+    const result = await Swal.fire({
+      title: "Resend Warning?",
+      html: `Are you sure you want to resend the <b style="color: #dc2626;">${currentLabel}</b> to this student?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#2563eb",
+      confirmButtonText: "Yes, Send Email",
+      cancelButtonText: "Cancel",
+    });
+    if (!result.isConfirmed) return;
+    statusToSend = emailStatus;
+  }
 
-  if (result.isConfirmed) {
+  if (expelStudentChosen) {
     Swal.fire({
-      title: "Sending Email...",
+      title: "Expelling student...",
       didOpen: () => Swal.showLoading(),
       allowOutsideClick: false,
     });
-
     try {
-      // Hits your API with the existing status value
-      const response = await axiosInstance.post("/Student/SendWarningEmail", null, {
-        params: { 
-          studentId: id, 
-          status: emailStatus // Sending the same value: "ThirdWarning", etc.
-        },
+      const unenrollRes = await axiosInstance.post("/Class/UnenrollStudentFromAll", null, {
+        params: { studentId: id },
       });
-
-      if (response.data?.IsSuccess) {
-        Swal.fire("Sent!", `The ${currentLabel} email has been resent.`, "success");
+      if (!unenrollRes.data?.IsSuccess) {
+        Swal.fire("Error", unenrollRes.data?.Message || "Failed to unenroll student.", "error");
+        return;
+      }
+      const emailRes = await axiosInstance.post("/Student/SendWarningEmail", null, {
+        params: { studentId: id, status: "Expulsion" },
+      });
+      if (emailRes.data?.IsSuccess) {
+        Swal.fire("Done", "Student has been expelled, unenrolled from all classes, and the expulsion email has been sent.", "success");
+        const statusRes = await axiosInstance.get("/Student/GetStudentEmailStatus", { params: { studentId: id } });
+        if (statusRes.data?.IsSuccess && statusRes.data?.Data != null) {
+          setEmailStatus(statusRes.data.Data);
+        }
       } else {
-        Swal.fire("Error", response.data?.Message || "Failed to send email.", "error");
+        Swal.fire("Done", "Student unenrolled from all classes. Expulsion email could not be sent.", "warning");
       }
     } catch (error) {
       Swal.fire("Error", "An error occurred while calling the server.", "error");
     }
+    return;
+  }
+
+  Swal.fire({
+    title: "Sending Email...",
+    didOpen: () => Swal.showLoading(),
+    allowOutsideClick: false,
+  });
+
+  try {
+    const response = await axiosInstance.post("/Student/SendWarningEmail", null, {
+      params: { studentId: id, status: statusToSend },
+    });
+
+    if (response.data?.IsSuccess) {
+      const newLabel = getEmailStatusLabel(statusToSend);
+      Swal.fire("Done", `The ${newLabel} email has been resent.`, "success");
+      const statusRes = await axiosInstance.get("/Student/GetStudentEmailStatus", { params: { studentId: id } });
+      if (statusRes.data?.IsSuccess && statusRes.data?.Data != null) {
+        setEmailStatus(statusRes.data.Data);
+      }
+    } else {
+      Swal.fire("Error", response.data?.Message || "Failed to send email.", "error");
+    }
+  } catch (error) {
+    Swal.fire("Error", "An error occurred while calling the server.", "error");
   }
 };
 
@@ -502,6 +557,20 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
       setSignatureBase64Map({})
     }
   }, [selectedDocument])
+
+  // When student id changes (e.g. open another student from search), reset state so we don't show previous student's data
+  useEffect(() => {
+    if (!id) return
+    setStudent(null)
+    setClasses([])
+    setLessons([])
+    setSelectedClassId(null)
+    setClassesSubTab("classes")
+    setAttendanceData({})
+    setSelectedSessions([])
+    setCurrentPage(1)
+    setTotalCount(0)
+  }, [id])
 
   // Fetch classes when classes tab is active
   useEffect(() => {
@@ -708,12 +777,12 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
         }
     }
 
-    // Effect to trigger fetch when page or dates change
+    // Effect to trigger fetch when page, page size, or dates change
     useEffect(() => {
         if (selectedClassId && classesSubTab === 'lessons') {
             fetchLessons(selectedClassId, currentPage)
         }
-    }, [currentPage, fromDate, toDate])
+    }, [currentPage, pageSize, fromDate, toDate])
 
     const tabs = ["Profile", "Activity", "Classes", "Attendance", "Attachments", "Create documents"]
 
@@ -3160,7 +3229,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
     </span>
     {/* Clean hover indicator */}
     <span className="text-[10px] text-red-400 font-medium hidden group-hover:inline ml-1 border-l border-red-200 pl-2">
-      Click to resend
+      {emailStatus === "FinalWarning" ? "Click for options" : "Click to resend"}
     </span>
   </div>
 )}
@@ -3221,7 +3290,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
 {/* PROFILE HEADER */}
 <div className="flex items-start gap-6 mb-6">
   {/* Avatar */}
-  <div className="h-32 w-32 border border-gray-300 bg-gray-100 flex items-center justify-center">
+  <div className="h-32 w-32 border border-gray-300 bg-gray-100 flex items-center justify-center overflow-hidden">
     {(studentdetails?.Photo || studentdetails?.ProfilePicture) && !profileImageError ? (
       <img
         src={studentdetails.Photo || studentdetails.ProfilePicture}
@@ -3838,15 +3907,6 @@ function StudentAttendanceModal({
   mode === "single" && lesson?.attendance === "Excused"
 )
 
-  const [behaviourTab, setBehaviourTab] = useState<"gold" | "red">("gold")
-  const [selectedGoldStars, setSelectedGoldStars] = useState<string[]>([])
-  const [selectedRedFlags, setSelectedRedFlags] = useState<string[]>([])
-  const [grade, setGrade] = useState(
-  mode === "single" ? lesson?.grade || "" : ""
-)
-const [notes, setNotes] = useState(
-  mode === "single" ? lesson?.notes || "" : ""
-)
   const [loading, setLoading] = useState(false)
   const [loadingAttendance, setLoadingAttendance] = useState(true)
   const [attendanceData, setAttendanceData] = useState<any>(null)
@@ -3984,157 +4044,80 @@ const lessonTime =
     return `${year}-${month}-${day}`
   }
 
-  const handleMarkAttendance = async (status: "Present" | "Absent" | "Late") => {
-    if (mode === "bulk") return
-
-    if (mode !== "single") return
-
-  if (isExcused || loading) return;
-
-  const previousStatus = attendanceStatus;
-  setAttendanceStatus(status);
-  
-  try {
-    const response = await axiosInstance.post("/Class/MarkAttendance", null, { 
-      params: {
-        classId: lesson.classId,
-        scheduleId: lesson.scheduleId,
-        studentId: studentId,
-        date: formatDateForAPI(lesson.date || lesson.startTime),
-        attendanceStatus: status,
-      } 
-    });
-
-    if (response.data?.IsSuccess) {
-      // 1. Show Success Message
-      Swal.fire({
-        icon: 'success',
-        title: 'Attendance Saved',
-        text: `Status updated to ${status} successfully.`,
-        timer: 1500,
-        showConfirmButton: false
-      });
-
-      // 2. Refresh data using props
-      refreshStats(); 
-      onSuccess();
-    } else {
-      throw new Error(response.data?.Message);
+  const saveSingleAttendance = async () => {
+    if (mode !== "single" || !lesson || loading) return
+    const statusToSave = isExcused ? "Excused" : attendanceStatus
+    if (!statusToSave) {
+      Swal.fire("Notice", "Please select an attendance status (Present, Absent, Late) or mark as excused.", "info")
+      return
     }
-  } catch (error) {
-    setAttendanceStatus(previousStatus);
-    Swal.fire("Error", "Could not save attendance. Please try again.", "error");
-  }
-};
-
-  const handleToggleExcused = async () => {
-    const newExcused = !isExcused
     setLoading(true)
     try {
-      const dateForAPI = formatDateForAPI(lesson.date || lesson.startTime)
-      const payload = {
-        classId: lesson.classId,
-        scheduleId: lesson.scheduleId,
-        studentId: studentId,
-        date: dateForAPI,
-        attendanceStatus: newExcused ? "Excused" : "None",
-      }
-      const response = await axiosInstance.post("/Class/MarkAttendance", null, { params: payload })
+      const response = await axiosInstance.post("/Class/MarkAttendance", null, {
+        params: {
+          classId: lesson.classId,
+          scheduleId: lesson.scheduleId,
+          studentId: studentId,
+          date: formatDateForAPI(lesson.date || lesson.startTime),
+          attendanceStatus: statusToSave,
+        },
+      })
       if (response.data?.IsSuccess) {
-        setIsExcused(newExcused)
-        if (newExcused) {
-          setAttendanceStatus("Excused")
-          // Update attendance data
-          if (attendanceData) {
-            setAttendanceData({
-              ...attendanceData,
-              AttendanceStatus: "Excused",
-              AttendanceDate: new Date().toISOString()
-            })
-          }
-        } else {
-          setAttendanceStatus(null)
-          // Update attendance data
-          if (attendanceData) {
-            setAttendanceData({
-              ...attendanceData,
-              AttendanceStatus: "NotTaken",
-              AttendanceDate: null
-            })
-          }
-        }
-        Swal.fire("Success", newExcused ? "Marked as excused" : "Removed excused status", "success")
+        Swal.fire({ icon: "success", title: "Attendance Saved", text: `Status updated to ${statusToSave} successfully.`, timer: 1500, showConfirmButton: false })
+        refreshStats()
         onSuccess()
+        onClose()
       } else {
-        Swal.fire("Error", response.data?.Message || "Failed to update attendance", "error")
+        throw new Error(response.data?.Message)
       }
-    } catch (error: any) {
-      console.error("Error updating attendance:", error)
-      Swal.fire("Error", "Failed to update attendance. Please try again.", "error")
+    } catch (error) {
+      Swal.fire("Error", "Could not save attendance. Please try again.", "error")
     } finally {
       setLoading(false)
     }
   }
 
-  const handleBulkMarkAttendance = async (
-  status: "Present" | "Absent" | "Late" | "Excused" | "None"
-) => {
-  if (mode !== "bulk" || !lessons || lessons.length === 0) return
-
-  try {
-    const payload = {
-      studentId,
-      attendanceStatus: status,
-      items: lessons.map(l => ({
-        scheduleId: l.sessionId,
-        date: l.attendanceDate
-      }))
-    }
-
-    const response = await axiosInstance.post(
-      "/Class/MarkAttendanceBulk",
-      payload
-    )
-
-    if (response.data?.IsSuccess !== false) {
-      Swal.fire({
-        icon: "success",
-        title: "Attendance Updated",
-        text: `Marked ${lessons.length} lesson(s) as ${status}`,
-        timer: 1500,
-        showConfirmButton: false
-      })
-
-      refreshStats()
-      onSuccess()
-      onClose()
-    } else {
-      throw new Error(response.data?.Message)
-    }
-  } catch (err) {
-    console.error(err)
-    Swal.fire("Error", "Bulk attendance update failed", "error")
+  const handleToggleExcused = () => {
+    const newExcused = !isExcused
+    setIsExcused(newExcused)
+    setAttendanceStatus(newExcused ? "Excused" : null)
   }
-}
 
+  const saveBulkAttendance = async () => {
+    if (mode !== "bulk" || !lessons || lessons.length === 0) return
+    const statusToSave = attendanceStatus
+    if (!statusToSave) {
+      Swal.fire("Notice", "Please select an attendance status (Present, Absent, Late) or mark as excused.", "info")
+      return
+    }
+    setLoading(true)
+    try {
+      const payload = {
+        studentId,
+        attendanceStatus: statusToSave,
+        items: lessons.map(l => ({ scheduleId: l.sessionId, date: l.attendanceDate }))
+      }
+      const response = await axiosInstance.post("/Class/MarkAttendanceBulk", payload)
+      if (response.data?.IsSuccess !== false) {
+        Swal.fire({ icon: "success", title: "Attendance Updated", text: `Marked ${lessons.length} lesson(s) as ${statusToSave}`, timer: 1500, showConfirmButton: false })
+        refreshStats()
+        onSuccess()
+        onClose()
+      } else {
+        throw new Error(response.data?.Message)
+      }
+    } catch (err) {
+      console.error(err)
+      Swal.fire("Error", "Bulk attendance update failed", "error")
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  const goldStarOptions = [
-    "Being on Task",
-    "Participating",
-    "Working Hard",
-    "Helping others",
-    "On task",
-    "Persistence",
-    "Teamwork"
-  ]
-
-  const redFlagOptions = [
-    "Disruptive",
-    "Not paying attention",
-    "Late arrival",
-    "Missing homework",
-    "Inappropriate behavior"
-  ]
+  const handleSave = () => {
+    if (mode === "single") saveSingleAttendance()
+    else saveBulkAttendance()
+  }
 
   return (
     <div
@@ -4147,7 +4130,7 @@ const lessonTime =
       >
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Student attendance and behaviour</h2>
+          <h2 className="text-xl font-semibold text-gray-900">Student attendance</h2>
           <button
             onClick={onClose}
             className="h-8 w-8 grid place-items-center  hover:bg-gray-100 text-gray-500"
@@ -4222,17 +4205,10 @@ const lessonTime =
             <div className="flex items-center gap-4 mb-4">
               <button
                 onClick={() => {
-  if (mode === "bulk") {
-    setAttendanceStatus("Present")
-    setIsExcused(false)
-    handleBulkMarkAttendance("Present")
-  } else {
-    handleMarkAttendance("Present")
-  }
-}}
-
-                disabled={loading || (mode === "single" && isExcused)}
-
+                  setAttendanceStatus("Present")
+                  setIsExcused(false)
+                }}
+                disabled={mode === "single" && isExcused}
                 className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
                   attendanceStatus === "Present"
                     ? "bg-green-500 text-white"
@@ -4245,16 +4221,10 @@ const lessonTime =
 
               <button
                 onClick={() => {
-  if (mode === "bulk") {
-    setAttendanceStatus("Absent")
-    setIsExcused(false)
-    handleBulkMarkAttendance("Absent")
-  } else {
-    handleMarkAttendance("Absent")
-  }
-}}
-
-                disabled={isExcused || loading}
+                  setAttendanceStatus("Absent")
+                  setIsExcused(false)
+                }}
+                disabled={isExcused}
                 className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
                   attendanceStatus === "Absent"
                     ? "bg-red-500 text-white"
@@ -4267,16 +4237,10 @@ const lessonTime =
 
               <button
                 onClick={() => {
-  if (mode === "bulk") {
-    setAttendanceStatus("Late")
-    setIsExcused(false)
-    handleBulkMarkAttendance("Late")
-  } else {
-    handleMarkAttendance("Late")
-  }
-}}
-
-                disabled={isExcused || loading}
+                  setAttendanceStatus("Late")
+                  setIsExcused(false)
+                }}
+                disabled={isExcused}
                 className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
                   attendanceStatus === "Late"
                     ? "bg-orange-500 text-white"
@@ -4286,134 +4250,28 @@ const lessonTime =
                 <Clock size={20} />
               </button>
               <span className="text-sm font-medium text-gray-700">Late</span>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-  type="checkbox"
-  checked={mode === "bulk" ? attendanceStatus === "Excused" : isExcused}
-  onChange={(e) => {
-    if (mode === "bulk") {
-      setAttendanceStatus(e.target.checked ? "Excused" : null)
-      handleBulkMarkAttendance(e.target.checked ? "Excused" : "None")
-    } else {
-      handleToggleExcused()
-    }
-  }}
-  disabled={loading}
-  className="w-4 h-4 text-blue-600 rounded border-gray-300"
-/>
 
-              <span className="text-sm text-gray-700">Mark as excused</span>
-            </label>
-          </div>
-
-          {/* Behaviour Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Star size={18} className="text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Behaviour</h3>
-            </div>
-            <div className="flex gap-2 mb-4 border-b border-gray-200">
               <button
-                onClick={() => setBehaviourTab("gold")}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  behaviourTab === "gold"
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-600 hover:text-gray-900"
+                type="button"
+                onClick={() => {
+                  if (mode === "bulk") {
+                    const isCurrentlyExcused = attendanceStatus === "Excused"
+                    setAttendanceStatus(isCurrentlyExcused ? null : "Excused")
+                  } else {
+                    handleToggleExcused()
+                  }
+                }}
+                title="Mark as excused"
+                className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
+                  (mode === "bulk" ? attendanceStatus === "Excused" : isExcused)
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-blue-50"
                 }`}
               >
-                Gold star
+                <ShieldCheck size={20} />
               </button>
-              <button
-                onClick={() => setBehaviourTab("red")}
-                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  behaviourTab === "red"
-                    ? "border-blue-600 text-blue-600"
-                    : "border-transparent text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                Red flag
-              </button>
+              <span className="text-sm font-medium text-gray-700">Excused</span>
             </div>
-            <div className="grid grid-cols-4 gap-3">
-              {behaviourTab === "gold"
-                ? goldStarOptions.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setSelectedGoldStars((prev) =>
-                          prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
-                        )
-                      }}
-                      className={`p-3  border-2 transition-colors ${
-                        selectedGoldStars.includes(option)
-                          ? "border-yellow-400 bg-yellow-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <Star
-                        size={24}
-                        className={`mx-auto mb-1 ${
-                          selectedGoldStars.includes(option) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
-                        }`}
-                      />
-                      <div className="text-xs text-center text-gray-700">{option}</div>
-                    </button>
-                  ))
-                : redFlagOptions.map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => {
-                        setSelectedRedFlags((prev) =>
-                          prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]
-                        )
-                      }}
-                      className={`p-3  border-2 transition-colors ${
-                        selectedRedFlags.includes(option)
-                          ? "border-red-400 bg-red-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <Flag
-                        size={24}
-                        className={`mx-auto mb-1 ${
-                          selectedRedFlags.includes(option) ? "fill-red-400 text-red-400" : "text-gray-300"
-                        }`}
-                      />
-                      <div className="text-xs text-center text-gray-700">{option}</div>
-                    </button>
-                  ))}
-            </div>
-          </div>
-
-          {/* Lesson Grade Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Award size={18} className="text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Lesson grade</h3>
-            </div>
-            <input
-              type="text"
-              value={grade}
-              onChange={(e) => setGrade(e.target.value)}
-              placeholder="Enter grade in percentage"
-              className="w-full h-10 px-3  border border-gray-200 bg-white text-sm"
-            />
-          </div>
-
-          {/* Note Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <StickyNote size={18} className="text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Note</h3>
-            </div>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Note"
-              rows={4}
-              className="w-full px-3 py-2  border border-gray-200 bg-white text-sm resize-none"
-            />
           </div>
         </div>
 
@@ -4421,20 +4279,16 @@ const lessonTime =
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
           <button
             onClick={onClose}
-            className="h-10 px-4  border border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="h-10 px-4 border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
-            onClick={() => {
-              // TODO: Save grade, notes, and behaviour
-              Swal.fire("Success", "Changes saved successfully", "success")
-              onSuccess()
-              onClose()
-            }}
-            className="h-10 px-4  bg-blue-600 text-white hover:bg-blue-700"
+            onClick={handleSave}
+            disabled={loading}
+            className="h-10 px-4 bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            Save
+            {loading ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

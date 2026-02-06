@@ -14,3 +14,12 @@
     background-color: rgb(43, 43, 43) !important; /* Tailwind Red-500 */
     color: white !important;
 }
+
+.swal2-deny {
+    background-color: #dc2626 !important;
+    color: white !important;
+    padding: 8px 24px !important;
+}
+.swal2-deny:hover {
+    background-color: #b91c1c !important;
+}

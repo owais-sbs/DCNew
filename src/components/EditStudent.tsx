@@ -149,6 +149,9 @@ export default function EditStudent() {
   const [form, setForm] = useState<StudentFormState>(emptyForm);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [photoName, setPhotoName] = useState("");
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
+  const [photoToSend, setPhotoToSend] = useState<string | null | undefined>(undefined);
 
   const [showClassModal, setShowClassModal] = useState(false);
    const [classes, setClasses] = useState<any[]>([]);
@@ -278,9 +281,13 @@ useEffect(() => {
         substituteEndDate: toDateInput(data.SubstituteEndDate),
       });
 
-      // ✅ ADD THIS PART
       setSelectedClassId(data.ClassId ?? null);
       setSelectedClassName(data.ClassTitle ?? null);
+
+      const existingPhoto = data.Photo ?? data.ProfilePicture ?? null;
+      setPhotoBase64(existingPhoto);
+      setPhotoName(existingPhoto ? "Update photo" : "");
+      setPhotoToSend(undefined);
 
     } catch (err) {
       console.error("Failed to fetch student", err);
@@ -294,6 +301,37 @@ useEffect(() => {
   fetchStudent();
 }, [id, navigate]);
 
+
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64 = result.includes(",") ? result.split(",")[1] : result;
+        resolve(base64 || "");
+      };
+      reader.onerror = (e) => reject(e);
+    });
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+    if (!allowed.includes(file.type)) {
+      Swal.fire({ icon: "error", title: "Invalid format", text: "Use JPG, JPEG, PNG or GIF only." });
+      return;
+    }
+    try {
+      const base64 = await fileToBase64(file);
+      setPhotoBase64(base64);
+      setPhotoName(file.name);
+      setPhotoToSend(base64);
+    } catch {
+      Swal.fire({ icon: "error", title: "Error", text: "Failed to read file." });
+    }
+    e.target.value = "";
+  };
 
   // --- Handlers ---
   const handleChange = (
@@ -369,6 +407,7 @@ useEffect(() => {
         SubstituteEndDate: form.substituteEndDate || null,
         IsEnrollment: Boolean(selectedClassId),
         ClassId: selectedClassId,
+        ...(photoToSend !== undefined && { Photo: photoToSend }),
       };
 
       const res = await axiosInstance.post("/Student/AddStudent", payload);
@@ -487,6 +526,38 @@ useEffect(() => {
                <div>
                   <label className="block text-[13px] text-gray-700 mb-1">Discount (%)</label>
                   <input type="number" name="discount" value={form.discount} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div className="md:col-span-2">
+                  <label className="block text-[13px] text-gray-700 mb-1">Photo</label>
+                  <div className="flex items-center gap-3">
+                    {photoBase64 && (
+                      <img
+                        src={
+                          photoBase64.startsWith("data:") || photoBase64.startsWith("http")
+                            ? photoBase64
+                            : `data:image/jpeg;base64,${photoBase64}`
+                        }
+                        alt="Preview"
+                        className="h-16 w-16 rounded object-cover border border-gray-300"
+                      />
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        type="file"
+                        id="photo"
+                        accept="image/jpeg,image/jpg,image/png,image/gif"
+                        className="hidden"
+                        onChange={handlePhotoChange}
+                      />
+                      <label
+                        htmlFor="photo"
+                        className="h-[34px] px-3 border border-gray-300 flex items-center text-[13px] cursor-pointer bg-white hover:bg-gray-50"
+                      >
+                        {photoName || "Browse..."}
+                      </label>
+                    </div>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">JPG, JPEG, PNG or GIF only</p>
                </div>
             </div>
           </div>

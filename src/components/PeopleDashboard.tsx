@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import Swal from "sweetalert2"
 import * as XLSX from "xlsx"
@@ -12,7 +12,8 @@ import {
   Download,
   MoreHorizontal,
   Check,
-  Minus
+  Minus,
+  Loader2
 } from "lucide-react"
 import axiosInstance from "./axiosInstance"
 
@@ -126,7 +127,7 @@ export default function PeopleDashboard() {
 
   // Export modal and filters
   const [showExportModal, setShowExportModal] = useState(false)
-  const [exportFilterMode, setExportFilterMode] = useState<"monthly" | "nationality" | null>(null)
+  const [exportFilterMode, setExportFilterMode] = useState<"monthly" | "nationality" | "report" | null>(null)
   const [exportFilterStep, setExportFilterStep] = useState<"choice" | "params">("choice")
   const [exportMonth, setExportMonth] = useState<number | "">("")
   const [exportYear, setExportYear] = useState<number | "">("")
@@ -136,6 +137,25 @@ export default function PeopleDashboard() {
   const [nationalityDropdownOpen, setNationalityDropdownOpen] = useState(false)
   const [selectedStudentIds, setSelectedStudentIds] = useState<Set<number>>(new Set())
   const [isExporting, setIsExporting] = useState(false)
+  const [exportProgress, setExportProgress] = useState(0)
+  const [exportStatus, setExportStatus] = useState("")
+  const [exportReportSearch, setExportReportSearch] = useState("")
+  const [exportCourseStartFrom, setExportCourseStartFrom] = useState("")
+  const [exportCourseStartTo, setExportCourseStartTo] = useState("")
+  const [exportClassId, setExportClassId] = useState<number | "">("")
+  const [exportOnlyUnenrolled, setExportOnlyUnenrolled] = useState(false)
+  const [exportAttendanceFrom, setExportAttendanceFrom] = useState<number | "">("")
+  const [exportAttendanceTo, setExportAttendanceTo] = useState<number | "">("")
+  const [exportPage, setExportPage] = useState(1)
+  const [exportPageSize, setExportPageSize] = useState(5000)
+  const [exportClassesList, setExportClassesList] = useState<{ ClassId: number; ClassTitle: string }[]>([])
+  const [exportClassSearch, setExportClassSearch] = useState("")
+  const [exportClassSearchDebounced, setExportClassSearchDebounced] = useState("")
+  const [exportClassDropdownOpen, setExportClassDropdownOpen] = useState(false)
+  const [loadingExportClasses, setLoadingExportClasses] = useState(false)
+  const [exportClassName, setExportClassName] = useState("")
+  const [exportEmailList, setExportEmailList] = useState("")
+  const exportClassDropdownRef = useRef<HTMLDivElement>(null)
 
   // derived pagination values
 const studentTotalPages = pageSize === "all" ? 1 : Math.max(1, Math.ceil(totalCount / (pageSize as number)));
@@ -229,9 +249,9 @@ const makePageButtons = (totalPages: number, current: number) => {
     return () => controller.abort()
   }, [pageNumber, pageSize, studentSearchDebounced, totalCount])
 
-  // Fetch nationalities when nationality filter is selected
+  // Fetch nationalities when export modal opens (for filters dropdown)
   useEffect(() => {
-    if (exportFilterMode !== "nationality" || !showExportModal) return
+    if (!showExportModal) return
     const controller = new AbortController()
     const fetchNationalities = async () => {
       setLoadingNationalities(true)
@@ -251,7 +271,53 @@ const makePageButtons = (totalPages: number, current: number) => {
     }
     fetchNationalities()
     return () => controller.abort()
-  }, [exportFilterMode, showExportModal])
+  }, [showExportModal])
+
+  // Debounce class search for export modal
+  useEffect(() => {
+    if (!showExportModal) return
+    const t = setTimeout(() => setExportClassSearchDebounced(exportClassSearch.trim()), 400)
+    return () => clearTimeout(t)
+  }, [exportClassSearch, showExportModal])
+
+  // Fetch classes for export modal when search changes
+  useEffect(() => {
+    if (!showExportModal) return
+    const controller = new AbortController()
+    const fetchClasses = async () => {
+      setLoadingExportClasses(true)
+      try {
+        const res = await axiosInstance.get("/Class/GetAllClassesWithPagination", {
+          params: {
+            pageNumber: 1,
+            pageSize: 50,
+            search: exportClassSearchDebounced || undefined
+          },
+          signal: controller.signal
+        })
+        const data = res.data?.Data?.Data ?? res.data?.Data ?? []
+        setExportClassesList(Array.isArray(data) ? data.map((c: any) => ({ ClassId: c.ClassId ?? c.Id, ClassTitle: c.ClassTitle ?? c.Title ?? "" })) : [])
+      } catch (e) {
+        if (!controller.signal.aborted) console.error("Failed to fetch classes for export", e)
+        setExportClassesList([])
+      } finally {
+        if (!controller.signal.aborted) setLoadingExportClasses(false)
+      }
+    }
+    fetchClasses()
+    return () => controller.abort()
+  }, [showExportModal, exportClassSearchDebounced])
+
+  useEffect(() => {
+    if (!showExportModal || !exportClassDropdownOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportClassDropdownRef.current && !exportClassDropdownRef.current.contains(e.target as Node)) {
+        setExportClassDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [showExportModal, exportClassDropdownOpen])
 
   // Debounce student search
   useEffect(() => {
@@ -697,63 +763,93 @@ XLSX.utils.sheet_add_json(ws, rows, {
     }
   }, [selectedStudentIds, exportFilterMode, exportMonth, exportYear, selectedNationalities])
 
+  type ReportStudent = Array<{
+    StudentId?: number
+    FirstName?: string | null
+    Surname?: string | null
+    RegistrationDate?: string | null
+    IdNumber?: string | null
+    MobilePhone?: string | null
+    Email?: string | null
+    StreetAddress?: string | null
+    Nationality?: string | null
+    CourseStartDate?: string | null
+    EnrolledClassName?: string | null
+    CourseTitle?: string | null
+    PresentPercentage?: number | null
+    AbsentPercentage?: number | null
+  }>
+
+  const buildExcelWorkbook = useCallback((students: ReportStudent, filterTitle: string) => {
+    const rows: Record<string, string | number>[] = students.map((s) => ({
+      Firstname: s.FirstName ?? "",
+      Surname: s.Surname ?? "",
+      RegistrationDate: s.RegistrationDate ?? "",
+      IdNumber: s.IdNumber ?? "",
+      MobilePhone: s.MobilePhone ?? "",
+      Email: s.Email ?? "",
+      StreetAddress: s.StreetAddress ?? "",
+      Nationality: s.Nationality ?? "",
+      CourseStartDate: s.CourseStartDate ?? "",
+      enrolledclassname: s.EnrolledClassName ?? "",
+      CourseTitle: s.CourseTitle ?? "",
+      "Present %": `${s.PresentPercentage ?? 0}%`,
+      "Absent %": `${s.AbsentPercentage ?? 0}%`
+    }))
+    const reportTitle = "Student Report"
+    const filterLine = filterTitle ? `Filtered by: ${filterTitle}` : "Filtered by: All students"
+    const generatedOn = `Generated on: ${new Date().toLocaleDateString()}`
+    const ws = XLSX.utils.aoa_to_sheet([[reportTitle], [filterLine], [generatedOn], []])
+    XLSX.utils.sheet_add_json(ws, rows, { origin: "A5" })
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Students")
+    return wb
+  }, [])
+
+  const buildExcelAndDownload = useCallback((students: ReportStudent, filterTitle: string) => {
+    const wb = buildExcelWorkbook(students, filterTitle)
+    XLSX.writeFile(wb, `students_export_${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }, [buildExcelWorkbook])
+
+  const buildExcelAsBlob = useCallback((students: ReportStudent, filterTitle: string): Blob => {
+    const wb = buildExcelWorkbook(students, filterTitle)
+    const buf = XLSX.write(wb, { bookType: "xlsx", type: "array" })
+    return new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })
+  }, [buildExcelWorkbook])
+
   const handleDirectExportToExcel = useCallback(async () => {
     const validNationalities = selectedNationalities.filter((n) => n && String(n).trim())
-    if (exportFilterMode === "monthly") {
-      if (exportMonth === "" || exportYear === "") {
-        Swal.fire({ title: "Select both", text: "Please select Month and Year.", icon: "warning" })
-        return
-      }
-    } else if (exportFilterMode === "nationality") {
-      if (validNationalities.length === 0) {
-        Swal.fire({ title: "Select nationality", text: "Please select at least one nationality.", icon: "warning" })
-        return
-      }
-    } else return
 
     setIsExporting(true)
-    try {
-      let url: string
-      const baseParams: Record<string, unknown> = {}
-      if (exportFilterMode === "monthly") {
-        url = "/Student/GetAllByMonthYear"
-        baseParams.month = exportMonth
-        baseParams.year = exportYear
-      } else {
-        url = "/Student/GetAllByNationality"
-        baseParams.nationalities = validNationalities
-      }
-      const requestConfig: { params: Record<string, unknown>; paramsSerializer?: (p: Record<string, unknown>) => string } = {
-        params: baseParams
-      }
-      const nationalityParam = baseParams.nationalities ?? baseParams.nationality
-      if (url.includes("Nationality") && Array.isArray(nationalityParam) && (nationalityParam as string[]).length > 0) {
-        requestConfig.paramsSerializer = (p) => {
-          const search = new URLSearchParams()
-          const natArr = ((p.nationalities ?? p.nationality) as string[]) || []
-          natArr.filter((x) => x != null && String(x).trim()).forEach((x) => search.append("nationalities", String(x).trim()))
-          return search.toString()
-        }
-      }
+    setExportProgress(0)
+    setExportStatus("Preparing…")
 
-      const res = await axiosInstance.get(url, requestConfig)
-      if (!res.data?.IsSuccess && res.data?.Message) {
-        Swal.fire({ title: "Error", text: res.data.Message, icon: "error" })
+    try {
+      setExportStatus("Fetching students…")
+      setExportProgress(15)
+      const payload: Record<string, unknown> = { Mode: "report" }
+      if (exportReportSearch.trim()) payload.Search = exportReportSearch.trim()
+      if (exportCourseStartFrom) payload.CourseStartFrom = new Date(exportCourseStartFrom).toISOString()
+      if (exportCourseStartTo) payload.CourseStartTo = new Date(exportCourseStartTo).toISOString()
+      if (validNationalities.length > 0) payload.Nationalities = validNationalities
+      if (exportClassId !== "" && exportClassId !== 0) payload.ClassId = exportClassId
+      if (exportOnlyUnenrolled) payload.OnlyUnenrolled = true
+      if (exportAttendanceFrom !== "") payload.AttendanceFrom = Number(exportAttendanceFrom)
+      if (exportAttendanceTo !== "") payload.AttendanceTo = Number(exportAttendanceTo)
+      payload.Page = exportPage
+      payload.PageSize = exportPageSize
+      const res = await axiosInstance.post("/Student/FilterStudents", payload)
+      setExportProgress(45)
+      setExportStatus("Building spreadsheet…")
+      if (!res.data?.IsSuccess) {
+        Swal.fire({ title: "Error", text: res.data?.Message ?? "Filter failed", icon: "error" })
         setIsExporting(false)
+        setExportProgress(0)
+        setExportStatus("")
         return
       }
       const data = res.data?.Data
-      let studentList: unknown[] = Array.isArray(data?.Data)
-        ? data.Data
-        : Array.isArray(data?.Items)
-          ? data.Items
-          : Array.isArray(data)
-            ? data
-            : []
-      if (studentList.length === 0 && data != null && typeof data === "object" && !Array.isArray(data)) {
-        studentList = [data]
-      }
-      const students = studentList as Array<{
+      const students: Array<{
         StudentId?: number
         FirstName?: string | null
         Surname?: string | null
@@ -768,58 +864,101 @@ XLSX.utils.sheet_add_json(ws, rows, {
         CourseTitle?: string | null
         PresentPercentage?: number | null
         AbsentPercentage?: number | null
-      }>
+      }> = Array.isArray(data) ? data : []
       if (students.length === 0) {
-        Swal.fire({ title: "No data", text: "No students found for the selected filter.", icon: "info" })
+        Swal.fire({ title: "No data", text: "No students found for the selected filters.", icon: "info" })
         setIsExporting(false)
+        setExportProgress(0)
+        setExportStatus("")
         return
       }
+      const parts: string[] = []
+      if (exportReportSearch.trim()) parts.push(`Search: ${exportReportSearch.trim()}`)
+      if (exportCourseStartFrom) parts.push(`Course from: ${exportCourseStartFrom}`)
+      if (exportCourseStartTo) parts.push(`Course to: ${exportCourseStartTo}`)
+      if (validNationalities.length) parts.push(`Nationality: ${validNationalities.join(", ")}`)
+      if (exportClassId !== "" && exportClassName) parts.push(`Class: ${exportClassName}`)
+      if (exportOnlyUnenrolled) parts.push("Unenrolled only")
+      const filterTitle = parts.length ? parts.join(" · ") : "All students"
 
-      let filterTitle = ""
-      if (exportFilterMode === "monthly" && exportMonth && exportYear) {
-        filterTitle = `Monthly - ${new Date(exportYear, (exportMonth as number) - 1).toLocaleString("default", { month: "long" })} ${exportYear}`
-      } else if (exportFilterMode === "nationality") {
-        filterTitle = `Nationality - ${validNationalities.join(", ")}`
+      setExportProgress(75)
+      setExportStatus("Generating file…")
+      await new Promise((r) => setTimeout(r, 200))
+
+      const emailRaw = exportEmailList.trim()
+      const emailList = emailRaw
+        ? emailRaw
+            .split(/[\n,]+/)
+            .map((e) => e.trim())
+            .filter((e) => e.length > 0)
+          : []
+      const uniqueEmails = [...new Set(emailList)]
+
+      let emailSent = false
+      if (uniqueEmails.length > 0) {
+        setExportStatus("Sending report by email…")
+        const blob = buildExcelAsBlob(students, filterTitle)
+        const fileName = `students_export_${new Date().toISOString().slice(0, 10)}.xlsx`
+        const excelFile = new File([blob], fileName, { type: blob.type })
+        const fd = new FormData()
+        uniqueEmails.forEach((e) => fd.append("Emails", e))
+        fd.append("EmailTemplateId", "0")
+        fd.append("CustomMessage", "Please find the student report attached.")
+        fd.append("FileDetails", excelFile)
+        fd.append("FileType", "xlsx")
+        fd.append("FolderName", "Reports")
+        try {
+          await axiosInstance.post("/Email/SendEmailToStudents", fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+          })
+          emailSent = true
+        } catch (err) {
+          console.error("Send report email failed", err)
+          const msg =
+            err && typeof err === "object" && err !== null && "response" in err
+              ? (err as { response?: { data?: string } }).response?.data
+              : "Failed to send report by email"
+          Swal.fire({ title: "Email failed", text: typeof msg === "string" ? msg : "Failed to send report by email", icon: "warning" })
+        }
       }
 
-      const rows: Record<string, string | number>[] = students.map((s) => ({
-        Firstname: s.FirstName ?? "",
-        Surname: s.Surname ?? "",
-        RegistrationDate: s.RegistrationDate ?? "",
-        IdNumber: s.IdNumber ?? "",
-        MobilePhone: s.MobilePhone ?? "",
-        Email: s.Email ?? "",
-        StreetAddress: s.StreetAddress ?? "",
-        Nationality: s.Nationality ?? "",
-        CourseStartDate: s.CourseStartDate ?? "",
-        enrolledclassname: s.EnrolledClassName ?? "",
-        CourseTitle: s.CourseTitle ?? "",
-        "Present %": `${s.PresentPercentage ?? 0}%`,
-        "Absent %": `${s.AbsentPercentage ?? 0}%`
-      }))
-
-      const reportTitle = "Student Report"
-      const filterLine = filterTitle ? `Filtered by: ${filterTitle}` : "Filtered by: All students"
-      const generatedOn = `Generated on: ${new Date().toLocaleDateString()}`
-      const ws = XLSX.utils.aoa_to_sheet([[reportTitle], [filterLine], [generatedOn], []])
-      XLSX.utils.sheet_add_json(ws, rows, { origin: "A5" })
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, ws, "Students")
-      XLSX.writeFile(wb, `students_export_${new Date().toISOString().slice(0, 10)}.xlsx`)
-      Swal.fire({ title: "Exported", text: `${rows.length} student(s) exported successfully.`, icon: "success" })
+      buildExcelAndDownload(students, filterTitle)
+      setExportProgress(100)
+      setExportStatus("Download started.")
+      await new Promise((r) => setTimeout(r, 400))
+      Swal.fire({
+        title: "Exported",
+        text: emailSent
+          ? `${students.length} student(s) exported. Report sent to ${uniqueEmails.length} email(s).`
+          : `${students.length} student(s) exported successfully.`,
+        icon: "success",
+      })
       setShowExportModal(false)
-      setExportFilterStep("choice")
-      setExportFilterMode(null)
-      setExportMonth("")
-      setExportYear("")
       setSelectedNationalities([])
+      setNationalityDropdownOpen(false)
+      setExportClassDropdownOpen(false)
+      setExportClassSearch("")
+      setExportClassId("")
+      setExportClassName("")
+      setExportEmailList("")
+      setExportReportSearch("")
+      setExportCourseStartFrom("")
+      setExportCourseStartTo("")
+      setExportClassId("")
+      setExportOnlyUnenrolled(false)
+      setExportAttendanceFrom("")
+      setExportAttendanceTo("")
+      setExportProgress(0)
+      setExportStatus("")
     } catch (err) {
       console.error("Export failed", err)
       Swal.fire({ title: "Export failed", text: "Could not export students. Please try again.", icon: "error" })
+      setExportProgress(0)
+      setExportStatus("")
     } finally {
       setIsExporting(false)
     }
-  }, [exportFilterMode, exportMonth, exportYear, selectedNationalities])
+  }, [selectedNationalities, exportReportSearch, exportCourseStartFrom, exportCourseStartTo, exportClassId, exportClassName, exportOnlyUnenrolled, exportAttendanceFrom, exportAttendanceTo, exportPage, exportPageSize, exportEmailList, buildExcelAndDownload, buildExcelAsBlob])
 
   const renderStudentTableBody = () => {
     if (isLoadingStudents) {
@@ -1089,11 +1228,13 @@ XLSX.utils.sheet_add_json(ws, rows, {
               type="button"
               onClick={() => {
                 setShowExportModal(true)
-                setExportFilterMode(null)
-                setExportFilterStep("choice")
-                setExportMonth("")
-                setExportYear("")
+                setExportFilterMode("report")
+                setExportFilterStep("params")
                 setSelectedNationalities([])
+                setExportClassSearch("")
+                setExportClassId("")
+                setExportClassName("")
+                setExportClassDropdownOpen(false)
               }}
               className="h-9 px-4 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 text-sm hover:bg-gray-50"
             >
@@ -1101,93 +1242,217 @@ XLSX.utils.sheet_add_json(ws, rows, {
             </button>
           </div>
 
-          {/* Export filter modal - centered overlay like reference */}
+          {/* Export modal – filters only, modern UI */}
           {showExportModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-visible">
-                {exportFilterStep === "choice" ? (
-                  <>
-                    <div className="px-6 py-6 text-center">
-                      <h3 className="text-lg font-semibold text-gray-800 mb-6">Filtering</h3>
-                      <div className="flex flex-col gap-3">
-                        <button
-                          type="button"
-                          onClick={() => { setExportFilterMode("monthly"); setExportFilterStep("params") }}
-                          className="w-full py-3 px-4 rounded-lg bg-indigo-800 text-white font-medium hover:bg-indigo-700"
-                        >
-                          Monthly
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => { setExportFilterMode("nationality"); setExportFilterStep("params") }}
-                          className="w-full py-3 px-4 rounded-lg bg-indigo-800 text-white font-medium hover:bg-indigo-700"
-                        >
-                          Nationality
-                        </button>
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden border border-gray-100">
+                {isExporting ? (
+                  <div className="px-8 py-10">
+                    <div className="flex flex-col items-center gap-6">
+                      <div className="h-16 w-16 rounded-2xl bg-indigo-50 flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 text-indigo-600 animate-spin" />
+                      </div>
+                      <div className="text-center">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">Exporting students</h3>
+                        <p className="text-sm text-gray-500">{exportStatus}</p>
+                      </div>
+                      <div className="w-full max-w-[240px]">
+                        <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+                          <span>Progress</span>
+                          <span className="font-medium text-indigo-600">{exportProgress}%</span>
+                        </div>
+                        <div className="h-2.5 w-full rounded-full bg-gray-100 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-300 ease-out"
+                            style={{ width: `${exportProgress}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                    <div className="px-6 pb-6 text-center">
-                      <button type="button" onClick={() => setShowExportModal(false)} className="text-gray-500 hover:text-gray-700 text-sm">
-                        Cancel
-                      </button>
-                    </div>
-                  </>
+                  </div>
                 ) : (
                   <>
-                    <div className="px-6 pt-6">
-                      <div className="flex items-center justify-between gap-4 mb-4">
-                        <h3 className="text-lg font-semibold text-gray-800">Filtering</h3>
+                    <div className="px-6 pt-6 pb-2">
+                      <h3 className="text-xl font-semibold text-gray-900 tracking-tight">Export students</h3>
+                      <p className="text-sm text-gray-500 mt-1">Apply filters and export to Excel</p>
+                    </div>
+                    <div className="px-6 py-4 max-h-[60vh] overflow-y-auto space-y-5">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Search</label>
+                        <input
+                          type="text"
+                          value={exportReportSearch}
+                          onChange={(e) => setExportReportSearch(e.target.value)}
+                          placeholder="Name, email, ID…"
+                          className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Course start from</label>
+                          <input
+                            type="date"
+                            value={exportCourseStartFrom}
+                            onChange={(e) => setExportCourseStartFrom(e.target.value)}
+                            className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Course start to</label>
+                          <input
+                            type="date"
+                            value={exportCourseStartTo}
+                            onChange={(e) => setExportCourseStartTo(e.target.value)}
+                            className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Nationality</label>
                         <button
                           type="button"
-                          onClick={handleDirectExportToExcel}
-                          disabled={isExporting || (exportFilterMode === "monthly" && (exportMonth === "" || exportYear === "")) || (exportFilterMode === "nationality" && selectedNationalities.length === 0)}
-                          className="flex-shrink-0 h-9 px-4 rounded-lg bg-indigo-800 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => setNationalityDropdownOpen((o) => !o)}
+                          className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                         >
-                          {isExporting ? "Exporting..." : "Apply"}
+                          <span className="truncate text-gray-700">{selectedNationalities.length === 0 ? "All nationalities" : `${selectedNationalities.length} selected`}</span>
+                          <ChevronDown size={18} className="text-gray-400 flex-shrink-0 ml-2" />
                         </button>
-                      </div>
-                      {exportFilterMode === "monthly" ? (
-                        <div className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Month</label>
-                            <select value={exportMonth} onChange={(e) => setExportMonth(e.target.value === "" ? "" : Number(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm">
-                              <option value="">Select month</option>
-                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => <option key={m} value={m}>{new Date(2000, m - 1).toLocaleString("default", { month: "long" })}</option>)}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Year</label>
-                            <select value={exportYear} onChange={(e) => setExportYear(e.target.value === "" ? "" : Number(e.target.value))} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm">
-                              <option value="">Select year</option>
-                              {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i).map((y) => <option key={y} value={y}>{y}</option>)}
-                            </select>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="relative">
-                            <label className="block text-sm font-medium text-gray-600 mb-1">Nationality (multi-select)</label>
-                            <button type="button" onClick={() => setNationalityDropdownOpen((o) => !o)} className="w-full h-10 px-3 rounded-lg border border-gray-300 bg-white text-sm text-left flex items-center justify-between">
-                              <span className="truncate">{selectedNationalities.length === 0 ? "Select nationalities" : `${selectedNationalities.length} selected: ${selectedNationalities.slice(0, 2).join(", ")}${selectedNationalities.length > 2 ? "..." : ""}`}</span>
-                              <ChevronDown size={16} className="text-gray-500 flex-shrink-0" />
-                            </button>
-                            {nationalityDropdownOpen && (
-                              <div className="absolute z-50 mt-1 w-full min-w-full max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl py-1">
-                                {loadingNationalities ? <div className="px-3 py-4 text-sm text-gray-500 text-center">Loading...</div> : nationalitiesList.length === 0 ? <div className="px-3 py-4 text-sm text-gray-500 text-center">No nationalities found</div> : nationalitiesList.map((nat) => (
-                                  <label key={nat} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer">
-                                    <input type="checkbox" checked={selectedNationalities.includes(nat)} onChange={(e) => setSelectedNationalities((prev) => e.target.checked ? [...prev, nat] : prev.filter((n) => n !== nat))} />
-                                    <span className="text-sm">{nat}</span>
-                                  </label>
-                                ))}
+                        {nationalityDropdownOpen && (
+                          <div className="absolute z-50 mt-1.5 w-full max-h-52 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg py-1">
+                            {loadingNationalities ? (
+                              <div className="px-4 py-6 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
+                                <Loader2 size={16} className="animate-spin" /> Loading…
                               </div>
+                            ) : nationalitiesList.length === 0 ? (
+                              <div className="px-4 py-6 text-sm text-gray-500 text-center">No nationalities found</div>
+                            ) : (
+                              nationalitiesList.map((nat) => (
+                                <label key={nat} className="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50/80 cursor-pointer">
+                                  <input type="checkbox" checked={selectedNationalities.includes(nat)} onChange={(e) => setSelectedNationalities((prev) => e.target.checked ? [...prev, nat] : prev.filter((n) => n !== nat))} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                  <span className="text-sm text-gray-800">{nat}</span>
+                                </label>
+                              ))
                             )}
                           </div>
+                        )}
+                      </div>
+                      <div className="relative" ref={exportClassDropdownRef}>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Class</label>
+                        <input
+                          type="text"
+                          value={exportClassId !== "" && exportClassName ? exportClassName : exportClassSearch}
+                          onChange={(e) => {
+                            setExportClassSearch(e.target.value)
+                            setExportClassDropdownOpen(true)
+                            if (exportClassId !== "") {
+                              setExportClassId("")
+                              setExportClassName("")
+                            }
+                          }}
+                          onFocus={() => setExportClassDropdownOpen(true)}
+                          placeholder="Search classes…"
+                          className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        />
+                        {exportClassId !== "" && exportClassName && (
+                          <button
+                            type="button"
+                            onClick={() => { setExportClassId(""); setExportClassName(""); setExportClassSearch(""); setExportClassDropdownOpen(true) }}
+                            className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
+                            aria-label="Clear class"
+                          >
+                            ×
+                          </button>
+                        )}
+                        {exportClassDropdownOpen && (
+                          <div className="absolute z-50 mt-1.5 w-full max-h-52 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg py-1">
+                            {loadingExportClasses ? (
+                              <div className="px-4 py-6 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
+                                <Loader2 size={16} className="animate-spin" /> Loading…
+                              </div>
+                            ) : exportClassesList.length === 0 ? (
+                              <div className="px-4 py-6 text-sm text-gray-500 text-center">{exportClassSearchDebounced ? "No classes found" : "Type to search classes"}</div>
+                            ) : (
+                              exportClassesList.map((c) => (
+                                <button
+                                  key={c.ClassId}
+                                  type="button"
+                                  onClick={() => {
+                                    setExportClassId(c.ClassId)
+                                    setExportClassName(c.ClassTitle)
+                                    setExportClassSearch("")
+                                    setExportClassDropdownOpen(false)
+                                  }}
+                                  className="w-full text-left px-4 py-2.5 text-sm text-gray-800 hover:bg-indigo-50/80"
+                                >
+                                  {c.ClassTitle}
+                                </button>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <label className="flex items-center gap-3 cursor-pointer py-1">
+                        <input type="checkbox" checked={exportOnlyUnenrolled} onChange={(e) => setExportOnlyUnenrolled(e.target.checked)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                        <span className="text-sm font-medium text-gray-700">Only unenrolled students</span>
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Attendance % from</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={exportAttendanceFrom === "" ? "" : exportAttendanceFrom}
+                            onChange={(e) => setExportAttendanceFrom(e.target.value === "" ? "" : Number(e.target.value))}
+                            placeholder="0"
+                            className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
                         </div>
-                      )}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Attendance % to</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={exportAttendanceTo === "" ? "" : exportAttendanceTo}
+                            onChange={(e) => setExportAttendanceTo(e.target.value === "" ? "" : Number(e.target.value))}
+                            placeholder="100"
+                            className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Page</label>
+                          <input type="number" min={1} value={exportPage} onChange={(e) => setExportPage(Math.max(1, Number(e.target.value) || 1))} className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Page size</label>
+                          <input type="number" min={1} max={10000} value={exportPageSize} onChange={(e) => setExportPageSize(Math.min(10000, Math.max(1, Number(e.target.value) || 1)))} className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Send report by email (optional)</label>
+                        <textarea
+                          value={exportEmailList}
+                          onChange={(e) => setExportEmailList(e.target.value)}
+                          placeholder="Enter one or more emails, separated by comma or new line. The Excel report will be sent as an attachment."
+                          rows={3}
+                          className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-y"
+                        />
+                      </div>
                     </div>
-                    <div className="px-6 pb-6 pt-4 text-center">
-                      <button type="button" onClick={() => { setExportFilterStep("choice"); setExportFilterMode(null); setExportMonth(""); setExportYear(""); setSelectedNationalities([]); setNationalityDropdownOpen(false) }} className="text-gray-500 hover:text-gray-700 text-sm">
+                    <div className="px-6 py-4 flex items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/50">
+                      <button type="button" onClick={() => { setShowExportModal(false); setNationalityDropdownOpen(false); setExportClassDropdownOpen(false); setExportClassSearch(""); setExportClassId(""); setExportClassName(""); setExportEmailList("") }} className="text-sm font-medium text-gray-600 hover:text-gray-900">
                         Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDirectExportToExcel}
+                        disabled={isExporting}
+                        className="h-10 px-5 rounded-xl bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                      >
+                        Export to Excel
                       </button>
                     </div>
                   </>

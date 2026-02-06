@@ -1,0 +1,108 @@
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body { margin: 0; padding: 0; background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1e293b; }
+            .wrapper { padding: 32px 16px; }
+            .card { width: 560px; max-width: 100%; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+            .hero { background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%); padding: 32px 36px; text-align: center; }
+            .hero-title { font-size: 22px; font-weight: 700; color: #ffffff; margin: 0 0 8px 0; letter-spacing: -0.02em; }
+            .hero-sub { font-size: 14px; color: rgba(255,255,255,0.9); margin: 0; }
+            .logo-cell { padding: 24px 36px 16px; text-align: center; border-bottom: 1px solid #f1f5f9; }
+            .content { padding: 28px 36px 32px; }
+            .greeting { font-size: 17px; font-weight: 600; color: #0f172a; margin: 0 0 16px 0; }
+            .intro { font-size: 15px; line-height: 1.65; color: #475569; margin: 0 0 20px 0; }
+            .benefits { background: #f8fafc; border-radius: 12px; padding: 20px 24px; margin: 0 0 24px 0; border: 1px solid #e2e8f0; }
+            .benefits-title { font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 14px 0; }
+            .benefits-list { margin: 0; padding-left: 20px; }
+            .benefits-list li { font-size: 14px; line-height: 1.7; color: #475569; margin-bottom: 8px; }
+            .benefits-list li:last-child { margin-bottom: 0; }
+            .cta-wrap { text-align: center; margin: 24px 0 28px 0; }
+            .cta { display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: #ffffff !important; padding: 16px 32px; border-radius: 10px; font-size: 16px; font-weight: 600; text-decoration: none; box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
+            .section-title { font-size: 15px; font-weight: 700; color: #0f172a; margin: 0 0 12px 0; }
+            .steps { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.75; color: #475569; }
+            .steps li { margin-bottom: 6px; }
+            .code-box { margin-top: 16px; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+            .code-box td { padding: 14px 18px; font-size: 14px; }
+            .code-box td:first-child { background: #f8fafc; font-weight: 600; color: #334155; }
+            .code-box td:last-child { background: #fff; font-weight: 700; color: #1e293b; font-size: 15px; }
+            .footer { padding: 24px 36px; font-size: 13px; color: #64748b; background: #f8fafc; border-top: 1px solid #e2e8f0; }
+            .footer a { color: #2563eb; text-decoration: none; }
+            .footer p { margin: 0 0 10px 0; }
+            .footer p:last-child { margin-bottom: 0; margin-top: 14px; font-size: 12px; color: #94a3b8; }
+        </style>
+    </head>
+    <body>
+        <div class="wrapper">
+            <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                    <td align="center">
+                        <div class="card">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td class="hero">
+                                        <p class="hero-sub">Your invitation</p>
+                                        <h1 class="hero-title">You're invited to the student portal</h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="logo-cell">
+                                        <img src="https://app.dcedu.ie/src/assets/logo.png" alt="DCE English Language School" width="140" height="auto" style="max-width:140px;width:140px;height:auto;display:block;margin:0 auto;">
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="content">
+                                        <p class="greeting">Hello {{UserName}},</p>
+                                        <p class="intro">DCE English Language School is providing you with a new student portal so you can stay connected and access everything in one place.</p>
+
+                                        <div class="benefits">
+                                            <p class="benefits-title">What you get with the portal</p>
+                                            <ul class="benefits-list">
+                                                <li><strong>Accurate attendance</strong> — View your real-time attendance and stay on top of your record.</li>
+                                                <li><strong>Documents &amp; certificates</strong> — Access your documents, certificates, and important files anytime.</li>
+                                                <li><strong>Lesson notes &amp; homework</strong> — Find lesson notes, assignments, and homework in one place.</li>
+                                                <li><strong>Payments</strong> — View payments and fee information whenever you need.</li>
+                                                <li><strong>One place for everything</strong> — No more chasing updates; the portal keeps you in the loop.</li>
+                                            </ul>
+                                        </div>
+
+                                        <p class="intro" style="margin-bottom:0;">Please create your account before your next lesson. It only takes a minute.</p>
+                                        <div class="cta-wrap">
+                                            <a class="cta" href="{{RegisterUrl}}">Create my account</a>
+                                        </div>
+
+                                        <p class="section-title">How to join {{SchoolName}}</p>
+                                        <ol class="steps">
+                                            <li>Open your browser and go to <a href="{{ActivationUrl}}" style="color:#2563eb;">{{ActivationUrl}}</a></li>
+                                            <li>Enter the activation code below</li>
+                                            <li>Click &ldquo;Activate your code&rdquo;</li>
+                                            <li>Create your username and password</li>
+                                            <li>Click &ldquo;Create your account&rdquo;</li>
+                                            <li>You're all set!</li>
+                                        </ol>
+
+                                        <table class="code-box" width="100%" cellpadding="0" cellspacing="0">
+                                            <tr>
+                                                <td>{{UserName}} ({{UserType}})</td>
+                                                <td>{{ActivationCode}}</td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="footer">
+                                        <p><strong style="color:#334155;">Login anytime</strong><br><a href="{{LoginUrl}}">{{LoginUrl}}</a></p>
+                                        <p><strong style="color:#334155;">Forgot password?</strong><br><a href="{{ForgotUrl}}">{{ForgotUrl}}</a></p>
+                                        <p>DCE English Language School &middot; <a href="https://app.dcedu.ie/">app.dcedu.ie</a></p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </body>
+    </html>
