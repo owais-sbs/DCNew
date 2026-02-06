@@ -48,6 +48,7 @@ import AddPayment from "./components/AddPayment";
 import AddClassForm from "./components/AddClassForm";
 import ClassDetailsScreen from "./components/ClassDetailsScreen";
 import SignaturesScreen from "./components/SignaturesScreen";
+import HolidaysScreen from "./components/HolidaysScreen";
 import ForgotPassword from "./components/ForgotPassword";
 import VerifyOtp from "./components/VerifyOtp";
 import ResetPassword from "./components/ResetPassword";
@@ -450,6 +451,17 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <SignaturesScreen />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/holidays"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <HolidaysScreen />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }

@@ -19,7 +19,8 @@ import {
   Search,
   UserPlus,
   Briefcase,
-  GraduationCap
+  GraduationCap,
+  CalendarDays
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
 
@@ -154,12 +155,13 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     { icon: Briefcase, label: "Staff", path: "/people/staffs/new" },
 
     // { icon: UserPlus, label: "Prospect", path: "/people/prospects/new" }, // Added mock
-    
-    
+
+
     { icon: Users, label: "Related Contact", path: "/people/related/new" },
     // { icon: MessageSquare, label: "Group Msg", path: "/messaging/new" }, // Added mock
-    
-   
+
+    { icon: CalendarDays, label: "Holiday", path: "/holidays" },
+
     { icon: PenTool, label: "Signature", path: "/signatures" },
   ];
 
