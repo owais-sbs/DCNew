@@ -53,51 +53,81 @@ export default function StudentDashboard() {
   const { user } = useAuth()
   const [lessonTab, setLessonTab] = useState<"upcoming" | "past">("upcoming")
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
-  const [attendancePercentage, setAttendancePercentage] = useState<number | null>(null)
+  const [attendanceStats, setAttendanceStats] = useState<{ Status: string; Percentage: number }[]>([])
   const [loadingAttendance, setLoadingAttendance] = useState(false)
   const [attendanceError, setAttendanceError] = useState<string | null>(null)
-  
-  // Get studentId from user context or localStorage
+  const [studentData, setStudentData] = useState<any>(null)
+  const [loadingStudent, setLoadingStudent] = useState(false)
+
   const studentId = user?.studentId || getStudentId()
-  
-  const { classes: enrolledClasses, loading: classesLoading, error: classesError } = useStudentClasses(studentId || 0)
+
+  const { classes: enrolledClasses } = useStudentClasses(studentId || 0)
   const { session: upcomingSession, loading: sessionLoading, error: sessionError } = useStudentUpcomingSession(studentId || 0)
   const { sessions: completedSessions, loading: completedLoading, error: completedError } = useStudentCompletedSessions(
     studentId || 0
   )
 
-  // Fetch attendance data
+  const presentStat = attendanceStats.find((s) => s.Status === "Present")
+  const attendancePercentage = presentStat?.Percentage ?? null
+
+  // GetStudentAttendanceStats
   useEffect(() => {
-    const fetchAttendance = async () => {
-      if (!studentId) return
-
-      setLoadingAttendance(true)
-      setAttendanceError(null)
-      try {
-        const response = await axiosInstance.get("/dashboard/GetTotoalAttendaceByStudent", {
-          params: { studentId: studentId }
-        })
-
-        console.log("Attendance response:", response.data)
-        if (response.data?.IsSuccess) {
-          // Data is just a percentage number (e.g., 33.33)
-          const percentage = typeof response.data.Data === 'number' ? response.data.Data : null
-          setAttendancePercentage(percentage)
+    if (!studentId) return
+    setLoadingAttendance(true)
+    setAttendanceError(null)
+    axiosInstance
+      .get("/Dashboard/GetStudentAttendanceStats", { params: { studentId } })
+      .then((response) => {
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
+          setAttendanceStats(response.data.Data)
         } else {
-          setAttendancePercentage(null)
+          setAttendanceStats([])
           setAttendanceError(response.data?.Message || "No attendance data available.")
         }
-      } catch (err: any) {
-        console.error("Error fetching attendance:", err)
+      })
+      .catch((err) => {
+        setAttendanceStats([])
         setAttendanceError(err?.message || "Failed to load attendance data.")
-        setAttendancePercentage(null)
-      } finally {
-        setLoadingAttendance(false)
-      }
-    }
-
-    fetchAttendance()
+      })
+      .finally(() => setLoadingAttendance(false))
   }, [studentId])
+
+  // GetById for FinishedCourseDate and profile data
+  useEffect(() => {
+    if (!studentId) return
+    setLoadingStudent(true)
+    axiosInstance
+      .get(`/Student/GetById/${studentId}`)
+      .then((res) => {
+        if (res.data?.IsSuccess && res.data?.Data) setStudentData(res.data.Data)
+        else setStudentData(null)
+      })
+      .catch(() => setStudentData(null))
+      .finally(() => setLoadingStudent(false))
+  }, [studentId])
+
+  const finishedCourseDate = studentData?.FinishedCourseDate
+    ? new Date(studentData.FinishedCourseDate)
+    : null
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  let daysLeft: number | null = null
+  if (finishedCourseDate && !Number.isNaN(finishedCourseDate.getTime())) {
+    finishedCourseDate.setHours(0, 0, 0, 0)
+    daysLeft = Math.ceil((finishedCourseDate.getTime() - today.getTime()) / (24 * 60 * 60 * 1000))
+  }
+
+  // Fewer days left = good news (course almost done) → green; more days = neutral/warning
+  const daysLeftColor =
+    daysLeft === null
+      ? ""
+      : daysLeft <= 14
+        ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+        : daysLeft <= 60
+          ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+          : "bg-amber-100 text-amber-800 border-amber-200"
+
+  const formatCourseDate = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
 
   const { list: upcomingLessonList, message: upcomingMessage } = buildUpcomingLessonList(
     upcomingSession,
@@ -258,49 +288,98 @@ export default function StudentDashboard() {
   return (
   <div className="space-y-6">
 
+    {/* ===== COURSE END + DAYS LEFT (highlighted) ===== */}
+    {loadingStudent && (
+      <div className="rounded-xl border-2 border-gray-200 bg-gray-50 p-4 animate-pulse">
+        <div className="h-5 w-32 bg-gray-200 rounded" />
+        <div className="h-6 w-48 bg-gray-200 rounded mt-2" />
+      </div>
+    )}
+    {!loadingStudent && finishedCourseDate && (
+      <div className={`rounded-xl border-2 p-4 ${daysLeftColor}`}>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold opacity-90">Finished course date</div>
+            <div className="text-lg font-bold mt-0.5">{formatCourseDate(finishedCourseDate)}</div>
+          </div>
+          <div className="text-right">
+            <div className="text-sm font-semibold opacity-90">
+              {daysLeft !== null && daysLeft < 0
+                ? "Course ended"
+                : "Days left until course end"}
+            </div>
+            <div className="text-2xl font-bold mt-0.5">
+              {daysLeft !== null ? (daysLeft < 0 ? `${Math.abs(daysLeft)} days ago` : `${daysLeft} days`) : "—"}
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
     {/* ===== TOP CARDS ===== */}
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Attendance */}
+      {/* Attendance - from GetStudentAttendanceStats */}
       <div className="bg-white border rounded-xl p-5">
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
           <CheckSquare size={16} /> Attendance
         </h3>
-
-        <div className="mt-4 flex justify-center">
-          <div className="relative h-36 w-36">
-            <svg className="-rotate-90 h-36 w-36">
-              <circle cx="72" cy="72" r="60" stroke="#e5e7eb" strokeWidth="10" fill="none" />
-              {attendancePercentage !== null && (
-                <circle
-                  cx="72"
-                  cy="72"
-                  r="60"
-                  stroke="#10b981"
-                  strokeWidth="10"
-                  fill="none"
-                  strokeDasharray={2 * Math.PI * 60}
-                  strokeDashoffset={2 * Math.PI * 60 * (1 - attendancePercentage / 100)}
-                />
-              )}
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <div className="text-2xl font-bold">{attendancePercentage ?? 0}%</div>
-              <div className="text-xs text-gray-500">Present</div>
-            </div>
+        {loadingAttendance ? (
+          <div className="mt-4 flex justify-center py-8">
+            <div className="animate-spin h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full" />
           </div>
-        </div>
-
-        <div className="mt-3 flex justify-center gap-4 text-xs">
-          <span className="flex items-center gap-1">
-            <span className="h-2 w-2 bg-green-500 rounded-full"></span> Present
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="h-2 w-2 bg-red-500 rounded-full"></span> Absent
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="h-2 w-2 bg-yellow-400 rounded-full"></span> Late
-          </span>
-        </div>
+        ) : (
+          <>
+            <div className="mt-4 flex justify-center">
+              <div className="relative h-36 w-36">
+                <svg className="-rotate-90 h-36 w-36">
+                  <circle cx="72" cy="72" r="60" stroke="#e5e7eb" strokeWidth="10" fill="none" />
+                  {attendancePercentage !== null && (
+                    <circle
+                      cx="72"
+                      cy="72"
+                      r="60"
+                      stroke="#10b981"
+                      strokeWidth="10"
+                      fill="none"
+                      strokeDasharray={2 * Math.PI * 60}
+                      strokeDashoffset={2 * Math.PI * 60 * (1 - attendancePercentage / 100)}
+                    />
+                  )}
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <div className="text-2xl font-bold">{attendancePercentage ?? 0}%</div>
+                  <div className="text-xs text-gray-500">Present</div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs">
+              {attendanceStats.map((stat) => (
+                <span key={stat.Status} className="flex items-center gap-1">
+                  <span
+                    className={`h-2 w-2 rounded-full ${
+                      stat.Status === "Present"
+                        ? "bg-green-500"
+                        : stat.Status === "Absent"
+                          ? "bg-red-500"
+                          : stat.Status === "Late"
+                            ? "bg-yellow-400"
+                            : "bg-blue-400"
+                    }`}
+                  />
+                  {stat.Status} {stat.Percentage}%
+                </span>
+              ))}
+              {attendanceStats.length === 0 && !attendanceError && (
+                <>
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 bg-green-500 rounded-full" /> Present</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 bg-red-500 rounded-full" /> Absent</span>
+                  <span className="flex items-center gap-1"><span className="h-2 w-2 bg-yellow-400 rounded-full" /> Late</span>
+                </>
+              )}
+            </div>
+            {attendanceError && <p className="mt-2 text-xs text-red-600 text-center">{attendanceError}</p>}
+          </>
+        )}
       </div>
 
       {/* Stars + Flags */}

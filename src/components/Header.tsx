@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
 import axiosInstance from "./axiosInstance"
 import {
@@ -31,7 +31,9 @@ export default function Header() {
   const [isAddNewOpen, setIsAddNewOpen] = useState(false);
   const { isExpanded } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
   const { logout, user } = useAuth();
+  const isStudentPortal = location.pathname.startsWith("/student");
 
   const [students, setStudents] = useState<any[]>([]);
 const [isSearching, setIsSearching] = useState(false);
@@ -177,79 +179,65 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
           
           </div>
 
-          {/* Center: Search Bar (Dark Theme) */}
+          {/* Center: Search Bar (hidden in student portal) */}
+          {!isStudentPortal && (
           <div className="flex-1 max-w-sm mx-6">
-  <div className="flex-1 max-w-sm mx-6">
-  <div className="relative group">
-    <input
-  type="text"
-  placeholder="Search students"
-  value={searchQuery}
-  onChange={(e) => {
-    const value = e.target.value;
-    setSearchQuery(value);
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (value.trim().length >= 2) {
-      debounceRef.current = setTimeout(() => executeSearch(value), 300);
-    } else {
-      setShowResults(false);
-      setStudents([]);
-    }
-  }}
-  onKeyDown={handleSearch}
-  className="w-full pl-3 pr-3 py-1.5 rounded bg-[#3F4454] text-sm text-gray-200"
-/>
-
-
-{showResults && (
-  <div className="search-container absolute mt-1 w-full bg-white rounded shadow-xl border border-gray-200 z-50 overflow-hidden">
-    {/* Setting a max-height and overflow-y-auto enables the scrollbar */}
-    <div className="max-h-[350px] overflow-y-auto">
-      
-      {isSearching && (
-        <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
-          <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></div>
-          Searching...
-        </div>
-      )}
-
-      {!isSearching && students.length === 0 && (
-        <div className="px-4 py-3 text-sm text-gray-500">
-          No students found
-        </div>
-      )}
-
-      {!isSearching &&
-        students.map((student) => (
-          <button
-            key={student.Id}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={() => {
-              navigate(`/people/students/${student.Id}`);
-              setShowResults(false);
-              setSearchQuery("");
-            }}
-            className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors group"
-          >
-            <div className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
-              {student.FirstName} {student.Surname}
+            <div className="relative group">
+              <input
+                type="text"
+                placeholder="Search students"
+                value={searchQuery}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchQuery(value);
+                  if (debounceRef.current) clearTimeout(debounceRef.current);
+                  if (value.trim().length >= 2) {
+                    debounceRef.current = setTimeout(() => executeSearch(value), 300);
+                  } else {
+                    setShowResults(false);
+                    setStudents([]);
+                  }
+                }}
+                onKeyDown={handleSearch}
+                className="w-full pl-3 pr-3 py-1.5 rounded bg-[#3F4454] text-sm text-gray-200"
+              />
+              {showResults && (
+                <div className="search-container absolute mt-1 w-full bg-white rounded shadow-xl border border-gray-200 z-50 overflow-hidden">
+                  <div className="max-h-[350px] overflow-y-auto">
+                    {isSearching && (
+                      <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
+                        <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                        Searching...
+                      </div>
+                    )}
+                    {!isSearching && students.length === 0 && (
+                      <div className="px-4 py-3 text-sm text-gray-500">No students found</div>
+                    )}
+                    {!isSearching && students.map((student) => (
+                      <button
+                        key={student.Id}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={() => {
+                          navigate(`/people/students/${student.Id}`);
+                          setShowResults(false);
+                          setSearchQuery("");
+                        }}
+                        className="w-full text-left px-4 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0 transition-colors group"
+                      >
+                        <div className="font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+                          {student.FirstName} {student.Surname}
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">
+                          {student.Email || "No Email"} - {student.Phone || "No phone"} - {student.IdNumber || "No IdNumber"}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="text-[11px] text-gray-500 truncate">
-              {student.Email ||  "No Email"} - {student.Phone || "No phone"} - {student.IdNumber || "No IdNumber"}
-            </div>
-          </button>
-        ))}
-    </div>
-  </div>
-)}
-
-
-
-    
-  </div>
-</div>
-</div>
+          </div>
+          )}
 
           {/* Right: Controls */}
           <div className="flex items-center gap-2 relative">

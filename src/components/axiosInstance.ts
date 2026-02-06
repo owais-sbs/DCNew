@@ -14,16 +14,9 @@ const axiosInstance = axios.create({
     },
 });
 
-// Function to handle logout
+// Function to handle logout - clear all localStorage so student portal and admin state are fully reset
 export const handleLogout = () => {
-  // Clear all authentication data
-  localStorage.removeItem('token');
-  localStorage.removeItem('userID');
-  localStorage.removeItem('userInfo');
-  
-  
-  // Remove the redirect - let React Router handle navigation
-  // window.location.href = '/login';
+  localStorage.clear();
 };
 
 // Request Interceptor

@@ -2,6 +2,7 @@ import {
   FileText,
   Settings,
   Users,
+  User,
   LayoutDashboard,
   Calendar,
   BookOpen,
@@ -33,6 +34,7 @@ const studentItems = [
   { id: "calendar", icon: Calendar, label: "Calendar", path: "/student/calendar" },
   { id: "classes", icon: BookOpen, label: "Classes", path: "/student/classes" },
   { id: "files", icon: FileText, label: "Files", path: "/student/files" },
+  { id: "profile", icon: User, label: "Profile", path: "/student/profile" },
 ];
 
 export default function Sidebar() {
