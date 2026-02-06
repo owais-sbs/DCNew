@@ -3,6 +3,7 @@ import { useEffect } from "react"
 import Sidebar from "../Sidebar"
 import Header from "../Header"
 import ContentWrapper from "../ContentWrapper"
+import StudentBottomNav from "./StudentBottomNav"
 
 const ALLOWED_STUDENT_PATHS = [
   "/student/dashboard",
@@ -33,9 +34,10 @@ export default function StudentPortalLayout() {
     <>
       <Sidebar />
       <Header />
-      <ContentWrapper>
+      <ContentWrapper isStudentPortal>
         <Outlet />
       </ContentWrapper>
+      <StudentBottomNav />
     </>
   )
 }

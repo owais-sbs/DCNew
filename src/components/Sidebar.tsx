@@ -10,11 +10,14 @@ import {
   ChevronLeft,
   Mail,
   CreditCard,
-  MessageSquare
+  MessageSquare,
+  X
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSidebar } from "../contexts/SidebarContext";
 import { useAuth } from "./AuthContext";
+import { useIsMobile } from "../hooks/useMediaQuery";
+import { useEffect } from "react";
 
 // YOUR ORIGINAL LINKS & TEXT PRESERVED
 const adminTeacherItems = [
@@ -40,8 +43,10 @@ const studentItems = [
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isExpanded, setIsExpanded } = useSidebar();
+  const { isExpanded, setIsExpanded, isMobileMenuOpen, setMobileMenuOpen } = useSidebar();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const isStudent = user?.role === "Student";
 
   const getMenuItems = () => {
     if (!user) return adminTeacherItems;
@@ -54,23 +59,67 @@ export default function Sidebar() {
 
   const logo = "/src/assets/logo-icon.png";
 
+  // Close mobile drawer on route change (student portal)
+  useEffect(() => {
+    if (isStudent && isMobile && location.pathname.startsWith("/student")) {
+      setMobileMenuOpen(false);
+    }
+  }, [location.pathname, isStudent, isMobile, setMobileMenuOpen]);
+
+  const handleNav = (path: string) => {
+    navigate(path);
+    if (isStudent && isMobile) setMobileMenuOpen(false);
+  };
+
+  const isStudentMobileDrawer = isStudent && isMobile;
+
   return (
-    <aside
-      className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 flex flex-col z-30 transition-all duration-300 ${
-        isExpanded ? 'w-[325px]' : 'w-[100px]' // Adjusted width for the stacked look
-      }`}
-    >
+    <>
+      {/* Backdrop for student mobile drawer */}
+      {isStudentMobileDrawer && (
+        <div
+          className={`fixed inset-0 bg-black/50 z-40 transition-opacity md:hidden ${
+            isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          }`}
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden
+        />
+      )}
+      <aside
+        className={`fixed left-0 top-0 h-screen bg-white border-r border-gray-200 flex flex-col z-50 transition-all duration-300 ${
+          isStudentMobileDrawer
+            ? `w-72 shadow-xl ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`
+            : isExpanded
+              ? 'w-[325px]'
+              : 'w-[100px]'
+        }`}
+      >
      
 
+      {/* Student mobile: close button */}
+      {isStudentMobileDrawer && (
+        <div className="flex items-center justify-between p-4 border-b border-gray-100 md:hidden">
+          <span className="text-sm font-semibold text-gray-800">Menu</span>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
+            aria-label="Close menu"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      )}
+
       {/* Navigation */}
-      <nav className="flex flex-col gap-1 py-4 overflow-y-auto flex-1 scrollbar-thin mt-12">
+      <nav className={`flex flex-col gap-1 py-4 overflow-y-auto flex-1 scrollbar-thin ${isStudentMobileDrawer ? "pt-2" : "mt-12"}`}>
         {items.map(({ id, icon: Icon, label, path }) => {
           const isActive = active === id;
           
           return (
             <button
               key={id}
-              onClick={() => navigate(path)}
+              onClick={() => handleNav(path)}
               // DESIGN LOGIC: If Expanded -> Row layout. If Collapsed -> Column (Stacked) layout (MATCHING IMAGE 2)
               className={`group transition-all duration-200 
                 ${isExpanded 
@@ -98,15 +147,18 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Toggle Button */}
-      <div className="p-2 border-t border-gray-100 flex justify-center bg-gray-50">
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="h-8 w-8 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-gray-500 hover:text-blue-600 transition-colors"
-        >
-          {isExpanded ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-        </button>
-      </div>
+      {/* Toggle Button - hide on student mobile */}
+      {!isStudentMobileDrawer && (
+        <div className="p-2 border-t border-gray-100 flex justify-center bg-gray-50">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-8 w-8 flex items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-gray-500 hover:text-blue-600 transition-colors"
+          >
+            {isExpanded ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+          </button>
+        </div>
+      )}
     </aside>
+    </>
   );
 }

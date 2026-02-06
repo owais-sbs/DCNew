@@ -162,40 +162,42 @@ export default function StudentDashboard() {
       : "bg-emerald-50 border-l-4 border-l-emerald-400 border-emerald-200"
 
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" onClick={() => setSelectedLesson(null)}>
-        <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-          <div className="px-6 py-5 border-b border-gray-200 flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-1">
-                <div className="text-sm font-semibold text-gray-900">{selectedLesson.time}</div>
-                <div className="text-sm font-semibold text-gray-900">{selectedLesson.title}</div>
+      <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSelectedLesson(null)}>
+        <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-w-2xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="sticky top-0 bg-white px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+                <span className="text-sm font-semibold text-gray-900">{selectedLesson.time}</span>
+                <span className="text-sm font-semibold text-gray-900 truncate">{selectedLesson.title}</span>
               </div>
-              <div className="flex items-center gap-4 text-xs text-gray-500 mt-1">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-gray-500 mt-1">
                 <span>{selectedLesson.date}</span>
-                <div className="flex items-center gap-1">
-                  <MapPin size={12} className="text-gray-400" />
+                <span className="flex items-center gap-1">
+                  <MapPin size={12} className="text-gray-400 flex-shrink-0" />
                   <span>{selectedLesson.location}</span>
-                </div>
+                </span>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-full bg-purple-200 text-purple-700 grid place-items-center text-xs font-semibold">
-                  CD
+            <div className="flex items-center justify-between sm:justify-end gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center text-xs font-semibold flex-shrink-0">
+                  {String(selectedLesson.teacher || "?").slice(0, 2).toUpperCase()}
                 </div>
-                <span className="text-sm font-medium text-gray-700">{selectedLesson.teacher}</span>
+                <span className="text-sm font-medium text-gray-700 truncate">{selectedLesson.teacher}</span>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedLesson(null)}
-                className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 transition-colors"
+                className="h-9 w-9 grid place-items-center rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation flex-shrink-0"
+                aria-label="Close"
               >
-                <X size={18} className="text-gray-500" />
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
           </div>
 
-          <div className="p-6 space-y-3">
-            <div className={`${attendanceBgColor} border rounded-lg p-4`}>
+          <div className="p-4 sm:p-6 space-y-3">
+            <div className={`${attendanceBgColor} border rounded-lg p-3 sm:p-4`}>
               <div className="flex items-start gap-3">
                 <CheckSquare className="h-5 w-5 text-gray-700 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
@@ -286,7 +288,7 @@ export default function StudentDashboard() {
   }
 
   return (
-  <div className="space-y-6">
+  <div className="space-y-4 sm:space-y-6">
 
     {/* ===== COURSE END + DAYS LEFT (highlighted) ===== */}
     {loadingStudent && (
@@ -296,19 +298,19 @@ export default function StudentDashboard() {
       </div>
     )}
     {!loadingStudent && finishedCourseDate && (
-      <div className={`rounded-xl border-2 p-4 ${daysLeftColor}`}>
-        <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className={`rounded-xl border-2 p-4 sm:p-5 ${daysLeftColor}`}>
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center sm:justify-between gap-3 sm:gap-4">
           <div>
-            <div className="text-sm font-semibold opacity-90">Finished course date</div>
-            <div className="text-lg font-bold mt-0.5">{formatCourseDate(finishedCourseDate)}</div>
+            <div className="text-xs sm:text-sm font-semibold opacity-90">Finished course date</div>
+            <div className="text-base sm:text-lg font-bold mt-0.5">{formatCourseDate(finishedCourseDate)}</div>
           </div>
-          <div className="text-right">
-            <div className="text-sm font-semibold opacity-90">
+          <div className="sm:text-right">
+            <div className="text-xs sm:text-sm font-semibold opacity-90">
               {daysLeft !== null && daysLeft < 0
                 ? "Course ended"
                 : "Days left until course end"}
             </div>
-            <div className="text-2xl font-bold mt-0.5">
+            <div className="text-xl sm:text-2xl font-bold mt-0.5">
               {daysLeft !== null ? (daysLeft < 0 ? `${Math.abs(daysLeft)} days ago` : `${daysLeft} days`) : "—"}
             </div>
           </div>
@@ -317,9 +319,9 @@ export default function StudentDashboard() {
     )}
 
     {/* ===== TOP CARDS ===== */}
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
       {/* Attendance - from GetStudentAttendanceStats */}
-      <div className="bg-white border rounded-xl p-5">
+      <div className="bg-white border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
           <CheckSquare size={16} /> Attendance
         </h3>
@@ -329,9 +331,9 @@ export default function StudentDashboard() {
           </div>
         ) : (
           <>
-            <div className="mt-4 flex justify-center">
-              <div className="relative h-36 w-36">
-                <svg className="-rotate-90 h-36 w-36">
+            <div className="mt-3 sm:mt-4 flex justify-center">
+              <div className="relative h-28 w-28 sm:h-36 sm:w-36">
+                <svg className="-rotate-90 h-28 w-28 sm:h-36 sm:w-36" viewBox="0 0 144 144">
                   <circle cx="72" cy="72" r="60" stroke="#e5e7eb" strokeWidth="10" fill="none" />
                   {attendancePercentage !== null && (
                     <circle
@@ -347,12 +349,12 @@ export default function StudentDashboard() {
                   )}
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <div className="text-2xl font-bold">{attendancePercentage ?? 0}%</div>
-                  <div className="text-xs text-gray-500">Present</div>
+                  <div className="text-xl sm:text-2xl font-bold">{attendancePercentage ?? 0}%</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500">Present</div>
                 </div>
               </div>
             </div>
-            <div className="mt-3 flex flex-wrap justify-center gap-3 text-xs">
+            <div className="mt-2 sm:mt-3 flex flex-wrap justify-center gap-2 sm:gap-3 text-[10px] sm:text-xs">
               {attendanceStats.map((stat) => (
                 <span key={stat.Status} className="flex items-center gap-1">
                   <span
@@ -383,99 +385,101 @@ export default function StudentDashboard() {
       </div>
 
       {/* Stars + Flags */}
-      <div className="space-y-4">
-        <div className="bg-yellow-50 border rounded-xl p-5">
+      <div className="space-y-3 sm:space-y-4">
+        <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-4 sm:p-5 shadow-sm">
           <div className="flex items-center gap-3">
-            <Star size={18} />
-            <div>
-              <div className="text-sm font-semibold">Gold Star</div>
-              <div className="text-xl font-semibold">0</div>
+            <Star size={20} className="text-amber-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-semibold text-amber-900">Gold Star</div>
+              <div className="text-lg sm:text-xl font-bold text-amber-800">0</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-rose-50 border rounded-xl p-5">
+        <div className="bg-rose-50/80 border border-rose-200/60 rounded-xl p-4 sm:p-5 shadow-sm">
           <div className="flex items-center gap-3">
-            <Flag size={18} />
-            <div>
-              <div className="text-sm font-semibold">Red Flags</div>
-              <div className="text-xl font-semibold">0</div>
+            <Flag size={20} className="text-rose-600 flex-shrink-0" />
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-semibold text-rose-900">Red Flags</div>
+              <div className="text-lg sm:text-xl font-bold text-rose-800">0</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Announcements */}
-      <div className="bg-white border rounded-xl p-5 flex flex-col">
-        <div className="flex justify-between">
-          <h3 className="text-sm font-semibold">Announcements</h3>
-          <button className="text-xs text-blue-600">View all</button>
+      <div className="bg-white border border-gray-200/80 rounded-xl p-4 sm:p-5 flex flex-col shadow-sm">
+        <div className="flex justify-between items-start gap-2">
+          <h3 className="text-sm font-semibold text-gray-800">Announcements</h3>
+          <button type="button" className="text-xs text-blue-600 hover:underline touch-manipulation">View all</button>
         </div>
-        <p className="text-sm text-gray-500 mt-4">No unread announcements</p>
+        <p className="text-sm text-gray-500 mt-3 sm:mt-4">No unread announcements</p>
       </div>
     </div>
 
     {/* ===== LESSONS + CLASSES ===== */}
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
 
       {/* LESSONS */}
-      <div className="xl:col-span-2 bg-white border rounded-xl p-5">
-        <div className="flex justify-between mb-4">
-          <div>
-            <h3 className="font-semibold">Lessons</h3>
-            <div className="flex gap-6 text-sm mt-2">
+      <div className="xl:col-span-2 bg-white border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-gray-900">Lessons</h3>
+            <div className="flex gap-4 sm:gap-6 text-sm mt-2">
               {["upcoming", "past"].map(t => (
                 <button
                   key={t}
+                  type="button"
                   onClick={() => setLessonTab(t as any)}
-                  className={`pb-1 ${
+                  className={`pb-1 touch-manipulation ${
                     lessonTab === t
-                      ? "text-blue-600 border-b-2 border-blue-600"
+                      ? "text-blue-600 border-b-2 border-blue-600 font-medium"
                       : "text-gray-500"
                   }`}
                 >
-                  {t === "upcoming" ? "Upcoming lessons" : "Past lessons"}
+                  {t === "upcoming" ? "Upcoming" : "Past"}
                 </button>
               ))}
             </div>
           </div>
-
-          <button className="text-xs text-blue-600">
-            View all lessons in calendar
+          <button type="button" className="text-xs text-blue-600 hover:underline touch-manipulation self-start sm:self-auto">
+            View in calendar
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {lessons.map((lesson, i) => (
             <div
               key={i}
+              role="button"
+              tabIndex={0}
               onClick={() => handleLessonClick(lesson)}
-              className="relative border rounded-lg p-4 flex justify-between cursor-pointer hover:bg-gray-50"
+              onKeyDown={(e) => e.key === "Enter" && handleLessonClick(lesson)}
+              className="relative border border-gray-200 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:justify-between gap-2 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
             >
-              <span className="absolute left-0 top-0 bottom-0 w-1 bg-red-400 rounded-l"></span>
+              <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l sm:rounded-l-lg" aria-hidden />
 
-              <div>
-                <div className="font-semibold">{lesson.date}</div>
-                <div className="text-sm text-gray-500">{lesson.time}</div>
-                <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                  <MapPin size={12} /> {lesson.location}
-                </div>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 pl-2 sm:pl-3">
+                <span className="font-semibold text-gray-900">{lesson.date}</span>
+                <span className="text-sm text-gray-500">{lesson.time}</span>
+                <span className="flex items-center gap-1 text-xs text-gray-500 w-full sm:w-auto">
+                  <MapPin size={12} className="flex-shrink-0" /> {lesson.location}
+                </span>
               </div>
 
-              <div className="flex-1 px-4">
-                <div className="font-medium">{lesson.title}</div>
+              <div className="flex-1 min-w-0 pl-2 sm:pl-4 sm:px-2">
+                <div className="font-medium text-gray-800 truncate">{lesson.title}</div>
               </div>
 
-              <div className="flex items-center gap-3 text-sm text-gray-500">
-                <div className="flex items-center gap-2">
-                  <div className="h-7 w-7 bg-purple-200 rounded-full flex items-center justify-center text-xs">
-                    CD
+              <div className="flex items-center gap-2 sm:gap-3 text-sm text-gray-500 pl-2 sm:pl-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="h-7 w-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
+                    {String(lesson.teacher || "?").slice(0, 2).toUpperCase()}
                   </div>
-                  {lesson.teacher}
+                  <span className="truncate text-xs sm:text-sm">{lesson.teacher}</span>
                 </div>
-
-                <Star size={14} />
-                <Flag size={14} />
+                <Star size={14} className="flex-shrink-0 text-amber-500" />
+                <Flag size={14} className="flex-shrink-0 text-rose-400" />
               </div>
             </div>
           ))}
@@ -483,30 +487,34 @@ export default function StudentDashboard() {
       </div>
 
       {/* ENROLLED CLASSES */}
-      <div className="bg-white border rounded-xl p-5">
-        <div className="flex justify-between mb-4">
-          <h3 className="font-semibold">Enrolled classes</h3>
+      <div className="bg-white border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-semibold text-gray-900">Enrolled classes</h3>
           <button
+            type="button"
             onClick={() => navigate("/student/classes")}
-            className="text-xs text-blue-600"
+            className="text-xs text-blue-600 hover:underline touch-manipulation"
           >
             View all
           </button>
         </div>
 
-        <div className="divide-y">
+        <div className="divide-y divide-gray-100">
           {enrolledClasses.map(cls => (
             <div
               key={cls.id}
+              role="button"
+              tabIndex={0}
               onClick={() => handleClassClick(cls.id)}
-              className="py-3 flex gap-2 cursor-pointer hover:bg-gray-50"
+              onKeyDown={(e) => e.key === "Enter" && handleClassClick(cls.id)}
+              className="py-3 flex gap-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
             >
-              <span className="h-2 w-2 bg-red-500 rounded-full mt-2"></span>
-              <div>
-                <div className="text-sm text-blue-600 font-medium">
+              <span className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-blue-600 truncate">
                   {cls.title}
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 mt-0.5">
                   {formatDateRange(cls.startDate, cls.endDate)}
                 </div>
               </div>

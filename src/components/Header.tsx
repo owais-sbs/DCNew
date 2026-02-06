@@ -20,20 +20,23 @@ import {
   UserPlus,
   Briefcase,
   GraduationCap,
-  CalendarDays
+  CalendarDays,
+  Menu
 } from "lucide-react";
 import { useSidebar } from "../contexts/SidebarContext";
+import { useIsMobile } from "../hooks/useMediaQuery";
 
 const logo = "/src/assets/DCE_newlogo.png";
 
 export default function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAddNewOpen, setIsAddNewOpen] = useState(false);
-  const { isExpanded } = useSidebar();
+  const { isExpanded, setMobileMenuOpen } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
   const isStudentPortal = location.pathname.startsWith("/student");
+  const isMobile = useIsMobile();
 
   const [students, setStudents] = useState<any[]>([]);
 const [isSearching, setIsSearching] = useState(false);
@@ -167,16 +170,32 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     { icon: PenTool, label: "Signature", path: "/signatures" },
   ];
 
+  const headerLeftPadding =
+    isStudentPortal && isMobile
+      ? "pl-4"
+      : isExpanded
+        ? "pl-[325px]"
+        : "pl-[100px]";
+
   return (
     <div className="flex flex-col sticky top-0 z-40">
       {/* Dark Header */}
       <header className="bg-[#2B2F3E] border-b border-gray-700 shadow-sm h-14">
-        <div className={`transition-all duration-300 h-full flex items-center justify-between px-4 ${isExpanded ? 'pl-[325px]' : 'pl-[15px]'}`}>
+        <div className={`transition-all duration-300 h-full flex items-center justify-between px-4 ${headerLeftPadding}`}>
           
-          {/* Left: Logo & Text */}
-          <div className="flex items-center gap-3">
-            <img src={logo} alt="Logo" className="h-12 w-auto object-contain" />
-          
+          {/* Left: Hamburger (student mobile) + Logo */}
+          <div className="flex items-center gap-3 min-w-0">
+            {isStudentPortal && isMobile && (
+              <button
+                type="button"
+                onClick={() => setMobileMenuOpen(true)}
+                className="p-2 -ml-2 rounded-lg text-gray-300 hover:text-white hover:bg-white/10 transition-colors touch-manipulation"
+                aria-label="Open menu"
+              >
+                <Menu size={24} />
+              </button>
+            )}
+            <img src={logo} alt="Logo" className="h-10 md:h-12 w-auto object-contain flex-shrink-0" />
           </div>
 
           {/* Center: Search Bar (hidden in student portal) */}
