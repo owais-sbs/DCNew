@@ -654,6 +654,43 @@ export default function AddClassForm() {
             </div>
           </div>
 
+          {/* Attachments */}
+          <SectionHeader title="Attachments" />
+          <div className="p-4">
+            <label className="block text-[13px] text-gray-700 mb-1">Class attachments</label>
+            <input
+              type="file"
+              multiple
+              onChange={(e) => {
+                const files = e.target.files ? Array.from(e.target.files) : [];
+                setSyllabusFiles((prev) => [...prev, ...files]);
+                e.target.value = "";
+              }}
+              className="w-full text-[13px] text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-gray-100 file:text-gray-700"
+            />
+            {syllabusFiles.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {syllabusFiles.map((file, index) => (
+                  <li key={`${file.name}-${index}`} className="flex items-center justify-between py-1.5 px-2 bg-gray-50 border border-gray-200 text-[13px]">
+                    <span className="flex items-center gap-2 min-w-0">
+                      <FileText size={14} className="text-gray-500 flex-shrink-0" />
+                      <span className="truncate">{file.name}</span>
+                      <span className="text-gray-400 text-xs flex-shrink-0">{(file.size / 1024).toFixed(1)} KB</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSyllabusFiles((prev) => prev.filter((_, i) => i !== index))}
+                      className="p-1 text-gray-500 hover:text-red-600"
+                      aria-label="Remove"
+                    >
+                      <X size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           {/* Notes */}
           <SectionHeader title="Notes" />
           <div className="p-4">

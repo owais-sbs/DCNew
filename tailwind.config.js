@@ -8,6 +8,16 @@ export default {
     fontFamily: {
       sans: ['Inter', 'system-ui', 'sans-serif'],
       'arabic': ['Noto Sans Arabic', 'sans-serif'],
+      // Stylish, calligraphy & cursive / logo options
+      script: ['Dancing Script', 'cursive'],
+      calligraphy: ['Great Vibes', 'cursive'],
+      cursive: ['Sacramento', 'cursive'],
+      logo: ['Pacifico', 'cursive'],
+      elegant: ['Playfair Display', 'serif'],
+      signature: ['Allura', 'cursive'],
+      tangerine: ['Tangerine', 'cursive'],
+      serifElegant: ['Cormorant Garamond', 'serif'],
+      oswald: ['Oswald', 'sans-serif'],
     },
     extend: {
       animation: {

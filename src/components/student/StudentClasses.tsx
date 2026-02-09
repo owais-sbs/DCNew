@@ -141,7 +141,7 @@ export default function StudentClasses() {
                           (cls.recurringDays.length > 3 ? ` and ${cls.recurringDays.length - 3} more` : "")
                         : cls.recurrenceText || cls.scheduleSummary || (cls.startDate && cls.endDate ? formatDateRange(cls.startDate, cls.endDate) : "—")
 
-                    const isActive = !!cls.isActive || cls.status === "Active" || cls.status === "active"
+                    const isActive = cls.raw?.IsActive === true || !!cls.isActive || cls.status === "Active" || cls.status === "active"
 
                     return (
                       <tr key={cls.id} className="border-t border-gray-100 hover:bg-gray-50">

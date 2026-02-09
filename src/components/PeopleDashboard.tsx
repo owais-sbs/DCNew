@@ -144,6 +144,11 @@ export default function PeopleDashboard() {
   const [exportCourseStartTo, setExportCourseStartTo] = useState("")
   const [exportClassId, setExportClassId] = useState<number | "">("")
   const [exportOnlyUnenrolled, setExportOnlyUnenrolled] = useState(false)
+  const [exportOnlyEnrolled, setExportOnlyEnrolled] = useState(false)
+  const [exportSchedules, setExportSchedules] = useState<string[]>([])
+  const [schedulesList, setSchedulesList] = useState<string[]>([])
+  const [loadingSchedules, setLoadingSchedules] = useState(false)
+  const [schedulesDropdownOpen, setSchedulesDropdownOpen] = useState(false)
   const [exportAttendanceFrom, setExportAttendanceFrom] = useState<number | "">("")
   const [exportAttendanceTo, setExportAttendanceTo] = useState<number | "">("")
   const [exportPage, setExportPage] = useState(1)
@@ -269,7 +274,22 @@ const makePageButtons = (totalPages: number, current: number) => {
         setLoadingNationalities(false)
       }
     }
+    const fetchSchedules = async () => {
+      setLoadingSchedules(true)
+      try {
+        const res = await axiosInstance.get("/Student/GetStudentSchedules", { signal: controller.signal })
+        const data = res.data?.Data ?? res.data?.data
+        const list = Array.isArray(data) ? data : []
+        setSchedulesList(list.map((s: unknown) => String(s ?? "")))
+      } catch (e) {
+        console.error("Failed to fetch schedules", e)
+        setSchedulesList([])
+      } finally {
+        setLoadingSchedules(false)
+      }
+    }
     fetchNationalities()
+    fetchSchedules()
     return () => controller.abort()
   }, [showExportModal])
 
@@ -834,6 +854,9 @@ XLSX.utils.sheet_add_json(ws, rows, {
       if (validNationalities.length > 0) payload.Nationalities = validNationalities
       if (exportClassId !== "" && exportClassId !== 0) payload.ClassId = exportClassId
       if (exportOnlyUnenrolled) payload.OnlyUnenrolled = true
+      if (exportOnlyEnrolled) payload.OnlyEnrolled = true
+      const validSchedules = exportSchedules.filter((s) => s && String(s).trim())
+      if (validSchedules.length > 0) payload.Schedules = validSchedules
       if (exportAttendanceFrom !== "") payload.AttendanceFrom = Number(exportAttendanceFrom)
       if (exportAttendanceTo !== "") payload.AttendanceTo = Number(exportAttendanceTo)
       payload.Page = exportPage
@@ -879,6 +902,8 @@ XLSX.utils.sheet_add_json(ws, rows, {
       if (validNationalities.length) parts.push(`Nationality: ${validNationalities.join(", ")}`)
       if (exportClassId !== "" && exportClassName) parts.push(`Class: ${exportClassName}`)
       if (exportOnlyUnenrolled) parts.push("Unenrolled only")
+      if (exportOnlyEnrolled) parts.push("Enrolled only")
+      if (validSchedules.length > 0) parts.push(`Schedule: ${validSchedules.join(", ")}`)
       const filterTitle = parts.length ? parts.join(" · ") : "All students"
 
       setExportProgress(75)
@@ -946,6 +971,9 @@ XLSX.utils.sheet_add_json(ws, rows, {
       setExportCourseStartTo("")
       setExportClassId("")
       setExportOnlyUnenrolled(false)
+      setExportOnlyEnrolled(false)
+      setExportSchedules([])
+      setSchedulesDropdownOpen(false)
       setExportAttendanceFrom("")
       setExportAttendanceTo("")
       setExportProgress(0)
@@ -958,7 +986,7 @@ XLSX.utils.sheet_add_json(ws, rows, {
     } finally {
       setIsExporting(false)
     }
-  }, [selectedNationalities, exportReportSearch, exportCourseStartFrom, exportCourseStartTo, exportClassId, exportClassName, exportOnlyUnenrolled, exportAttendanceFrom, exportAttendanceTo, exportPage, exportPageSize, exportEmailList, buildExcelAndDownload, buildExcelAsBlob])
+  }, [selectedNationalities, exportReportSearch, exportCourseStartFrom, exportCourseStartTo, exportClassId, exportClassName, exportOnlyUnenrolled, exportOnlyEnrolled, exportSchedules, exportAttendanceFrom, exportAttendanceTo, exportPage, exportPageSize, exportEmailList, buildExcelAndDownload, buildExcelAsBlob])
 
   const renderStudentTableBody = () => {
     if (isLoadingStudents) {
@@ -1245,7 +1273,7 @@ XLSX.utils.sheet_add_json(ws, rows, {
           {/* Export modal – filters only, modern UI */}
           {showExportModal && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden border border-gray-100">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-auto overflow-hidden border border-gray-100">
                 {isExporting ? (
                   <div className="px-8 py-10">
                     <div className="flex flex-col items-center gap-6">
@@ -1395,6 +1423,39 @@ XLSX.utils.sheet_add_json(ws, rows, {
                         <input type="checkbox" checked={exportOnlyUnenrolled} onChange={(e) => setExportOnlyUnenrolled(e.target.checked)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                         <span className="text-sm font-medium text-gray-700">Only unenrolled students</span>
                       </label>
+                      <label className="flex items-center gap-3 cursor-pointer py-1">
+                        <input type="checkbox" checked={exportOnlyEnrolled} onChange={(e) => setExportOnlyEnrolled(e.target.checked)} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                        <span className="text-sm font-medium text-gray-700">Only enrolled students</span>
+                      </label>
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">Schedule</label>
+                        <button
+                          type="button"
+                          onClick={() => setSchedulesDropdownOpen((o) => !o)}
+                          className="w-full h-11 px-3.5 rounded-xl border border-gray-200 bg-gray-50/50 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+                        >
+                          <span className="truncate text-gray-700">{exportSchedules.length === 0 ? "All schedules" : `${exportSchedules.length} selected`}</span>
+                          <ChevronDown size={18} className="text-gray-400 flex-shrink-0 ml-2" />
+                        </button>
+                        {schedulesDropdownOpen && (
+                          <div className="absolute z-50 mt-1.5 w-full max-h-52 overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-lg py-1">
+                            {loadingSchedules ? (
+                              <div className="px-4 py-6 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
+                                <Loader2 size={16} className="animate-spin" /> Loading…
+                              </div>
+                            ) : schedulesList.length === 0 ? (
+                              <div className="px-4 py-6 text-sm text-gray-500 text-center">No schedules found</div>
+                            ) : (
+                              schedulesList.map((sched) => (
+                                <label key={sched} className="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50/80 cursor-pointer">
+                                  <input type="checkbox" checked={exportSchedules.includes(sched)} onChange={(e) => setExportSchedules((prev) => e.target.checked ? [...prev, sched] : prev.filter((x) => x !== sched))} className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                  <span className="text-sm text-gray-800">{sched}</span>
+                                </label>
+                              ))
+                            )}
+                          </div>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1.5">Attendance % from</label>
@@ -1443,7 +1504,7 @@ XLSX.utils.sheet_add_json(ws, rows, {
                       </div>
                     </div>
                     <div className="px-6 py-4 flex items-center justify-between gap-3 border-t border-gray-100 bg-gray-50/50">
-                      <button type="button" onClick={() => { setShowExportModal(false); setNationalityDropdownOpen(false); setExportClassDropdownOpen(false); setExportClassSearch(""); setExportClassId(""); setExportClassName(""); setExportEmailList("") }} className="text-sm font-medium text-gray-600 hover:text-gray-900">
+                      <button type="button" onClick={() => { setShowExportModal(false); setNationalityDropdownOpen(false); setExportClassDropdownOpen(false); setSchedulesDropdownOpen(false); setExportClassSearch(""); setExportClassId(""); setExportClassName(""); setExportEmailList("") }} className="text-sm font-medium text-gray-600 hover:text-gray-900">
                         Cancel
                       </button>
                       <button

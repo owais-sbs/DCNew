@@ -140,7 +140,15 @@ export default function StudentProfile() {
 
 
   const [openMoreMenu, setOpenMoreMenu] = useState(false)
-  
+
+  // Student holidays tab
+  const [holidays, setHolidays] = useState<{ Id: number; StudentId?: number; Note?: string | null; FromDate?: string | null; ToDate?: string | null; IsDeleted?: boolean | null }[]>([])
+  const [loadingHolidays, setLoadingHolidays] = useState(false)
+  const [holidaysError, setHolidaysError] = useState<string | null>(null)
+  const [showHolidayModal, setShowHolidayModal] = useState(false)
+  const [editingHoliday, setEditingHoliday] = useState<{ Id: number; Note?: string | null; FromDate?: string | null; ToDate?: string | null } | null>(null)
+  const [holidayForm, setHolidayForm] = useState({ note: "", fromDate: "", toDate: "" })
+  const [savingHoliday, setSavingHoliday] = useState(false)
 
   // Ref hooks
   const documentContentRef = useRef<HTMLDivElement | null>(null)
@@ -681,6 +689,29 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
     fetchAttendanceStats()
   }, [activeTab, id])
 
+  // Fetch student holidays when Holidays tab is active
+  useEffect(() => {
+    if (activeTab.toLowerCase() !== "holidays" || !id) return
+    setLoadingHolidays(true)
+    setHolidaysError(null)
+    axiosInstance
+      .get("/Holiday/GetStudentHolidays", { params: { studentId: Number(id) } })
+      .then((res) => {
+        if (res.data?.IsSuccess && Array.isArray(res.data.Data)) {
+          setHolidays(res.data.Data)
+        } else {
+          setHolidays([])
+          setHolidaysError(res.data?.Message || "No holidays found.")
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load holidays", err)
+        setHolidaysError(err?.message || "Failed to load holidays.")
+        setHolidays([])
+      })
+      .finally(() => setLoadingHolidays(false))
+  }, [activeTab, id])
+
   // Fetch attendance data for student in class
   const fetchAttendance = async (classId: number) => {
     if (!id) return
@@ -784,7 +815,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
         }
     }, [currentPage, pageSize, fromDate, toDate])
 
-    const tabs = ["Profile", "Activity", "Classes", "Attendance", "Attachments", "Create documents"]
+    const tabs = ["Profile", "Activity", "Classes", "Attendance", "Attachments", "Holidays", "Create documents"]
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -2863,18 +2894,190 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
     )
   }
 
+  const openAddHolidayModal = () => {
+    setEditingHoliday(null)
+    setHolidayForm({ note: "", fromDate: "", toDate: "" })
+    setShowHolidayModal(true)
+  }
+
+  const openEditHolidayModal = (h: { Id: number; Note?: string | null; FromDate?: string | null; ToDate?: string | null }) => {
+    setEditingHoliday(h)
+    setHolidayForm({
+      note: h.Note ?? "",
+      fromDate: h.FromDate ? h.FromDate.split("T")[0] : "",
+      toDate: h.ToDate ? h.ToDate.split("T")[0] : "",
+    })
+    setShowHolidayModal(true)
+  }
+
+  const closeHolidayModal = () => {
+    setShowHolidayModal(false)
+    setEditingHoliday(null)
+    setHolidayForm({ note: "", fromDate: "", toDate: "" })
+  }
+
+  const saveHoliday = async () => {
+    if (!id) return
+    if (!holidayForm.fromDate || !holidayForm.toDate) {
+      Swal.fire({ title: "Required", text: "Please enter From date and To date.", icon: "warning" })
+      return
+    }
+    setSavingHoliday(true)
+    try {
+      const payload = {
+        Id: editingHoliday?.Id ?? 0,
+        StudentId: Number(id),
+        Note: holidayForm.note.trim() || null,
+        FromDate: new Date(holidayForm.fromDate).toISOString(),
+        ToDate: new Date(holidayForm.toDate).toISOString(),
+        IsDeleted: false,
+      }
+      await axiosInstance.post("/Holiday/AddOrUpdateStudentHoliday", payload)
+      Swal.fire({ title: "Saved", text: editingHoliday ? "Holiday updated." : "Holiday added.", icon: "success" })
+      closeHolidayModal()
+      if (activeTab.toLowerCase() === "holidays") {
+        const res = await axiosInstance.get("/Holiday/GetStudentHolidays", { params: { studentId: Number(id) } })
+        if (res.data?.IsSuccess && Array.isArray(res.data.Data)) setHolidays(res.data.Data)
+      }
+    } catch (err: any) {
+      Swal.fire({ title: "Error", text: err?.message ?? "Failed to save holiday.", icon: "error" })
+    } finally {
+      setSavingHoliday(false)
+    }
+  }
+
+  const deleteHoliday = async (h: { Id: number; StudentId?: number; Note?: string | null; FromDate?: string | null; ToDate?: string | null }) => {
+    const confirmed = await Swal.fire({
+      title: "Delete holiday?",
+      text: "This will remove this holiday record.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      confirmButtonText: "Delete",
+    })
+    if (!confirmed.isConfirmed) return
+    try {
+      await axiosInstance.post("/Holiday/AddOrUpdateStudentHoliday", {
+        Id: h.Id,
+        StudentId: h.StudentId ?? Number(id),
+        Note: h.Note,
+        FromDate: h.FromDate,
+        ToDate: h.ToDate,
+        IsDeleted: true,
+      })
+      Swal.fire({ title: "Deleted", text: "Holiday removed.", icon: "success" })
+      const res = await axiosInstance.get("/Holiday/GetStudentHolidays", { params: { studentId: Number(id) } })
+      if (res.data?.IsSuccess && Array.isArray(res.data.Data)) setHolidays(res.data.Data)
+    } catch (err: any) {
+      Swal.fire({ title: "Error", text: err?.message ?? "Failed to delete.", icon: "error" })
+    }
+  }
+
   const renderHolidaysContent = () => (
-    <div className="bg-white border border-gray-200  p-6 shadow-sm">
-      <div className="text-center py-12">
-        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-          <Sun size={32} className="text-blue-600" />
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add a holiday for {studentName}</h3>
-        <p className="text-gray-600 mb-4">Holidays for {studentName} will appear here.</p>
-        <button className="h-10 px-4  bg-blue-600 text-white text-sm inline-flex items-center gap-2">
+    <div className="bg-white border border-gray-200 p-6 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">Holidays for {studentName}</h3>
+        <button
+          type="button"
+          onClick={openAddHolidayModal}
+          className="h-10 px-4 bg-blue-600 text-white text-sm inline-flex items-center gap-2 rounded hover:bg-blue-700"
+        >
           <Plus size={16} /> Add holiday
         </button>
       </div>
+      {loadingHolidays ? (
+        <div className="py-8 text-center text-gray-500 text-sm">Loading holidays...</div>
+      ) : holidaysError ? (
+        <div className="py-8 text-center text-red-600 text-sm">{holidaysError}</div>
+      ) : holidays.length === 0 ? (
+        <div className="py-8 text-center text-gray-500 text-sm">No holidays recorded. Click &quot;Add holiday&quot; to add one.</div>
+      ) : (
+        <table className="w-full border border-gray-300 text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-4 py-2 text-left font-medium text-gray-700 border-b border-gray-200">From</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-700 border-b border-gray-200">To</th>
+              <th className="px-4 py-2 text-left font-medium text-gray-700 border-b border-gray-200">Note</th>
+              <th className="px-4 py-2 text-right font-medium text-gray-700 border-b border-gray-200">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {holidays.map((h) => (
+              <tr key={h.Id} className="border-b border-gray-100 hover:bg-gray-50/50">
+                <td className="px-4 py-2 text-gray-900">{formatDateValue(h.FromDate)}</td>
+                <td className="px-4 py-2 text-gray-900">{formatDateValue(h.ToDate)}</td>
+                <td className="px-4 py-2 text-gray-700">{h.Note || "—"}</td>
+                <td className="px-4 py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => openEditHolidayModal(h)}
+                    className="text-blue-600 hover:underline text-sm mr-3"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteHoliday(h)}
+                    className="text-red-600 hover:underline text-sm"
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {showHolidayModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800">{editingHoliday ? "Edit holiday" : "Add holiday"}</h3>
+              <button type="button" onClick={closeHolidayModal} className="p-1 text-gray-500 hover:text-gray-700" aria-label="Close">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">From date *</label>
+                <input
+                  type="date"
+                  value={holidayForm.fromDate}
+                  onChange={(e) => setHolidayForm((f) => ({ ...f, fromDate: e.target.value }))}
+                  className="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">To date *</label>
+                <input
+                  type="date"
+                  value={holidayForm.toDate}
+                  onChange={(e) => setHolidayForm((f) => ({ ...f, toDate: e.target.value }))}
+                  className="w-full h-10 px-3 border border-gray-300 rounded-lg text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Note</label>
+                <textarea
+                  value={holidayForm.note}
+                  onChange={(e) => setHolidayForm((f) => ({ ...f, note: e.target.value }))}
+                  placeholder="Optional note (e.g. reason, destination)"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200 bg-gray-50">
+              <button type="button" onClick={closeHolidayModal} className="h-9 px-4 border border-gray-300 rounded-lg text-sm hover:bg-gray-100">
+                Cancel
+              </button>
+              <button type="button" onClick={saveHoliday} disabled={savingHoliday} className="h-9 px-4 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50">
+                {savingHoliday ? "Saving..." : editingHoliday ? "Update" : "Add"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 
@@ -3145,6 +3348,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
       case "classes": return renderClassesContent()
       case "attendance": return renderAttendanceContent()
       case "attachments": return renderAttachmentsContent()
+      case "holidays": return renderHolidaysContent()
       case "create documents": return renderCreateDocumentsContent()
       default: return renderProfileContent()
     }

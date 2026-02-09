@@ -1,71 +1,42 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
-import { Calendar, Star, Flag, Bell, MapPin, X, CheckSquare, BarChart, FileText, PenTool, Paperclip } from "lucide-react"
+import { Star, Flag, CheckSquare, FileText } from "lucide-react"
 import { useStudentClasses, getStudentId } from "./useStudentClasses"
 import { useAuth } from "../AuthContext"
-import { useStudentUpcomingSession, UpcomingSession } from "./useStudentUpcomingSession"
-import { useStudentCompletedSessions, CompletedSession } from "./useStudentCompletedSessions"
 import axiosInstance from "../axiosInstance"
 
-const upcomingLessons = [
-  {
-    id: 1,
-    date: "28-11-2025",
-    time: "9:00 - 10:30",
-    title: "Advanced_AM_DCE1_PART 1",
-    location: "Limerick",
-    teacher: "Colm Delmar1",
-    attendance: "late",
-    attendanceText: "Abdul was late for this lesson",
-    goldStars: 0,
-    redFlags: 0,
-    grade: null,
-    lessonNotes: null,
-    personalNotes: null,
-    attachments: 0
-  }
-]
-
-type Lesson = {
-  id: number
-  date: string
-  time: string
-  title: string
-  location: string
-  teacher: string
-  attendance: string
-  attendanceText: string
-  goldStars: number
-  redFlags: number
-  grade: number | null
-  lessonNotes: string | null
-  personalNotes: string | null
-  attachments: number
-  classId?: number | null
-  teacherId?: number | null
-  dayOfWeek?: string | null
+type LessonRow = {
+  scheduleId: number
+  classId: number
+  date: string | null
+  startTime: string | null
+  endTime: string | null
+  className: string
+  dayOfWeek: string | null
+  attendance: string | null
 }
-
-// Attendance data is just a percentage number from the API
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [lessonTab, setLessonTab] = useState<"upcoming" | "past">("upcoming")
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const [attendanceStats, setAttendanceStats] = useState<{ Status: string; Percentage: number }[]>([])
   const [loadingAttendance, setLoadingAttendance] = useState(false)
   const [attendanceError, setAttendanceError] = useState<string | null>(null)
   const [studentData, setStudentData] = useState<any>(null)
   const [loadingStudent, setLoadingStudent] = useState(false)
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null)
+  const [selectedClassName, setSelectedClassName] = useState<string>("")
+  const [lessons, setLessons] = useState<LessonRow[]>([])
+  const [loadingLessons, setLoadingLessons] = useState(false)
+  const [fromDate, setFromDate] = useState("")
+  const [toDate, setToDate] = useState("")
+  const [lessonsPage, setLessonsPage] = useState(1)
+  const [lessonsTotalCount, setLessonsTotalCount] = useState(0)
+  const lessonsPageSize = 10
 
   const studentId = user?.studentId || getStudentId()
 
-  const { classes: enrolledClasses } = useStudentClasses(studentId || 0)
-  const { session: upcomingSession, loading: sessionLoading, error: sessionError } = useStudentUpcomingSession(studentId || 0)
-  const { sessions: completedSessions, loading: completedLoading, error: completedError } = useStudentCompletedSessions(
-    studentId || 0
-  )
+  const { classes: enrolledClasses, loading: classesLoading } = useStudentClasses(studentId || 0)
 
   const presentStat = attendanceStats.find((s) => s.Status === "Present")
   const attendancePercentage = presentStat?.Percentage ?? null
@@ -129,162 +100,104 @@ export default function StudentDashboard() {
 
   const formatCourseDate = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
 
-  const { list: upcomingLessonList, message: upcomingMessage } = buildUpcomingLessonList(
-    upcomingSession,
-    sessionLoading,
-    sessionError
+  const fetchLessons = useCallback(
+    async (classId: number, page: number = 1) => {
+      if (!studentId) return
+      setSelectedClassId(classId)
+      const cls = enrolledClasses.find((c) => c.id === classId)
+      setSelectedClassName(cls?.title ?? "Class")
+      setLoadingLessons(true)
+      setLessonsPage(page)
+      try {
+        const response = await axiosInstance.get("/Class/GetAttendanceForStudentInClasspagination", {
+          params: {
+            classId,
+            studentId,
+            fromDate: fromDate || undefined,
+            toDate: toDate || undefined,
+            page,
+            pageSize: lessonsPageSize,
+          },
+        })
+        if (response.data?.IsSuccess && response.data?.Data) {
+          const result = response.data.Data
+          const mapped = (result.Items || []).map((s: any) => ({
+            scheduleId: s.SessionId,
+            classId,
+            date: s.AttendanceDate || s.SessionStartTime,
+            startTime: s.SessionStartTime,
+            endTime: s.SessionEndTime,
+            className: s.ClassTitle ?? "—",
+            dayOfWeek: s.SessionDayOfWeek ?? null,
+            attendance: s.AttendanceStatus ?? null,
+          }))
+          setLessons(mapped)
+          setLessonsTotalCount(result.TotalCount ?? 0)
+        } else {
+          setLessons([])
+          setLessonsTotalCount(0)
+        }
+      } catch {
+        setLessons([])
+        setLessonsTotalCount(0)
+      } finally {
+        setLoadingLessons(false)
+      }
+    },
+    [studentId, enrolledClasses, fromDate, toDate, lessonsPageSize]
   )
 
-  const lessons =
-    lessonTab === "upcoming"
-      ? upcomingLessonList
-      : buildPastLessonsList(completedSessions, completedLoading, completedError).list
+  useEffect(() => {
+    if (!selectedClassId) return
+    fetchLessons(selectedClassId, lessonsPage)
+  }, [fromDate, toDate])
 
-  const lessonsMessage =
-    lessonTab === "upcoming"
-      ? upcomingMessage
-      : buildPastLessonsList(completedSessions, completedLoading, completedError).message
+  const handleViewLessons = (classId: number) => {
+    setLessonsPage(1)
+    fetchLessons(classId, 1)
+  }
 
-  const handleLessonClick = (lesson: Lesson) => {
-    setSelectedLesson(lesson)
+  const handleBackToClasses = () => {
+    setSelectedClassId(null)
+    setSelectedClassName("")
+    setLessons([])
+    setLessonsPage(1)
   }
 
   const handleClassClick = (classId: number) => {
     navigate(`/student/classes/${classId}`)
   }
 
-  const renderLessonModal = () => {
-    if (!selectedLesson) return null
+  const getAttendanceBadgeClass = (status: string | null) => {
+    if (!status) return "bg-gray-100 text-gray-600"
+    switch (status.toLowerCase()) {
+      case "present":
+        return "bg-emerald-100 text-emerald-800"
+      case "absent":
+        return "bg-red-100 text-red-800"
+      case "late":
+        return "bg-amber-100 text-amber-800"
+      case "excused":
+        return "bg-blue-100 text-blue-800"
+      default:
+        return "bg-gray-100 text-gray-600"
+    }
+  }
 
-    const isUpcoming = lessonTab === "upcoming"
-    const attendanceBgColor = isUpcoming 
-      ? "bg-yellow-50 border-l-4 border-l-yellow-400 border-yellow-200" 
-      : "bg-emerald-50 border-l-4 border-l-emerald-400 border-emerald-200"
+  const formatLessonDate = (dateString: string | null) => {
+    if (!dateString) return "—"
+    const d = new Date(dateString)
+    if (Number.isNaN(d.getTime())) return "—"
+    return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+  }
 
-    return (
-      <div className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setSelectedLesson(null)}>
-        <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-w-2xl w-full max-h-[92vh] sm:max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-          <div className="sticky top-0 bg-white px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
-                <span className="text-sm font-semibold text-gray-900">{selectedLesson.time}</span>
-                <span className="text-sm font-semibold text-gray-900 truncate">{selectedLesson.title}</span>
-              </div>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-xs text-gray-500 mt-1">
-                <span>{selectedLesson.date}</span>
-                <span className="flex items-center gap-1">
-                  <MapPin size={12} className="text-gray-400 flex-shrink-0" />
-                  <span>{selectedLesson.location}</span>
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center justify-between sm:justify-end gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="h-8 w-8 rounded-full bg-indigo-100 text-indigo-700 grid place-items-center text-xs font-semibold flex-shrink-0">
-                  {String(selectedLesson.teacher || "?").slice(0, 2).toUpperCase()}
-                </div>
-                <span className="text-sm font-medium text-gray-700 truncate">{selectedLesson.teacher}</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedLesson(null)}
-                className="h-9 w-9 grid place-items-center rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors touch-manipulation flex-shrink-0"
-                aria-label="Close"
-              >
-                <X size={20} className="text-gray-500" />
-              </button>
-            </div>
-          </div>
-
-          <div className="p-4 sm:p-6 space-y-3">
-            <div className={`${attendanceBgColor} border rounded-lg p-3 sm:p-4`}>
-              <div className="flex items-start gap-3">
-                <CheckSquare className="h-5 w-5 text-gray-700 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-700 mb-1">Attendance</div>
-                  <div className="text-sm text-gray-700">{selectedLesson.attendanceText}</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="flex items-start gap-3">
-                <Star className="h-5 w-5 text-gray-700 flex-shrink-0 mt-0.5" fill="none" strokeWidth={2} />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-700 mb-1">Gold stars</div>
-                  <div className="text-sm text-gray-600">
-                    {selectedLesson.goldStars > 0 ? `${selectedLesson.goldStars} gold star(s) awarded` : "No gold stars awarded"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="flex items-start gap-3">
-                <Flag className="h-5 w-5 text-gray-700 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-700 mb-1">Red flags</div>
-                  <div className="text-sm text-gray-600">
-                    {selectedLesson.redFlags > 0 ? `${selectedLesson.redFlags} red flag(s) given` : "No red flags given"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="flex items-start gap-3">
-                <BarChart className="h-5 w-5 text-gray-700 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-700 mb-1">Lesson grade</div>
-                  <div className="text-sm text-gray-600">
-                    {selectedLesson.grade !== null ? `${selectedLesson.grade}%` : "No grades given"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="flex items-start gap-3">
-                <FileText className="h-5 w-5 text-gray-700 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-700 mb-1">Lesson notes</div>
-                  <div className="text-sm text-gray-600">
-                    {selectedLesson.lessonNotes || "No lesson notes"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="flex items-start gap-3">
-                <PenTool className="h-5 w-5 text-gray-700 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-700 mb-1">Personal notes</div>
-                  <div className="text-sm text-gray-600">
-                    {selectedLesson.personalNotes || "No personal notes from the teacher"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="border border-gray-200 rounded-lg p-4 bg-white">
-              <div className="flex items-start gap-3">
-                <Paperclip className="h-5 w-5 text-gray-700 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-700 mb-1">Attachments</div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-600">Attachments</span>
-                    <span className="px-2.5 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                      {selectedLesson.attachments}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+  const formatLessonTime = (start: string | null, end: string | null) => {
+    if (!start) return "—"
+    const s = new Date(start)
+    const e = end ? new Date(end) : null
+    const startStr = s.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    const endStr = e ? e.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : null
+    return endStr ? `${startStr} – ${endStr}` : startStr
   }
 
   return (
@@ -417,114 +330,140 @@ export default function StudentDashboard() {
       </div>
     </div>
 
-    {/* ===== LESSONS + CLASSES ===== */}
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 sm:gap-6">
-
-      {/* LESSONS */}
-      <div className="xl:col-span-2 bg-white border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
-          <div className="min-w-0">
-            <h3 className="font-semibold text-gray-900">Lessons</h3>
-            <div className="flex gap-4 sm:gap-6 text-sm mt-2">
-              {["upcoming", "past"].map(t => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setLessonTab(t as any)}
-                  className={`pb-1 touch-manipulation ${
-                    lessonTab === t
-                      ? "text-blue-600 border-b-2 border-blue-600 font-medium"
-                      : "text-gray-500"
-                  }`}
-                >
-                  {t === "upcoming" ? "Upcoming" : "Past"}
-                </button>
-              ))}
-            </div>
-          </div>
-          <button type="button" className="text-xs text-blue-600 hover:underline touch-manipulation self-start sm:self-auto">
-            View in calendar
-          </button>
-        </div>
-
-        <div className="space-y-2 sm:space-y-3">
-          {lessons.map((lesson, i) => (
-            <div
-              key={i}
-              role="button"
-              tabIndex={0}
-              onClick={() => handleLessonClick(lesson)}
-              onKeyDown={(e) => e.key === "Enter" && handleLessonClick(lesson)}
-              className="relative border border-gray-200 rounded-xl p-3 sm:p-4 flex flex-col sm:flex-row sm:justify-between gap-2 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
-            >
-              <span className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500 rounded-l sm:rounded-l-lg" aria-hidden />
-
-              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 pl-2 sm:pl-3">
-                <span className="font-semibold text-gray-900">{lesson.date}</span>
-                <span className="text-sm text-gray-500">{lesson.time}</span>
-                <span className="flex items-center gap-1 text-xs text-gray-500 w-full sm:w-auto">
-                  <MapPin size={12} className="flex-shrink-0" /> {lesson.location}
-                </span>
-              </div>
-
-              <div className="flex-1 min-w-0 pl-2 sm:pl-4 sm:px-2">
-                <div className="font-medium text-gray-800 truncate">{lesson.title}</div>
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-3 text-sm text-gray-500 pl-2 sm:pl-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-7 w-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-medium flex-shrink-0">
-                    {String(lesson.teacher || "?").slice(0, 2).toUpperCase()}
-                  </div>
-                  <span className="truncate text-xs sm:text-sm">{lesson.teacher}</span>
-                </div>
-                <Star size={14} className="flex-shrink-0 text-amber-500" />
-                <Flag size={14} className="flex-shrink-0 text-rose-400" />
-              </div>
-            </div>
-          ))}
-        </div>
+    {/* ===== ENROLLED CLASSES & LESSONS (like Student Profile) ===== */}
+    <div className="bg-white border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-sm">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-semibold text-gray-900">Enrolled classes</h3>
+        <button
+          type="button"
+          onClick={() => navigate("/student/classes")}
+          className="text-xs text-blue-600 hover:underline touch-manipulation"
+        >
+          View all
+        </button>
       </div>
 
-      {/* ENROLLED CLASSES */}
-      <div className="bg-white border border-gray-200/80 rounded-xl p-4 sm:p-5 shadow-sm">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-semibold text-gray-900">Enrolled classes</h3>
+      {selectedClassId ? (
+        <div>
           <button
             type="button"
-            onClick={() => navigate("/student/classes")}
-            className="text-xs text-blue-600 hover:underline touch-manipulation"
+            onClick={handleBackToClasses}
+            className="text-sm text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-1"
           >
-            View all
+            ← Back to classes
           </button>
-        </div>
-
-        <div className="divide-y divide-gray-100">
-          {enrolledClasses.map(cls => (
-            <div
-              key={cls.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => handleClassClick(cls.id)}
-              onKeyDown={(e) => e.key === "Enter" && handleClassClick(cls.id)}
-              className="py-3 flex gap-3 cursor-pointer hover:bg-gray-50 active:bg-gray-100 transition-colors touch-manipulation"
-            >
-              <span className="h-2 w-2 rounded-full bg-blue-500 flex-shrink-0 mt-1.5" aria-hidden />
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-blue-600 truncate">
-                  {cls.title}
-                </div>
-                <div className="text-xs text-gray-500 mt-0.5">
-                  {formatDateRange(cls.startDate, cls.endDate)}
-                </div>
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Lessons – {selectedClassName}</h4>
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => { setFromDate(e.target.value); setLessonsPage(1); }}
+              className="h-9 px-3 rounded-lg border border-gray-200 text-sm"
+            />
+            <span className="text-gray-400">to</span>
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => { setToDate(e.target.value); setLessonsPage(1); }}
+              className="h-9 px-3 rounded-lg border border-gray-200 text-sm"
+            />
+          </div>
+          {loadingLessons ? (
+            <div className="py-8 text-center text-gray-500 text-sm">Loading lessons...</div>
+          ) : lessons.length === 0 ? (
+            <div className="py-8 text-center text-gray-500 text-sm">No lessons found for this class.</div>
+          ) : (
+            <div className="overflow-x-auto -mx-2">
+              <table className="w-full min-w-[400px] text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 text-gray-600">
+                    <th className="text-left py-3 px-3 font-medium">Date</th>
+                    <th className="text-left py-3 px-3 font-medium">Time</th>
+                    <th className="text-left py-3 px-3 font-medium">Day</th>
+                    <th className="text-left py-3 px-3 font-medium">Class</th>
+                    <th className="text-left py-3 px-3 font-medium">Attendance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lessons.map((lesson, i) => (
+                    <tr key={lesson.scheduleId || i} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-3 text-gray-900">{formatLessonDate(lesson.date)}</td>
+                      <td className="py-3 px-3 text-gray-700">{formatLessonTime(lesson.startTime, lesson.endTime)}</td>
+                      <td className="py-3 px-3 text-gray-700">{lesson.dayOfWeek ?? "—"}</td>
+                      <td className="py-3 px-3 text-gray-700">{lesson.className}</td>
+                      <td className="py-3 px-3">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${getAttendanceBadgeClass(lesson.attendance)}`}>
+                          {lesson.attendance ?? "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {lessonsTotalCount > lessonsPageSize && (
+            <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+              <span>
+                Showing {(lessonsPage - 1) * lessonsPageSize + 1}–{Math.min(lessonsPage * lessonsPageSize, lessonsTotalCount)} of {lessonsTotalCount}
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  disabled={lessonsPage <= 1}
+                  onClick={() => { const p = lessonsPage - 1; setLessonsPage(p); fetchLessons(selectedClassId!, p); }}
+                  className="px-2 py-1 rounded border border-gray-200 disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={lessonsPage * lessonsPageSize >= lessonsTotalCount}
+                  onClick={() => { const p = lessonsPage + 1; setLessonsPage(p); fetchLessons(selectedClassId!, p); }}
+                  className="px-2 py-1 rounded border border-gray-200 disabled:opacity-50"
+                >
+                  Next
+                </button>
               </div>
             </div>
-          ))}
+          )}
         </div>
-      </div>
+      ) : (
+        <div className="divide-y divide-gray-100">
+          {classesLoading ? (
+            <div className="py-6 text-center text-sm text-gray-500">Loading classes...</div>
+          ) : enrolledClasses.length === 0 ? (
+            <div className="py-6 text-center text-sm text-gray-500">No enrolled classes.</div>
+          ) : (
+            enrolledClasses.map((cls) => (
+              <div
+                key={cls.id}
+                className="py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+              >
+                <div
+                  className="min-w-0 flex-1 cursor-pointer"
+                  onClick={() => handleClassClick(cls.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && handleClassClick(cls.id)}
+                >
+                  <div className="text-sm font-medium text-blue-600 truncate">{cls.title}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{formatDateRange(cls.startDate, cls.endDate)}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); handleViewLessons(cls.id); }}
+                  className="flex items-center gap-1.5 text-sm text-gray-700 hover:text-blue-600 border border-gray-200 hover:border-blue-300 rounded-lg px-3 py-1.5 self-start sm:self-center"
+                >
+                  <FileText size={14} />
+                  View lessons
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
-
-    {renderLessonModal()}
   </div>
 )
 
@@ -542,82 +481,5 @@ const formatDateRange = (start?: string | null, end?: string | null) => {
   if (start && end) return `${formatDateValue(start)} - ${formatDateValue(end)}`
   if (start) return `Starts ${formatDateValue(start)}`
   return `Ends ${formatDateValue(end)}`
-}
-
-const formatTimeRange = (start?: string | null, end?: string | null) => {
-  if (!start) return "—"
-  const startDate = new Date(start)
-  const endDate = end ? new Date(end) : null
-  const startTime = startDate.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-  const endTime = endDate ? endDate.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : null
-  return endTime ? `${startTime} - ${endTime}` : startTime
-}
-
-const buildUpcomingLessonList = (session: UpcomingSession | null, loading: boolean, error: string | null) => {
-  if (loading) {
-    return { list: [], message: "Loading upcoming lesson..." }
-  }
-  if (error) {
-    return { list: [], message: error }
-  }
-  if (!session) {
-    return { list: [], message: "No upcoming lessons scheduled." }
-  }
-
-  const lesson: Lesson = {
-    id: session.id,
-    date: formatDateValue(session.startTime || session.date),
-    time: formatTimeRange(session.startTime, session.endTime),
-    title: `Class ID: ${session.classId ?? "—"}`,
-    location: session.dayOfWeek || "Day not provided",
-    teacher: session.teacherId ? `Teacher ID: ${session.teacherId}` : "Teacher not assigned",
-    attendance: "upcoming",
-    attendanceText: "Upcoming lesson",
-    goldStars: 0,
-    redFlags: 0,
-    grade: null,
-    lessonNotes: null,
-    personalNotes: null,
-    attachments: 0,
-    classId: session.classId,
-    teacherId: session.teacherId,
-    dayOfWeek: session.dayOfWeek
-  }
-
-  return { list: [lesson], message: null }
-}
-
-const buildPastLessonsList = (sessions: CompletedSession[], loading: boolean, error: string | null) => {
-  if (loading) {
-    return { list: [], message: "Loading past lessons..." }
-  }
-  if (error) {
-    return { list: [], message: error }
-  }
-  if (!sessions.length) {
-    return { list: [], message: "No past lessons available." }
-  }
-
-  const list = sessions.map((session) => ({
-    id: session.id,
-    date: formatDateValue(session.startTime || session.date),
-    time: formatTimeRange(session.startTime, session.endTime),
-    title: `Class ID: ${session.classId ?? "—"}`,
-    location: session.dayOfWeek || "Day not provided",
-    teacher: session.teacherId ? `Teacher ID: ${session.teacherId}` : "Teacher not assigned",
-    attendance: "present",
-    attendanceText: "Abdul was present for this lesson",
-    goldStars: 0,
-    redFlags: 0,
-    grade: null,
-    lessonNotes: null,
-    personalNotes: null,
-    attachments: 0,
-    classId: session.classId,
-    teacherId: session.teacherId,
-    dayOfWeek: session.dayOfWeek
-  }))
-
-  return { list, message: null }
 }
 

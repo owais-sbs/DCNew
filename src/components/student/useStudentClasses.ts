@@ -45,23 +45,30 @@ export function useStudentClasses(studentId: number) {
   const [error, setError] = useState<string | null>(null)
 
   const fetchClasses = useCallback(async () => {
+    if (!studentId) {
+      setClasses([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError(null)
     try {
-      const response = await axiosInstance.get<ApiResponse>("/Student/GetStudentClasses", {
+      const response = await axiosInstance.get<ApiResponse>("/Class/GetClassesByStudent", {
         params: { studentId }
       })
 
       if (response.data?.IsSuccess && Array.isArray(response.data.Data)) {
-        const mapped = response.data.Data.map((cls) => ({
-          id: cls.Id,
-          title: cls.ClassTitle,
-          code: cls.ClassCode,
-          description: cls.ClassDescription,
-          startDate: cls.StartDate,
-          endDate: cls.EndDate,
-          raw: cls
-        }))
+        const mapped = response.data.Data
+          .filter((cls: any) => cls.IsActive === true)
+          .map((cls: any) => ({
+            id: cls.ClassId ?? cls.Id,
+            title: cls.ClassTitle,
+            code: cls.ClassCode ?? null,
+            description: cls.ClassDescription ?? null,
+            startDate: cls.StartDate ?? null,
+            endDate: cls.EndDate ?? null,
+            raw: cls
+          }))
         setClasses(mapped)
       } else {
         setClasses([])

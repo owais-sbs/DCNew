@@ -7,7 +7,6 @@ import {
   ArrowLeft,
   X,
   FileText,
-  Upload,
   Info,
 } from "lucide-react";
 
@@ -16,6 +15,12 @@ type DayEntry = {
   startTime: string;
   endTime: string;
   teacherId: string;
+};
+
+type ExistingAttachment = {
+  Id: number;
+  URL: string;
+  FileType?: string;
 };
 
 export default function EditClass() {
@@ -50,6 +55,7 @@ export default function EditClass() {
   const [newClassroomName, setNewClassroomName] = useState("");
   const [savingClassroom, setSavingClassroom] = useState(false);
   const [syllabusFiles, setSyllabusFiles] = useState<File[]>([]);
+  const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Helper UI component
@@ -100,7 +106,7 @@ export default function EditClass() {
             awardingBody: d.AwardingBody || "",
             bookCode: d.BookCode || "",
             classType: d.ClassType || "",
-            classRoomId: String(d.ClassRooomId || ""),
+            classRoomId: String(d.ClassRooomId ?? d.Classroom ?? ""),
             recurrence: "weekly",
             startDate: d.StartDate ? d.StartDate.split("T")[0] : "",
             endDate: d.EndDate ? d.EndDate.split("T")[0] : "",
@@ -113,6 +119,13 @@ export default function EditClass() {
               teacherId: String(s.TeacherIds?.[0] || "")
             })) : [{ day: "Monday", startTime: "", endTime: "", teacherId: "" }]
           });
+          setExistingAttachments(
+            Array.isArray(d.Attachments) ? d.Attachments.map((a: any) => ({
+              Id: a.Id,
+              URL: a.URL || a.FileUrl || "",
+              FileType: a.FileType
+            })) : []
+          );
         }
       } catch (err) {
         console.error("Load Class Error", err);
@@ -174,9 +187,20 @@ export default function EditClass() {
         }
       });
 
+      // Existing attachments (Id, URL, ClassID — no file re-upload)
+      existingAttachments.forEach((att, index) => {
+        data.append(`Attachments[${index}].Id`, String(att.Id));
+        data.append(`Attachments[${index}].URL`, att.URL);
+        if (att.FileType) data.append(`Attachments[${index}].FileType`, att.FileType);
+        if (id) data.append(`Attachments[${index}].ClassID`, id);
+      });
+      // New files
       syllabusFiles.forEach((file, index) => {
-        data.append(`Attachments[${index}].FileDetails`, file);
-        data.append(`Attachments[${index}].FileType`, file.name.split('.').pop() || "");
+        const idx = existingAttachments.length + index;
+        data.append(`Attachments[${idx}].Id`, "0");
+        data.append(`Attachments[${idx}].FileDetails`, file);
+        data.append(`Attachments[${idx}].FileType`, file.name.split(".").pop() || "");
+        if (id) data.append(`Attachments[${idx}].ClassID`, id);
       });
 
       const res = await axiosInstance.post("/Class/AddOrUpdateClass", data, {
@@ -353,6 +377,68 @@ export default function EditClass() {
           <div className="mt-4 max-w-xs">
             <label className="block text-[13px] mb-1 text-gray-700">Publish date</label>
             <input type="date" value={formData.publishDate} onChange={(e) => handleInputChange('publishDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px]" />
+          </div>
+        </div>
+
+        <SectionHeader title="Attachments" />
+        <div className="p-4">
+          <label className="block text-[13px] mb-1 text-gray-700">Class attachments</label>
+          {existingAttachments.length > 0 && (
+            <div className="mb-3">
+              <span className="text-[12px] text-gray-500 block mb-1">Existing</span>
+              <ul className="space-y-1">
+                {existingAttachments.map((att, index) => (
+                  <li key={att.Id} className="flex items-center justify-between py-1.5 px-2 bg-gray-50 border border-gray-200 text-[13px]">
+                    <a href={att.URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 min-w-0 text-blue-600 hover:underline truncate">
+                      <FileText size={14} className="text-gray-500 flex-shrink-0" />
+                      {att.URL?.split("/").pop() || `Attachment ${att.Id}`}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setExistingAttachments((prev) => prev.filter((_, i) => i !== index))}
+                      className="p-1 text-gray-500 hover:text-red-600"
+                      aria-label="Remove"
+                    >
+                      <X size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div>
+            <span className="text-[12px] text-gray-500 block mb-1">Add new files</span>
+            <input
+              type="file"
+              multiple
+              onChange={(e) => {
+                const files = e.target.files ? Array.from(e.target.files) : [];
+                setSyllabusFiles((prev) => [...prev, ...files]);
+                e.target.value = "";
+              }}
+              className="w-full text-[13px] text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:bg-gray-100 file:text-gray-700"
+            />
+            {syllabusFiles.length > 0 && (
+              <ul className="mt-2 space-y-1">
+                {syllabusFiles.map((file, index) => (
+                  <li key={`${file.name}-${index}`} className="flex items-center justify-between py-1.5 px-2 bg-gray-50 border border-gray-200 text-[13px]">
+                    <span className="flex items-center gap-2 min-w-0">
+                      <FileText size={14} className="text-gray-500 flex-shrink-0" />
+                      <span className="truncate">{file.name}</span>
+                      <span className="text-gray-400 text-xs flex-shrink-0">{(file.size / 1024).toFixed(1)} KB</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSyllabusFiles((prev) => prev.filter((_, i) => i !== index))}
+                      className="p-1 text-gray-500 hover:text-red-600"
+                      aria-label="Remove"
+                    >
+                      <X size={14} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 

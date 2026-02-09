@@ -42,6 +42,11 @@ export default function SendEmail() {
   const [filterClassId, setFilterClassId] = useState<number | "">("")
   const [filterClassName, setFilterClassName] = useState("")
   const [onlyUnenrolled, setOnlyUnenrolled] = useState(false)
+  const [onlyEnrolled, setOnlyEnrolled] = useState(false)
+  const [selectedSchedules, setSelectedSchedules] = useState<string[]>([])
+  const [schedulesList, setSchedulesList] = useState<string[]>([])
+  const [loadingSchedules, setLoadingSchedules] = useState(false)
+  const [schedulesDropdownOpen, setSchedulesDropdownOpen] = useState(false)
   const [attendanceFrom, setAttendanceFrom] = useState<number | "">("")
   const [attendanceTo, setAttendanceTo] = useState<number | "">("")
   const [filterPage, setFilterPage] = useState(1)
@@ -71,6 +76,9 @@ export default function SendEmail() {
       if (validNats.length > 0) payload.Nationalities = validNats
       if (filterClassId !== "" && filterClassId !== 0) payload.ClassId = filterClassId
       if (onlyUnenrolled) payload.OnlyUnenrolled = true
+      if (onlyEnrolled) payload.OnlyEnrolled = true
+      const validSchedules = selectedSchedules.filter((s) => s && String(s).trim())
+      if (validSchedules.length > 0) payload.Schedules = validSchedules
       if (attendanceFrom !== "") payload.AttendanceFrom = Number(attendanceFrom)
       if (attendanceTo !== "") payload.AttendanceTo = Number(attendanceTo)
 
@@ -90,7 +98,7 @@ export default function SendEmail() {
     } finally {
       setLoadingStudents(false)
     }
-  }, [filterSearch, courseStartFrom, courseStartTo, selectedNationalities, filterClassId, onlyUnenrolled, attendanceFrom, attendanceTo, filterPage, filterPageSize])
+  }, [filterSearch, courseStartFrom, courseStartTo, selectedNationalities, filterClassId, onlyUnenrolled, onlyEnrolled, selectedSchedules, attendanceFrom, attendanceTo, filterPage, filterPageSize])
 
   const fetchTemplates = async () => {
     try {
@@ -128,6 +136,27 @@ export default function SendEmail() {
         setNationalitiesList([])
       } finally {
         if (!controller.signal.aborted) setLoadingNationalities(false)
+      }
+    }
+    load()
+    return () => controller.abort()
+  }, [])
+
+  // Schedules for filter
+  useEffect(() => {
+    const controller = new AbortController()
+    const load = async () => {
+      setLoadingSchedules(true)
+      try {
+        const res = await axiosInstance.get("/Student/GetStudentSchedules", { signal: controller.signal })
+        const data = res.data?.Data ?? res.data?.data
+        const list = Array.isArray(data) ? data : []
+        setSchedulesList(list.map((s: unknown) => String(s ?? "")))
+      } catch (e) {
+        if (!controller.signal.aborted) console.error("Failed to fetch schedules", e)
+        setSchedulesList([])
+      } finally {
+        if (!controller.signal.aborted) setLoadingSchedules(false)
       }
     }
     load()
@@ -522,6 +551,51 @@ export default function SendEmail() {
               />
               <span className="text-sm font-medium text-gray-700">Only unenrolled students</span>
             </label>
+            <label className="flex items-center gap-2 cursor-pointer py-1">
+              <input
+                type="checkbox"
+                checked={onlyEnrolled}
+                onChange={(e) => setOnlyEnrolled(e.target.checked)}
+                className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="text-sm font-medium text-gray-700">Only enrolled students</span>
+            </label>
+            <div className="relative">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
+              <button
+                type="button"
+                onClick={() => setSchedulesDropdownOpen((o) => !o)}
+                className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
+              >
+                <span className="truncate text-gray-700">{selectedSchedules.length === 0 ? "All schedules" : `${selectedSchedules.length} selected`}</span>
+                <ChevronDown size={18} className="text-gray-400 flex-shrink-0 ml-2" />
+              </button>
+              {schedulesDropdownOpen && (
+                <div className="absolute z-50 mt-1 w-full max-h-52 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg py-1">
+                  {loadingSchedules ? (
+                    <div className="px-4 py-6 text-sm text-gray-500 text-center flex items-center justify-center gap-2">
+                      <Loader2 size={16} className="animate-spin" /> Loading…
+                    </div>
+                  ) : schedulesList.length === 0 ? (
+                    <div className="px-4 py-6 text-sm text-gray-500 text-center">No schedules found</div>
+                  ) : (
+                    schedulesList.map((sched) => (
+                      <label key={sched} className="flex items-center gap-3 px-4 py-2.5 hover:bg-indigo-50/80 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedSchedules.includes(sched)}
+                          onChange={(e) =>
+                            setSelectedSchedules((prev) => (e.target.checked ? [...prev, sched] : prev.filter((x) => x !== sched)))
+                          }
+                          className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span className="text-sm text-gray-800">{sched}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Attendance % from</label>

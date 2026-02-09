@@ -31,9 +31,7 @@ export default function StudentClassDetail() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  const [activeTab, setActiveTab] = useState<
-    "lessons2" | "class-notes" | "attachments" | "assignments" | "gradebook"
-  >("lessons2")
+  const [activeTab, setActiveTab] = useState<"lessons" | "attachments">("lessons")
 
   const [attendanceData, setAttendanceData] = useState<AttendanceEntry[]>([])
   const [loadingAttendance, setLoadingAttendance] = useState(false)
@@ -182,10 +180,7 @@ export default function StudentClassDetail() {
   <div className="flex items-center gap-8 px-6">
     {[
       { id: "lessons", label: "Lessons", icon: "📖" },
-      { id: "class-notes", label: "Class notes", icon: "📝" },
-      { id: "attachments", label: "Attachments", icon: "📎" },
-      { id: "assignments", label: "Assignments", icon: "📋" },
-      { id: "gradebook", label: "Gradebook", icon: "🎓" }
+      { id: "attachments", label: "Attachments", icon: "📎" }
     ].map((tab) => (
       <button
         key={tab.id}
