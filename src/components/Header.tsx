@@ -143,6 +143,7 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
       { icon: HelpCircle, label: "Help center" },
       { icon: Star, label: "Feature ideas" },
       { icon: Star, label: "Become an affiliate" },
+      { icon: Star, label: "Privacy Policy" },
       { icon: LogOut, label: "Log out" },
     ];
   };
@@ -329,7 +330,14 @@ const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
                   {profileMenuItems.map((item, i) => (
                     <button
                       key={i}
-                      onClick={item.label === "Log out" ? logout : undefined}
+                      onClick={() => {
+                        if (item.label === "Log out") {
+                          logout();
+                        } else if (item.label === "Privacy Policy") {
+                          navigate("/privacy-policy");
+                          setIsProfileOpen(false); // Close the menu after clicking
+                        }
+                      }}
                       className="flex w-full items-center gap-3 px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-blue-600 transition"
                     >
                       <item.icon size={16} />
