@@ -90,7 +90,8 @@ export default function StudentProfile() {
   const [activeTab, setActiveTab] = useState("profile")
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [openModal, setOpenModal] = useState<string | null>(null)
-  const [portalInviteOpen, setPortalInviteOpen] = useState(false)
+  const [invitingToPortal, setInvitingToPortal] = useState(false)
+  const [inviteSentSuccess, setInviteSentSuccess] = useState(false)
   const [studentdetails, setStudent] = useState<any>(null)
   const [classesSubTab, setClassesSubTab] = useState<'classes'|'lessons'|'events'>('classes')
   const [feesTab, setFeesTab] = useState<'grouped'|'individual'>('grouped')
@@ -634,12 +635,19 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
       setLoadingAttachments(true)
       try {
         const response = await axiosInstance.get(`/Attachment/GetByStudentId`, {
-          params: { studentid: parseInt(id) },
+          params: { studentId: id },
           signal: controller.signal
         })
-        console.log("Attachments response:", response.data)
         if (response.data?.IsSuccess) {
-          setAttachments(response.data.Data || [])
+          const raw = response.data.Data
+          const list = Array.isArray(raw)
+            ? raw
+            : Array.isArray(raw?.Data)
+              ? raw.Data
+              : Array.isArray(raw?.Items)
+                ? raw.Items
+                : []
+          setAttachments(list)
         } else {
           setAttachments([])
         }
@@ -851,8 +859,60 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
     : ""
     const isLeapCardLetter = selectedDocument?.Title?.toLowerCase().includes("leap card letter");
     const isReferenceLetter = selectedDocument?.Title?.toLowerCase().includes("reference letter");
-    
-  const defaultFieldKeys: StudentFieldKey[] = isLeapCardLetter 
+    const isDocumentId27 = selectedDocument?.Id === 27;
+    const isDocumentId18 = selectedDocument?.Id === 18;
+    const isDocumentId15 = selectedDocument?.Id === 15;
+
+  const defaultFieldKeys: StudentFieldKey[] = isDocumentId27
+    ? [
+        "Name",
+        "Student ID",
+        "Date of Birth",
+        "Attendance",
+        "Nationality",
+        "Course Start Date",
+        "Finished Course Date",
+        "Course Level",
+        "External Exam",
+        "Date of External Exam",
+        "Score External Exam",
+        "ILEP Programme Title",
+        "ILEP Programme Reference",
+      ]
+    : isDocumentId18
+    ? [
+        "Name",
+        "Student ID",
+        "Address",
+        "Date of Birth",
+        "Course Level",
+        "Passport Number",
+        "Course Start Date",
+        "Course End Date",
+        "Course Title",
+        "Mode of Study",
+        "Number of Weeks",
+        "Hours Per Week",
+        "Tuition Fees",
+        "End of the Course Exam Fee",
+        "ILEP Programme Reference",
+      ]
+    : isDocumentId15
+    ? [
+        "Name",
+        "Student ID",
+        "Date of Birth",
+        "Attendance",
+        "Nationality",
+        "Course Start Date",
+        "Finished Course Date",
+        "Course Level",
+        "External Exam",
+        "Date of External Exam",
+        "ILEP Programme Title",
+        "ILEP Programme Reference",
+      ]
+    : isLeapCardLetter
     ? [
       "Name",
       "Student ID",
@@ -900,8 +960,42 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
       "ILEP Programme Reference"
     ];
 
-  const handleOpenInviteModal = () => {
-    setPortalInviteOpen(true);
+  const handleInviteToPortal = async () => {
+    if (!studentdetails?.Id) {
+      Swal.fire("Error", "Student ID is missing", "error");
+      return;
+    }
+    setInvitingToPortal(true);
+    try {
+      const response = await axiosInstance.post("/Account/InviteUser", {
+        UserId: studentdetails.Id,
+        UserType: "student",
+      });
+      if (response.data?.IsSuccess) {
+        setInviteSentSuccess(true);
+        Swal.fire({
+          icon: "success",
+          title: "Invitation Sent",
+          text: "The student has been invited to the portal successfully.",
+          confirmButtonColor: "#2563eb",
+        });
+        const refreshResponse = await axiosInstance.get(`/Student/GetById/${id}`);
+        if (refreshResponse.data?.IsSuccess) {
+          setStudent(refreshResponse.data.Data);
+        }
+      } else {
+        Swal.fire("Error", response.data?.Message || "Failed to invite student", "error");
+      }
+    } catch (error: any) {
+      console.error("Error inviting student:", error);
+      Swal.fire(
+        "Error",
+        error.response?.data?.Message || "Failed to invite student. Please try again.",
+        "error"
+      );
+    } finally {
+      setInvitingToPortal(false);
+    }
   };
 
 
@@ -932,43 +1026,6 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
 
   fetchAttendanceStats();
 }, [id]);
-
-  const handleSendInviteEmail = async () => {
-    if (!studentdetails?.Id) {
-      Swal.fire("Error", "Student ID is missing", "error");
-      return;
-    }
-
-    try {
-      const response = await axiosInstance.post("/Account/InviteUser", {
-        UserId: studentdetails.Id,
-        UserType: "student",
-      });
-
-      if (response.data?.IsSuccess) {
-        Swal.fire({
-          icon: "success",
-          title: "Invitation Sent",
-          text: "The student has been invited to the portal successfully.",
-          confirmButtonColor: "#2563eb",
-        });
-        // Refresh student data to get updated activation code
-        const refreshResponse = await axiosInstance.get(`/Student/GetById/${id}`);
-        if (refreshResponse.data?.IsSuccess) {
-          setStudent(refreshResponse.data.Data);
-        }
-      } else {
-        Swal.fire("Error", response.data?.Message || "Failed to invite student", "error");
-      }
-    } catch (error: any) {
-      console.error("Error inviting student:", error);
-      Swal.fire(
-        "Error",
-        error.response?.data?.Message || "Failed to invite student. Please try again.",
-        "error"
-      );
-    }
-  };
 
   const studentFieldResolvers: Record<StudentFieldKey, () => string> = {
     "Name": () => studentName || "—",
@@ -1008,7 +1065,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
     "Date of External Exam": () => formatDateValue(studentdetails?.ExternalExamDate),
     "Score External Exam": () => studentdetails?.ScoreExternalExam || "—",
     "ILEP Programme Reference": () => studentdetails?.IlepReference || "—",
-    "ILEP Programme Title": () => studentdetails?.IlepTitle || studentdetails?.IlepProgrammeTitle || "—",
+    "ILEP Programme Title": () => studentdetails?.IlepTitle || studentdetails?.IlepProgrammeTitle || studentdetails?.CourseTitle || "—",
     "Address": () => studentAddress || "—",
     "Passport Number": () => studentdetails?.PassportNumber || "—",
     "Course End Date": () => formatDateValue(studentdetails?.CourseEndDate),
@@ -1093,7 +1150,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
       .replace(/\{ScoreExternalExam\}/g, studentdetails.ScoreExternalExam || "—")
       .replace(/\{IlepReference\}/g, studentdetails.IlepReference || "—")
       .replace(/\{ILEPProgrammeReference\}/g, studentdetails.IlepReference || "—")
-      .replace(/\{ILEPProgrammeTitle\}/g, studentdetails.IlepTitle || studentdetails.IlepProgrammeTitle || "—")
+      .replace(/\{ILEPProgrammeTitle\}/g, studentdetails.IlepTitle || studentdetails.IlepProgrammeTitle || studentdetails.CourseTitle || "—")
       .replace(/\{EndOfExamPaid\}/g, (() => {
         const examFees = studentdetails?.EndOfExamPaid;
         if (examFees === null || examFees === undefined || examFees === "") return "—";
@@ -2114,10 +2171,12 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
         // Refresh attachments list
         if (activeTab.toLowerCase() === "attachments" && id) {
           const refreshResponse = await axiosInstance.get(`/Attachment/GetByStudentId`, {
-            params: { studentid: parseInt(id) }
+            params: { studentId: id }
           })
           if (refreshResponse.data?.IsSuccess) {
-            setAttachments(refreshResponse.data.Data || [])
+            const raw = refreshResponse.data.Data
+            const list = Array.isArray(raw) ? raw : Array.isArray(raw?.Data) ? raw.Data : Array.isArray(raw?.Items) ? raw.Items : []
+            setAttachments(list)
           }
         }
       } else {
@@ -2173,7 +2232,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
                 <div className="flex items-center gap-2">
                   <Paperclip size={20} className="text-gray-500" />
                   <span className="text-sm font-medium text-gray-900 truncate">
-                    {attachment.FileName || attachment.URL?.split("/").pop() || "Attachment"}
+                    {attachment.FileName || attachment.URL?.split("/").pop() || attachment.FileUrl?.split("/").pop() || "Attachment"}
                   </span>
                 </div>
                 <button className="text-gray-400 hover:text-gray-600">
@@ -2185,9 +2244,9 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
                   {new Date(attachment.CreatedOn).toLocaleDateString("en-GB")}
                 </div>
               )}
-              {attachment.URL && (
+              {(attachment.URL || attachment.FileUrl) && (
                 <a
-                  href={attachment.URL}
+                  href={attachment.URL || attachment.FileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-sm text-blue-600 hover:underline mt-2 inline-block"
@@ -2652,7 +2711,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
                   </div>
                 )}
 
-                {/* Title */}
+                {/* Title – in letter/PDF show only text before " - " (e.g. "Certificate of Attendance"); full title stays in document list UI */}
                 <h2 className="mb-2 font-bold" style={{ 
                   fontSize: "12pt",
                   textAlign: "center",
@@ -2661,7 +2720,11 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
                   lineHeight: "1.2",
                   fontFamily: "'Times New Roman', Times, serif"
                 }}>
-                  {selectedDocument.Title || "Document"}
+                  {(() => {
+                    const t = selectedDocument.Title || "Document"
+                    const idx = t.indexOf(" - ")
+                    return idx > 0 ? t.slice(0, idx).trim() : t
+                  })()}
                 </h2>
 
                 {/* Body Content */}
@@ -3302,10 +3365,24 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
         label1="Invitation"
         value1={
           <button
-            onClick={handleOpenInviteModal}
-            className="text-blue-600 hover:underline"
+            onClick={handleInviteToPortal}
+            disabled={invitingToPortal}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              inviteSentSuccess
+                ? "bg-emerald-600 text-white cursor-default"
+                : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+            } disabled:opacity-70 disabled:cursor-not-allowed`}
           >
-            Invite to Portal
+            {invitingToPortal ? (
+              <>
+                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Sending…
+              </>
+            ) : inviteSentSuccess ? (
+              <>✓ Invited to Portal</>
+            ) : (
+              <>Invite to Portal</>
+            )}
           </button>
         }
         sub2="Abdullah has not signed up yet!"
@@ -3877,135 +3954,6 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
                 <button className="h-10 px-4  bg-blue-600 text-white text-sm">
                   Enroll
                 </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {portalInviteOpen && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4" onClick={() => setPortalInviteOpen(false)}>
-          <div
-            className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setPortalInviteOpen(false)}
-                  className="h-9 px-4 rounded-full border border-gray-300 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  × Close
-                </button>
-                <button className="h-9 px-4 rounded-full border border-gray-300 text-sm text-gray-700 hover:bg-gray-100">
-                  🖨 Print
-                </button>
-              </div>
-              <button 
-                onClick={handleSendInviteEmail}
-                className="h-9 px-4 rounded-full bg-blue-600 text-white text-sm hover:bg-blue-700"
-              >
-                ✉️ Send by email
-              </button>
-            </div>
-
-            <div className="p-6 space-y-8 bg-gray-50 overflow-y-auto">
-              <div className="bg-white border border-indigo-200  shadow-sm p-6">
-                <h2 className="text-2xl font-semibold text-gray-900 text-center mb-4">How to invite people to DCE</h2>
-                <p className="text-sm text-gray-700">
-                  DCE is great for managing your classes and students. It gets better when teachers, students and related contacts are involved too!
-                </p>
-                <p className="text-sm text-gray-700 mt-2">
-                  You can send email invites or print out invitations to hand out. If an email is available, we recommend emailing the link to your school members for a smoother sign up. Links to download the mobile app are also included in the email.
-                </p>
-
-                <div className="mt-6 border border-indigo-200  overflow-hidden">
-                  <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-indigo-200">
-                    <div className="p-4">
-                      <h3 className="text-center text-sm font-semibold text-gray-900 mb-3">Send email invitations</h3>
-                      <ol className="list-decimal text-sm text-gray-700 space-y-2 pl-5">
-                        <li>Click the "Send by email" button above.</li>
-                        <li>An email will be sent with instructions.</li>
-                        <li>The recipient will create an account and have access.</li>
-                      </ol>
-                    </div>
-                    <div className="p-4">
-                      <h3 className="text-center text-sm font-semibold text-gray-900 mb-3">Give printed invitations</h3>
-                      <ol className="list-decimal text-sm text-gray-700 space-y-2 pl-5">
-                        <li>Print out the invitation.</li>
-                        <li>Hand them out to teachers or students and ask them to follow the instructions.</li>
-                      </ol>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-center text-xs text-gray-500 mt-3">Print invitations start on the page below</p>
-              </div>
-
-              <div className="bg-white border border-gray-200  shadow-sm p-6 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900">You're invited to our school portal</h3>
-                    <p className="text-sm text-gray-500">DCE</p>
-                  </div>
-                  <img src="https://app.teachngo.com/static/media/logo.5ae04983d16bf1c3a4e3.svg" alt="DCE" className="h-10" />
-                </div>
-
-                <div className="space-y-4">
-                  <p className="text-gray-900 font-medium">Hello {studentName || "Student"},</p>
-                  <p className="text-sm text-gray-600">
-                    DCE English Language School is using DCE to keep students updated this year. By joining you will be able to view attendance, lesson notes, homework and even your payments.
-                  </p>
-                  <p className="text-sm text-gray-600 font-semibold">
-                    Please create your account by our next lesson. It's super easy and only takes a minute!
-                  </p>
-                </div>
-
-                <div className="border border-gray-200  overflow-hidden">
-                  <div className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 text-sm">Join DCE English Language School</div>
-                  <div className="p-4 text-sm text-gray-700 space-y-2">
-                    <ol className="list-decimal space-y-2 pl-5">
-                      <li>Open your browser and go to <a href="https://admin-dc.netlify.app/" className="text-blue-600 hover:underline">https://admin-dc.netlify.app/</a></li>
-                      <li>Enter your activation code found in the table below</li>
-                      <li>Click on "Activate your code"</li>
-                      <li>Type in a <strong>Username</strong></li>
-                      <li>Type in a <strong>Password</strong></li>
-                      <li>Click on "Create your account"</li>
-                      <li>Done!</li>
-                    </ol>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="border border-gray-200  overflow-hidden">
-                    <div className="bg-gray-50 px-4 py-3 font-semibold text-gray-900 text-sm">Activation Codes</div>
-                    <div className="p-4 text-sm text-gray-700">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <div className="text-xs text-gray-500 uppercase">Student</div>
-                          <div className="text-sm font-medium text-gray-900">{studentName || "Student"}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-gray-500 uppercase">Code</div>
-                          <div className="text-sm font-medium text-gray-900">{studentdetails?.PortalActivationCode || studentdetails?.IdNumber || "SENHpJN"}</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border border-gray-200  p-4 flex gap-3 items-start">
-                  <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 text-xl">💡</div>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div>
-                      <div className="font-semibold text-gray-900">How do I login after I have created my account?</div>
-                      <p>Simply go to <a href="https://app.teachngo.com" className="text-blue-600 hover:underline">https://app.teachngo.com</a> and enter your username and password.</p>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">I forgot my password. What do I do?</div>
-                      <p>You can reset your password by going to <a href="https://admin-dc.netlify.app/" className="text-blue-600 hover:underline">https://admin-dc.netlify.app/</a>. If that doesn't work please contact your teacher at DCE English Language School and they can reset the password for you.</p>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
           </div>
