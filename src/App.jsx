@@ -731,9 +731,7 @@ export default function App() {
               <Route
                 path="/privacy-policy"
                 element={
-                  <PrivateLayout>
                     <PrivacyPolicy />
-                  </PrivateLayout>
                 }
               />
 
