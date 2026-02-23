@@ -41,13 +41,7 @@ export default function PrivacyPolicy() {
             </p>
           </div>
 
-          <button
-            onClick={() => navigate(-1)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <ChevronLeft size={16} />
-            Back
-          </button>
+          
         </div>
 
         {/* Main Card */}
