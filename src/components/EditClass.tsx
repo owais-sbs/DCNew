@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from './axiosInstance';
 import Swal from "sweetalert2";
@@ -57,6 +57,7 @@ export default function EditClass() {
   const [syllabusFiles, setSyllabusFiles] = useState<File[]>([]);
   const [existingAttachments, setExistingAttachments] = useState<ExistingAttachment[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const initialScheduleRef = useRef<DayEntry[] | null>(null);
 
   // Helper UI component
   const SectionHeader = ({ title }: { title: string }) => (
@@ -87,6 +88,13 @@ export default function EditClass() {
     fetchData();
   }, []);
 
+  // Extract time "HH:mm" from ISO datetime for session inputs
+  const timeFromIso = (iso: string | null | undefined): string => {
+    if (!iso) return "";
+    const t = iso.split("T")[1];
+    return t ? t.slice(0, 5) : "";
+  };
+
   // Fetch Existing Class Data
   useEffect(() => {
     if (!id) return;
@@ -95,6 +103,25 @@ export default function EditClass() {
         const res = await axiosInstance.get(`/Class/GetClassById?classId=${id}`);
         if (res.data?.IsSuccess) {
           const d = res.data.Data;
+          let days: DayEntry[];
+          if (Array.isArray(d.Sessions) && d.Sessions.length > 0) {
+            days = d.Sessions.map((s: any) => ({
+              day: s.DayOfWeek || "Monday",
+              startTime: timeFromIso(s.StartTime) || (typeof s.StartTime === "string" && s.StartTime.length <= 8 ? s.StartTime.slice(0, 5) : ""),
+              endTime: timeFromIso(s.EndTime) || (typeof s.EndTime === "string" && s.EndTime.length <= 8 ? s.EndTime.slice(0, 5) : ""),
+              teacherId: String(s.TeacherIds?.[0] ?? s.TeacherId ?? "")
+            }));
+          } else if (d.Schedule?.length > 0) {
+            days = d.Schedule.map((s: any) => ({
+              day: s.WeekDay,
+              startTime: s.StartTime ?? "",
+              endTime: s.EndTime ?? "",
+              teacherId: String(s.TeacherIds?.[0] || "")
+            }));
+          } else {
+            days = [{ day: "Monday", startTime: "", endTime: "", teacherId: "" }];
+          }
+          initialScheduleRef.current = days;
           setFormData({
             title: d.ClassTitle || "",
             subject: d.ClassSubject || "General English With Exam Preparation",
@@ -111,13 +138,8 @@ export default function EditClass() {
             startDate: d.StartDate ? d.StartDate.split("T")[0] : "",
             endDate: d.EndDate ? d.EndDate.split("T")[0] : "",
             publishDate: d.PublishDate ? d.PublishDate.split("T")[0] : "",
-            generalNotes: d.ClassDescription || "", 
-            days: d.Schedule?.length > 0 ? d.Schedule.map((s: any) => ({
-              day: s.WeekDay,
-              startTime: s.StartTime,
-              endTime: s.EndTime,
-              teacherId: String(s.TeacherIds?.[0] || "")
-            })) : [{ day: "Monday", startTime: "", endTime: "", teacherId: "" }]
+            generalNotes: d.ClassDescription || "",
+            days
           });
           setExistingAttachments(
             Array.isArray(d.Attachments) ? d.Attachments.map((a: any) => ({
@@ -152,6 +174,14 @@ export default function EditClass() {
     }));
   };
 
+  const isScheduleUnchanged = (current: DayEntry[], initial: DayEntry[] | null): boolean => {
+    if (!initial || current.length !== initial.length) return false;
+    return current.every((c, i) => {
+      const ini = initial[i];
+      return c.day === ini.day && c.startTime === ini.startTime && c.endTime === ini.endTime && c.teacherId === ini.teacherId;
+    });
+  };
+
   const handleSubmit = async () => {
     if (!formData.title || !formData.startDate || !formData.endDate || !formData.classRoomId) {
       return Swal.fire("Required", "Please fill mandatory fields", "warning");
@@ -178,14 +208,18 @@ export default function EditClass() {
         data.append("PublishDate", new Date(formData.publishDate).toISOString());
       }
 
-      formData.days.forEach((day, index) => {
-        data.append(`Schedule[${index}].WeekDay`, day.day);
-        data.append(`Schedule[${index}].StartTime`, day.startTime);
-        data.append(`Schedule[${index}].EndTime`, day.endTime);
-        if (day.teacherId) {
-          data.append(`Schedule[${index}].TeacherIds[0]`, day.teacherId);
-        }
-      });
+      const isEdit = id && id !== "0";
+      const sendSchedule = !isEdit || !isScheduleUnchanged(formData.days, initialScheduleRef.current);
+      if (sendSchedule) {
+        formData.days.forEach((day, index) => {
+          data.append(`Schedule[${index}].WeekDay`, day.day);
+          data.append(`Schedule[${index}].StartTime`, day.startTime);
+          data.append(`Schedule[${index}].EndTime`, day.endTime);
+          if (day.teacherId) {
+            data.append(`Schedule[${index}].TeacherIds[0]`, day.teacherId);
+          }
+        });
+      }
 
       // Existing attachments (Id, URL, ClassID — no file re-upload)
       existingAttachments.forEach((att, index) => {

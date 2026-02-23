@@ -21,6 +21,7 @@ type Attachment = {
   Id: number
   FileName?: string
   URL?: string
+  FileUrl?: string
   CreatedOn?: string
 }
 
@@ -86,11 +87,19 @@ export default function StudentClassDetail() {
     axiosInstance
       .get("/Attachment/GetByClassId", { params: { id: numericId } })
       .then((res) => {
-        if (res.data?.IsSuccess && Array.isArray(res.data?.Data?.Data)) {
-          setAttachments(res.data.Data.Data)
-        } else {
+        if (!res.data?.IsSuccess) {
           setAttachments([])
+          return
         }
+        const raw = res.data.Data
+        const list = Array.isArray(raw)
+          ? raw
+          : Array.isArray(raw?.Data)
+            ? raw.Data
+            : Array.isArray(raw?.Items)
+              ? raw.Items
+              : []
+        setAttachments(list)
       })
       .catch(() => setAttachmentsError("Failed to load attachments."))
       .finally(() => setLoadingAttachments(false))
@@ -285,8 +294,39 @@ export default function StudentClassDetail() {
           </div>
         )}
 
-        {/* ================= OTHER TABS ================= */}
-        {activeTab !== "lessons" && (
+        {/* ================= ATTACHMENTS ================= */}
+        {activeTab === "attachments" && (
+          <div className="p-6">
+            {loadingAttachments ? (
+              <div className="py-8 text-center text-gray-500 text-sm">Loading attachments…</div>
+            ) : attachmentsError ? (
+              <div className="py-8 text-center text-red-600 text-sm">{attachmentsError}</div>
+            ) : attachments.length === 0 ? (
+              <div className="py-8 text-center text-gray-500 text-sm">No attachments for this class.</div>
+            ) : (
+              <ul className="space-y-3">
+                {attachments.map((att) => (
+                  <li key={att.Id} className="flex items-center justify-between py-2 px-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                    <span className="text-sm text-gray-800 truncate">
+                      {att.FileName || att.URL?.split("/").pop() || att.FileUrl?.split("/").pop() || `Attachment ${att.Id}`}
+                    </span>
+                    <a
+                      href={att.URL || att.FileUrl || "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline ml-2 flex-shrink-0"
+                    >
+                      View / Download
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {/* ================= OTHER TABS (fallback) ================= */}
+        {activeTab !== "lessons" && activeTab !== "attachments" && (
           <div className="p-10 text-center text-gray-500 text-sm">
             No data available.
           </div>
