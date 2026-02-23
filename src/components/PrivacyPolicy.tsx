@@ -7,6 +7,26 @@ export default function PrivacyPolicy() {
   const contentRef = useRef(null);
 
   return (
+
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100">
+      {/* Top Navigation Header */}
+      <header className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-gray-200">
+        <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="container mx-auto flex items-center gap-3 px-4 pl-20">
+  <img 
+    src="/src/assets/logo.png" 
+    alt="DCE Logo" 
+    className="h-10 w-auto object-contain"
+  />
+</div>
+          
+          
+        </div>
+      </header>
+     
+
+
+
     <div className="pl-[72px] w-full min-h-screen bg-gradient-to-br from-gray-50 to-slate-100">
       <div className="max-w-[1600px] mx-auto px-6 py-8">
 
@@ -229,6 +249,7 @@ export default function PrivacyPolicy() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
