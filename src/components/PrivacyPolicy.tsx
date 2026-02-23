@@ -197,7 +197,7 @@ export default function PrivacyPolicy() {
 
               <h3>13. Contact Us</h3>
               <p>
-                Email: <strong>support@dcenglishschool.app</strong>
+                Email: <strong>support@dcedu.ie</strong>
               </p>
 
               {/* Support CTA */}
@@ -211,7 +211,7 @@ export default function PrivacyPolicy() {
                   </p>
                 </div>
                 <a
-                  href="mailto:support@dcenglishschool.app"
+                  href="mailto:support@dcedu.ie"
                   className="inline-flex items-center gap-2 px-5 py-3 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:text-blue-600 hover:border-blue-400 transition"
                 >
                   <Mail size={16} />
