@@ -36,6 +36,7 @@ import CommunicationDashboard from "./components/CommunicationDashboard";
 import Compose from "./components/Compose";
 
 import Reports from "./components/Reports";
+import PrivacyPolicy from "./components/PrivacyPolicy";
 import AttendanceReports from "./components/AttendanceReports";
 import LessonReports from "./components/LessonReports";
 
@@ -720,6 +721,19 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <InventoryForm />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+
+              {/* Notes */}
+              <Route
+                path="/privacy-policy"
+                element={
+                  <ProtectedRoute>
+                    <PrivateLayout>
+                      <PrivacyPolicy />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }
