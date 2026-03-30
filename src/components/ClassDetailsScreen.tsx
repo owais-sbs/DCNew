@@ -289,7 +289,12 @@ export default function ClassDetailsScreen() {
     <span className="text-sm text-gray-600">
       ({classInfo.ClassSubject}, {classInfo.ClassLevel})
     </span>
-    <button className="text-blue-600 text-sm hover:underline">
+    <button className="text-blue-600 text-sm hover:underline"
+    onClick={() => {
+                setOpenMoreMenu(false);
+                navigate(`/notes/edit-class/${id}`);
+              }}>
+
       (edit)
     </button>
   </div>
@@ -311,7 +316,7 @@ export default function ClassDetailsScreen() {
         <span className="font-medium">
           {formatSchedule(classInfo.Sessions || [])}
         </span>
-        <span className="text-blue-600 ml-1 cursor-pointer">(edit)</span>
+        {/* <span className="text-blue-600 ml-1 cursor-pointer">(edit)</span> */}
         <div className="text-gray-500 mt-0.5">
           {formatRepeats(classInfo.StartDate, classInfo.EndDate)}
         </div>
@@ -322,7 +327,7 @@ export default function ClassDetailsScreen() {
       💰
       <span>
         Price: No Charge{" "}
-        <span className="text-blue-600 cursor-pointer">(edit)</span>
+        {/* <span className="text-blue-600 cursor-pointer">(edit)</span> */}
       </span>
     </li>
 
