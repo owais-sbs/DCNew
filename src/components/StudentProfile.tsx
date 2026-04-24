@@ -121,6 +121,53 @@ export default function StudentProfile() {
   const [profileImageError, setProfileImageError] = useState(false)
   const [signatureBase64Map, setSignatureBase64Map] = useState<Record<number, string>>({})
   const [emailStatus, setEmailStatus] = useState<string | null>(null);
+  const [courseExtension, setCourseExtension] = useState<any>(null);
+
+
+  const renderCourseTimeline = () => {
+    if (!courseExtension) return null;
+
+    return (
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-6 mb-6 rounded-xl shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-bold text-blue-900 flex items-center gap-2">
+            <CalendarIcon size={20} className="text-blue-600" /> 
+            Course Journey (25 Weeks Base)
+          </h3>
+          {/* <span className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full shadow-sm">
+            STATUS: ACTIVE
+          </span> */}
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white p-3 rounded-lg border border-blue-100 shadow-sm text-center">
+            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Start Date</p>
+            <p className="text-md font-bold text-gray-900">{formatDateValue(courseExtension.CourseStartDate)}</p>
+          </div>
+
+          <div className="bg-white p-3 rounded-lg border border-red-100 shadow-sm text-center">
+            <p className="text-[10px] text-red-500 uppercase font-bold tracking-wider text-nowrap">Leaves (Added)</p>
+            <p className="text-md font-bold text-red-600">+{courseExtension.TotalLeaveDays} Days</p>
+          </div>
+
+          <div className="bg-white p-3 rounded-lg border border-orange-100 shadow-sm text-center">
+            <p className="text-[10px] text-orange-500 uppercase font-bold tracking-wider text-nowrap">Holidays (Added)</p>
+            <p className="text-md font-bold text-orange-600">+{courseExtension.TotalHolidayDays} Days</p>
+          </div>
+
+          <div className="bg-emerald-600 p-3 rounded-lg shadow-md text-center text-white">
+            <p className="text-[10px] opacity-90 uppercase font-bold tracking-wider">Projected End Date</p>
+            <p className="text-md font-black">{formatDateValue(courseExtension.ExtendedEndDate)}</p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2 text-sm font-medium text-blue-800 bg-white/50 p-2 rounded-lg border border-blue-100/50">
+          <Clock size={16} className="animate-pulse" />
+          The original course date has been extended by <span className="font-bold underline">{courseExtension.TotalExtension} days</span>.
+        </div>
+      </div>
+    );
+  };
 
 
     const [currentPage, setCurrentPage] = useState(1)
@@ -186,6 +233,24 @@ const toggleSession = (sessionId: number, attendanceDate: string) => {
 }
 
 
+
+
+useEffect(() => {
+    const fetchExtensionInfo = async () => {
+      if (!id) return;
+      try {
+        const res = await axiosInstance.get(`/Student/GetCourseExtension/GetCourseExtension/${id}`);
+        if (res.data?.IsSuccess) {
+          setCourseExtension(res.data.Data);
+        }
+      } catch (err) {
+        console.error("Extension fetch error:", err);
+      }
+    };
+    fetchExtensionInfo();
+  }, [id, holidays]);
+
+
 useEffect(() => {
   const fetchEmailStatus = async () => {
     if (!id) return;
@@ -203,6 +268,22 @@ useEffect(() => {
   };
   fetchEmailStatus();
 }, [id]);
+
+
+useEffect(() => {
+    const fetchExtensionInfo = async () => {
+        if (!id) return;
+        try {
+            const res = await axiosInstance.get(`/Student/GetCourseExtension/${id}`);
+            if (res.data?.IsSuccess) {
+                setCourseExtension(res.data.Data);
+            }
+        } catch (err) {
+            console.error("Extension fetch error:", err);
+        }
+    };
+    fetchExtensionInfo();
+}, [id, holidays, studentdetails]); 
 
 // Helper to convert the C# Enum to Text (matches EmailStatus: None, FirstWarning, SecondWarning, ThirdWarning, FinalWarning, Expulsion)
 const getEmailStatusLabel = (status: string | null) => {
@@ -1249,7 +1330,39 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
   </div>
 );
 
+const renderContent = () => {
+    const timeline = renderCourseTimeline();
 
+    switch (activeTab.toLowerCase()) {
+      case "profile":
+        return (
+          <div className="space-y-4">
+            {timeline} 
+            {renderProfileContent()}
+          </div>
+        );
+      case "activity":
+        return renderActivityContent();
+      case "classes":
+        return renderClassesContent();
+      case "attendance":
+        return renderAttendanceContent();
+      case "attachments":
+        return renderAttachmentsContent();
+      case "holidays":
+        return renderHolidaysContent();
+      case "create documents":
+        return renderCreateDocumentsContent();
+      default:
+        return (
+          <div className="space-y-4">
+            {timeline}
+            {renderProfileContent()}
+          </div>
+        );
+    }
+  };
+  
 
   const renderClassesContent = () => (
   <div className="bg-white p-5">
@@ -1331,6 +1444,9 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
           </div>
         )}
 
+
+        
+
         {/* Filter Section */}
         <div className="flex items-center gap-4 mb-4">
           <select className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm">
@@ -1411,6 +1527,9 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
                     <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
                   </tr>
                 </thead>
+
+
+                
 
                 <tbody>
                   {lessons.map((lesson, i) => {
@@ -1585,6 +1704,9 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
         )}
       </div>
     )}
+
+
+    
                
 
     {/* TABLE */}
@@ -3144,6 +3266,9 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
     </div>
   )
 
+
+  
+
   const renderProfileContent = () => {
   const Row3 = ({
     label1,
@@ -3406,6 +3531,9 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
         value2="not set"
       />
 
+
+      
+
       
 
       {/* FOOTER */}
@@ -3418,18 +3546,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
 }
 
 
-  const renderContent = () => {
-    switch(activeTab.toLowerCase()) {
-      case "profile": return renderProfileContent()
-      case "activity": return renderActivityContent()
-      case "classes": return renderClassesContent()
-      case "attendance": return renderAttendanceContent()
-      case "attachments": return renderAttachmentsContent()
-      case "holidays": return renderHolidaysContent()
-      case "create documents": return renderCreateDocumentsContent()
-      default: return renderProfileContent()
-    }
-  }
+  
 
   // Show loading state if studentdetails is not loaded yet
   if (!studentdetails) {
@@ -4517,6 +4634,9 @@ function AddAttachmentModal({
       fileInputRef.current.value = ""
     }
   }
+
+
+  
 
   return (
     <div

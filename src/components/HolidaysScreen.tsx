@@ -116,7 +116,8 @@ export default function HolidaysScreen() {
       const payload: any = {
         Id: editingHoliday?.Id ?? 0,
         HolidayDate: formDate,
-        HolidayTitle: formTitle.trim()
+        HolidayTitle: formTitle.trim(),
+        IsActive: true
       };
 
       const res = await axiosInstance.post("/Holiday/AddOrUpdateHoliday", payload);
@@ -153,6 +154,62 @@ export default function HolidaysScreen() {
       setIsSaving(false);
     }
   };
+
+
+
+  const handleDeleteHoliday = async (id?: number) => {
+  if (!id) return;
+
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This holiday will be deleted permanently.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, delete it",
+    confirmButtonColor: "#dc2626"
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    setIsLoading(true);
+
+    const res = await axiosInstance.delete(
+      `/Holiday/DeleteHoliday`,
+      {
+        params: { id: id }
+      }
+    );
+
+    if (!res.data?.IsSuccess) {
+      Swal.fire({
+        title: "Error",
+        text: res.data?.Message || "Delete failed",
+        icon: "error"
+      });
+      return;
+    }
+
+    Swal.fire({
+      title: "Deleted",
+      text: "Holiday deleted successfully",
+      icon: "success"
+    });
+
+    fetchHolidays(pageNumber, pageSize);
+
+  } catch (error) {
+    console.error("Delete error:", error);
+
+    Swal.fire({
+      title: "Error",
+      text: "Failed to delete holiday",
+      icon: "error"
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const formatDate = (value?: string | null) => {
     if (!value) return "";
@@ -266,15 +323,25 @@ export default function HolidaysScreen() {
                   <tr key={h.Id ?? `${h.HolidayDate}-${h.HolidayTitle}`}>
                     <td className="px-6 py-3 text-sm text-gray-900">{formatDate(h.HolidayDate)}</td>
                     <td className="px-6 py-3 text-sm text-gray-900">{h.HolidayTitle}</td>
-                    <td className="px-6 py-3 text-right text-sm">
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(h)}
-                        className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
-                      >
-                        Edit
-                      </button>
-                    </td>
+                    <td className="px-6 py-3 text-right text-sm space-x-3">
+
+  <button
+    type="button"
+    onClick={() => openEditModal(h)}
+    className="text-indigo-600 hover:text-indigo-800 font-medium text-sm"
+  >
+    Edit
+  </button>
+
+  <button
+    type="button"
+    onClick={() => handleDeleteHoliday(h.Id)}
+    className="text-red-600 hover:text-red-800 font-medium text-sm"
+  >
+    Delete
+  </button>
+
+</td>
                   </tr>
                 ))}
               </tbody>
