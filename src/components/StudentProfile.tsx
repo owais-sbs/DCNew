@@ -274,7 +274,7 @@ useEffect(() => {
     const fetchExtensionInfo = async () => {
         if (!id) return;
         try {
-            const res = await axiosInstance.get(`/Student/GetCourseExtension/${id}`);
+            const res = await axiosInstance.get(`/Student/GetCourseExtension/GetCourseExtension/${id}`);
             if (res.data?.IsSuccess) {
                 setCourseExtension(res.data.Data);
             }
