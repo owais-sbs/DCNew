@@ -212,7 +212,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
   const markAttendance = async (
     classId: number,
     studentId: number,
-    status: "Present" | "Absent" | "Late" | "Excused" | "None"
+    status: "Present" | "Absent" | "Late" | "Excused" | "Holiday" | "AppealWeek" | "None"
   ) => {
     try {
       setUpdatingStudent(studentId);
@@ -574,18 +574,45 @@ useEffect(() => {
                 >
                   View profile
                 </button>
-                <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const toggle = student.status === "Excused" ? "None" : "Excused";
-                    markAttendance(student.classId, student.id, toggle);
-                    setOpenStudentMenu(null);
-                  }}
-                >
-                  <input type="checkbox" checked={student.status === "Excused"} readOnly className="pointer-events-none" />
-                  <span>Mark as excused</span>
-                </button>
+               <button
+  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+  onClick={(e) => {
+    e.stopPropagation();
+    const toggle = student.status === "Excused" ? "None" : "Excused";
+    markAttendance(student.classId, student.id, toggle);
+    setOpenStudentMenu(null);
+  }}
+>
+  <input type="checkbox" checked={student.status === "Excused"} readOnly className="pointer-events-none" />
+  <span>Mark as excused</span>
+</button>
+
+{/* ADD THESE TWO */}
+<button
+  className="w-full px-3 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2 text-purple-700"
+  onClick={(e) => {
+    e.stopPropagation();
+    const toggle = student.status === "Holiday" ? "None" : "Holiday";
+    markAttendance(student.classId, student.id, toggle as any);
+    setOpenStudentMenu(null);
+  }}
+>
+  <input type="checkbox" checked={student.status === "Holiday"} readOnly className="pointer-events-none" />
+  <span>Mark as holiday</span>
+</button>
+
+<button
+  className="w-full px-3 py-2 text-left text-sm hover:bg-yellow-50 flex items-center gap-2 text-yellow-700"
+  onClick={(e) => {
+    e.stopPropagation();
+    const toggle = student.status === "AppealWeek" ? "None" : "AppealWeek";
+    markAttendance(student.classId, student.id, toggle as any);
+    setOpenStudentMenu(null);
+  }}
+>
+  <input type="checkbox" checked={student.status === "AppealWeek"} readOnly className="pointer-events-none" />
+  <span>Mark as appeal week</span>
+</button>
                 <button
                   className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"
                   onClick={(e) => {

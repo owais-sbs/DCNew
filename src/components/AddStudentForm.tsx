@@ -57,6 +57,7 @@ interface StudentApiPayload {
     Schedule: string | null;
     IlepReference: string | null;
     EndOfExamPaid: string | null;
+    CourseNumber: number | null;
     GeneralNotes: string | null;
     MedicalNotes: string | null;
     ClassSubject: string | null;
@@ -119,6 +120,7 @@ interface FormDataState {
     schedule: string;
     ilepReference: string;
     endOfExamPaid: string;
+    courseNumber: string;
     generalNotes: string;
     medicalNotes: string;
     classSubject: string;
@@ -182,6 +184,7 @@ const initialFormData: FormDataState = {
     schedule: "",
     ilepReference: "",
     endOfExamPaid: "",
+    courseNumber: "",
     generalNotes: "",
     medicalNotes: "",
     classSubject: "",
@@ -326,6 +329,7 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>, photoBase64?: s
         Schedule: formData.schedule || null,
         IlepReference: formData.ilepReference || null,
         EndOfExamPaid: formData.endOfExamPaid || null,
+        CourseNumber: parseIntegerValue(formData.courseNumber),
 
         GeneralNotes: formData.generalNotes || null,
         MedicalNotes: formData.medicalNotes || null,
@@ -1008,7 +1012,26 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 </select>
                             </div>
 
-                            <div className="md:col-span-2"><label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label><input type="text" value={formData.endOfExamPaid} onChange={(e)=>handleInputChange('endOfExamPaid', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
+                       
+<div>
+    <label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label>
+    <input type="text" value={formData.endOfExamPaid} onChange={(e)=>handleInputChange('endOfExamPaid', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" />
+</div>
+
+
+<div>
+    <label className="block text-[13px] text-gray-700 mb-1">Course Number</label>
+    <select
+        value={formData.courseNumber}
+        onChange={(e) => handleInputChange('courseNumber', e.target.value)}
+        className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white"
+    >
+        <option value="">Select</option>
+        <option value="1">First Course</option>
+        <option value="2">Renewal</option>
+        <option value="3">Last Course</option>
+    </select>
+</div>
                         </div>
                     </div>
 

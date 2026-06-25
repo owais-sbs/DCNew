@@ -62,6 +62,7 @@ type StudentFormState = {
   schedule: string;
   ilepReference: string;
   endOfExamPaid: string;
+  courseNumber: string;
 
   // Notes
   generalNotes: string;
@@ -122,6 +123,7 @@ const emptyForm: StudentFormState = {
   schedule: "",
   ilepReference: "",
   endOfExamPaid: "",
+  courseNumber: "",
   generalNotes: "",
   medicalNotes: "",
   classSubject: "",
@@ -271,6 +273,7 @@ useEffect(() => {
         schedule: data.Schedule ?? "",
         ilepReference: data.IlepReference ?? "",
         endOfExamPaid: data.EndOfExamPaid ?? "",
+        courseNumber: data.CourseNumber ?? "",
         generalNotes: data.GeneralNotes ?? "",
         medicalNotes: data.MedicalNotes ?? "",
         classSubject: data.ClassSubject ?? "",
@@ -397,6 +400,7 @@ useEffect(() => {
         Schedule: form.schedule || null,
         IlepReference: form.ilepReference || null,
         EndOfExamPaid: form.endOfExamPaid || null,
+        CourseNumber: form.courseNumber ? form.courseNumber : null,
         GeneralNotes: form.generalNotes || null,
         MedicalNotes: form.medicalNotes || null,
         ClassSubject: form.classSubject || null,
@@ -698,17 +702,43 @@ useEffect(() => {
                   <label className="block text-[13px] text-gray-700 mb-1">ILEP Ref</label>
                   <input name="ilepReference" value={form.ilepReference} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
                </div>
+               <div>
+  <label className="block text-[13px] text-gray-700 mb-1">Duration</label>
+  <input
+    name="duration"
+    type="text"
+    value={form.duration}
+    onChange={handleChange}
+    className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+  />
+</div>
 
                <div>
-                  <label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label>
-                   <input 
-        name="endOfExamPaid" 
-        type="text" 
-        value={form.endOfExamPaid} 
-        onChange={handleChange} 
-        className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" 
-      />
-      </div>
+  <label className="block text-[13px] text-gray-700 mb-1">End of Exam paid</label>
+  <input 
+    name="endOfExamPaid" 
+    type="text" 
+    value={form.endOfExamPaid} 
+    onChange={handleChange} 
+    className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" 
+  />
+</div>
+
+{/* ADD THIS RIGHT AFTER */}
+<div>
+  <label className="block text-[13px] text-gray-700 mb-1">Course Number</label>
+  <select
+    name="courseNumber"
+    value={form.courseNumber}
+    onChange={handleChange}
+    className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]"
+  >
+    <option value="">Select</option>
+    <option value="FirstCourse">First Course</option>
+    <option value="Renewal">Renewal</option>
+    <option value="LastCourse">Last Course</option>
+  </select>
+</div>
 
               
 

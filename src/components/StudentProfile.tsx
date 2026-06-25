@@ -3458,80 +3458,83 @@ const renderContent = () => {
         value3={studentdetails?.IlepReference}
       />
 
-      <Row3
-        label1="End of Exam paid"
-        value1={studentdetails?.EndOfExamPaid}
-        label2="School Portal"
-        value2={
-          <div className="">
-        
-        <div className="text-xs text-gray-500">
-          Enable or disable the student's access to your portal.
-        </div>
+  <Row3
+  label1="End of Exam paid"
+  value1={studentdetails?.EndOfExamPaid}
+  label2="Course Number"
+  value2={(() => {
+    const map: Record<string, string> = {
+      FirstCourse: "First Course",
+      Renewal: "Renewal",
+      LastCourse: "Last Course",
+    };
+    return studentdetails?.CourseNumber
+      ? map[studentdetails.CourseNumber] ?? studentdetails.CourseNumber
+      : "-";
+  })()}
+  label3="School Portal"
+  value3={
+    <div className="">
+      <div className="text-xs text-gray-500">
+        Enable or disable the student's access to your portal.
       </div>
-        }
-        label3="Access to School Portal"
-        value3={
-          <span className="inline-flex items-center gap-2">
-            <span className="w-10 h-5 bg-blue-600 rounded-full relative">
-              <span className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
-            </span>
-            ON
-          </span>
-        }
-      />
+    </div>
+  }
+/>
 
-      {/* SCHOOL PORTAL HEADER */}
-      
+<Row3
+  label1="Access to School Portal"
+  value1={
+    <span className="inline-flex items-center gap-2">
+      <span className="w-10 h-5 bg-blue-600 rounded-full relative">
+        <span className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
+      </span>
+      ON
+    </span>
+  }
+  label2="Invitation"
+  value2={
+    <button
+      onClick={handleInviteToPortal}
+      disabled={invitingToPortal}
+      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+        inviteSentSuccess
+          ? "bg-emerald-600 text-white cursor-default"
+          : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
+      } disabled:opacity-70 disabled:cursor-not-allowed`}
+    >
+      {invitingToPortal ? (
+        <>
+          <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+          Sending…
+        </>
+      ) : inviteSentSuccess ? (
+        <>✓ Invited to Portal</>
+      ) : (
+        <>Invite to Portal</>
+      )}
+    </button>
+  }
+  label3="Last Login"
+  value3="never"
+  sub3="Abdullah has not signed up yet!"
+/>
 
-      {/* SCHOOL PORTAL */}
-      <Row3
-        
-        label1="Invitation"
-        value1={
-          <button
-            onClick={handleInviteToPortal}
-            disabled={invitingToPortal}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              inviteSentSuccess
-                ? "bg-emerald-600 text-white cursor-default"
-                : "bg-blue-600 text-white hover:bg-blue-700 shadow-sm"
-            } disabled:opacity-70 disabled:cursor-not-allowed`}
-          >
-            {invitingToPortal ? (
-              <>
-                <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Sending…
-              </>
-            ) : inviteSentSuccess ? (
-              <>✓ Invited to Portal</>
-            ) : (
-              <>Invite to Portal</>
-            )}
-          </button>
-        }
-        sub2="Abdullah has not signed up yet!"
-        label2="Last Login"
-        value2="never"
-        label3="Automatic Reminders"
-        value3={
-          <span className="inline-flex items-center gap-2">
-            <span className="w-10 h-5 bg-blue-600 rounded-full relative">
-              <span className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
-            </span>
-            ON
-          </span>
-        }
-      />
-
-      <Row3
-        label1="Username"
-        value1={studentdetails?.Username || "not set"}
-        label2="Password"
-        value2="not set"
-      />
-
-
+<Row3
+  label1="Automatic Reminders"
+  value1={
+    <span className="inline-flex items-center gap-2">
+      <span className="w-10 h-5 bg-blue-600 rounded-full relative">
+        <span className="w-4 h-4 bg-white rounded-full absolute right-0.5 top-0.5" />
+      </span>
+      ON
+    </span>
+  }
+  label2="Username"
+  value2={studentdetails?.Username || "not set"}
+  label3="Password"
+  value3="not set"
+/>
       
 
       
