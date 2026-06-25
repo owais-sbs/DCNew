@@ -4172,7 +4172,7 @@ function StudentAttendanceModal({
   //   lesson.attendance || null
   // )
   const [attendanceStatus, setAttendanceStatus] = useState<
-  "Present" | "Absent" | "Late" | "Excused" | null
+  "Present" | "Absent" | "Late" | "Excused" | "Holiday" | "AppealWeek"  | null
 >(mode === "single" ? lesson?.attendance ?? null : null)
 
   const [isExcused, setIsExcused] = useState(
@@ -4543,6 +4543,36 @@ const lessonTime =
                 <ShieldCheck size={20} />
               </button>
               <span className="text-sm font-medium text-gray-700">Excused</span>
+
+                 <button
+                onClick={() => {
+                  setAttendanceStatus("Holiday")
+                  setIsExcused(false)
+                }}
+                className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
+                  attendanceStatus === "Holiday"
+                    ? "bg-purple-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-purple-50"
+                }`}
+              >
+                <Sun size={20} />
+              </button>
+              <span className="text-sm font-medium text-gray-700">Holiday</span>
+
+              <button
+                onClick={() => {
+                  setAttendanceStatus("AppealWeek")
+                  setIsExcused(false)
+                }}
+                className={`h-12 w-12 rounded-full flex items-center justify-center transition-colors ${
+                  attendanceStatus === "AppealWeek"
+                    ? "bg-yellow-500 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-yellow-50"
+                }`}
+              >
+                <Flag size={20} />
+              </button>
+              <span className="text-sm font-medium text-gray-700">Appeal Week</span>
             </div>
           </div>
         </div>
