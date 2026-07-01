@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
   MapPin,
@@ -105,7 +106,45 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
   const [showAddStudent, setShowAddStudent] = useState(false);
   const [showUnenrollModal, setShowUnenrollModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<StudentInSession | null>(null);
-  const [dropdownPositions, setDropdownPositions] = useState<Record<number, { top: number; left: number }>>({});
+  const [dropdownPositions, setDropdownPositions] = useState<
+    Record<number, { top?: number; bottom?: number; left: number; maxHeight: number }>
+  >({});
+
+  const STUDENT_MENU_WIDTH = 192;
+
+  const getStudentMenuPosition = (button: HTMLElement) => {
+    const rect = button.getBoundingClientRect();
+    const padding = 8;
+    const minHeight = 120;
+    const preferredMaxHeight = 260;
+
+    const spaceBelow = window.innerHeight - rect.bottom - padding;
+    const spaceAbove = rect.top - padding;
+    const openUpward = spaceBelow < 180 && spaceAbove > spaceBelow;
+    const maxHeight = Math.max(
+      minHeight,
+      Math.min(preferredMaxHeight, (openUpward ? spaceAbove : spaceBelow) - 4)
+    );
+
+    const left = Math.min(
+      Math.max(padding, rect.right - STUDENT_MENU_WIDTH),
+      window.innerWidth - STUDENT_MENU_WIDTH - padding
+    );
+
+    if (openUpward) {
+      return {
+        bottom: window.innerHeight - rect.top + 4,
+        left,
+        maxHeight,
+      };
+    }
+
+    return {
+      top: rect.bottom + 4,
+      left,
+      maxHeight,
+    };
+  };
   const [selectedStudents, setSelectedStudents] = useState<number[]>([]);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [attendanceApplyTo, setAttendanceApplyTo] = useState<"all" | "selected">("all");
@@ -199,7 +238,7 @@ const SessionDetailsModal: React.FC<SessionDetailsModalProps> = ({
     if (openStudentMenu === null) return;
     const handleClick = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
-      if (!target.closest(".student-menu-container")) {
+      if (!target.closest(".student-menu-container") && !target.closest(".student-menu-dropdown")) {
         setOpenStudentMenu(null);
       }
     };
@@ -457,11 +496,11 @@ useEffect(() => {
       <div 
         key={student.id} 
         onClick={() => toggleStudentSelection(student.id)}
-        className={`bg-gray-100 border border-gray-300  px-4 py-3 hover:shadow-sm transition cursor-pointer h-40 ${
-          isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200"
+        className={`bg-white border rounded-lg px-3 py-3 hover:shadow-sm transition cursor-pointer ${
+          isSelected ? "border-blue-500 bg-blue-50 ring-1 ring-blue-200" : "border-gray-200"
         }`}
       >
-        <div className="flex items-center gap-3 text-center mt-5">
+        <div className="flex items-center gap-3">
           <input
             type="checkbox"
             checked={isSelected}
@@ -549,23 +588,34 @@ useEffect(() => {
               onClick={(e) => {
                 e.stopPropagation();
                 const button = e.currentTarget;
-                const rect = button.getBoundingClientRect();
-                setDropdownPositions(prev => ({
+                const position = getStudentMenuPosition(button);
+                setDropdownPositions((prev) => ({
                   ...prev,
-                  [student.id]: { top: rect.bottom + 4, left: rect.right - 192 }
+                  [student.id]: position,
                 }));
                 setOpenStudentMenu(openStudentMenu === student.id ? null : student.id);
               }}
             >
               <MoreVertical className="w-4 h-4 text-indigo-600" />
             </button>
-            {openStudentMenu === student.id && dropdownPositions[student.id] && (
-              <div 
-                className="fixed w-48 bg-white  shadow-xl border border-gray-200 z-[100]"
-                style={{ top: `${dropdownPositions[student.id].top}px`, left: `${dropdownPositions[student.id].left}px` }}
+            {openStudentMenu === student.id &&
+              dropdownPositions[student.id] &&
+              createPortal(
+              <div
+                className="student-menu-dropdown fixed w-48 overflow-y-auto overscroll-contain bg-white rounded-lg shadow-xl border border-gray-200 z-[200] py-1"
+                style={{
+                  ...(dropdownPositions[student.id].top != null
+                    ? { top: `${dropdownPositions[student.id].top}px` }
+                    : {}),
+                  ...(dropdownPositions[student.id].bottom != null
+                    ? { bottom: `${dropdownPositions[student.id].bottom}px` }
+                    : {}),
+                  left: `${dropdownPositions[student.id].left}px`,
+                  maxHeight: `${dropdownPositions[student.id].maxHeight}px`,
+                }}
               >
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     setOpenStudentMenu(null);
@@ -574,56 +624,81 @@ useEffect(() => {
                 >
                   View profile
                 </button>
-               <button
-  className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-  onClick={(e) => {
-    e.stopPropagation();
-    const toggle = student.status === "Excused" ? "None" : "Excused";
-    markAttendance(student.classId, student.id, toggle);
-    setOpenStudentMenu(null);
-  }}
->
-  <input type="checkbox" checked={student.status === "Excused"} readOnly className="pointer-events-none" />
-  <span>Mark as excused</span>
-</button>
 
-{/* ADD THESE TWO */}
-<button
-  className="w-full px-3 py-2 text-left text-sm hover:bg-purple-50 flex items-center gap-2 text-purple-700"
-  onClick={(e) => {
-    e.stopPropagation();
-    const toggle = student.status === "Holiday" ? "None" : "Holiday";
-    markAttendance(student.classId, student.id, toggle as any);
-    setOpenStudentMenu(null);
-  }}
->
-  <input type="checkbox" checked={student.status === "Holiday"} readOnly className="pointer-events-none" />
-  <span>Mark as holiday</span>
-</button>
+                <div className="my-1 border-t border-gray-100" />
 
-<button
-  className="w-full px-3 py-2 text-left text-sm hover:bg-yellow-50 flex items-center gap-2 text-yellow-700"
-  onClick={(e) => {
-    e.stopPropagation();
-    const toggle = student.status === "AppealWeek" ? "None" : "AppealWeek";
-    markAttendance(student.classId, student.id, toggle as any);
-    setOpenStudentMenu(null);
-  }}
->
-  <input type="checkbox" checked={student.status === "AppealWeek"} readOnly className="pointer-events-none" />
-  <span>Mark as appeal week</span>
-</button>
                 <button
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 flex items-center gap-2 text-red-600"
+                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const toggle = student.status === "Excused" ? "None" : "Excused";
+                    markAttendance(student.classId, student.id, toggle);
+                    setOpenStudentMenu(null);
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={student.status === "Excused"}
+                    readOnly
+                    className="h-4 w-4 shrink-0 rounded border-gray-300 text-indigo-600 pointer-events-none"
+                  />
+                  <span>Mark as excused</span>
+                </button>
+
+                <button
+                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-purple-50 flex items-center gap-2.5 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const toggle = student.status === "Holiday" ? "None" : "Holiday";
+                    markAttendance(student.classId, student.id, toggle as any);
+                    setOpenStudentMenu(null);
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={student.status === "Holiday"}
+                    readOnly
+                    className="h-4 w-4 shrink-0 rounded border-gray-300 text-purple-600 pointer-events-none"
+                  />
+                  <span className={student.status === "Holiday" ? "text-purple-700 font-medium" : ""}>
+                    Mark as holiday
+                  </span>
+                </button>
+
+                <button
+                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-amber-50 flex items-center gap-2.5 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const toggle = student.status === "AppealWeek" ? "None" : "AppealWeek";
+                    markAttendance(student.classId, student.id, toggle as any);
+                    setOpenStudentMenu(null);
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={student.status === "AppealWeek"}
+                    readOnly
+                    className="h-4 w-4 shrink-0 rounded border-gray-300 text-amber-600 pointer-events-none"
+                  />
+                  <span className={student.status === "AppealWeek" ? "text-amber-700 font-medium" : ""}>
+                    Mark as appeal week
+                  </span>
+                </button>
+
+                <div className="my-1 border-t border-gray-100" />
+
+                <button
+                  className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2.5 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleUnenrollClick(student);
                   }}
                 >
-                  <Trash2 size={16} className="text-red-600" />
+                  <Trash2 size={15} className="shrink-0" />
                   <span>Remove</span>
                 </button>
-              </div>
+              </div>,
+              document.body
             )}
           </div>
         </div>
@@ -633,19 +708,19 @@ useEffect(() => {
   };
 
   return (
-  <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4" onClick={onClose}>
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
     <div
-      className="w-full max-w-7xl bg-white  border border-gray-300 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+      className="w-full max-w-7xl bg-white border border-gray-300 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] min-h-0"
       onClick={(e) => e.stopPropagation()}
     >
       {/* 1. TOP HEADER (Dark Slate like Sidebar) */}
-      <div className="relative flex items-center justify-between px-6 py-4 bg-[#1e293b] border-b border-gray-200 text-white">
-        <div className="flex items-center gap-4">
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-600"></div>
+      <div className="relative flex-shrink-0 flex items-center justify-between px-6 py-4 bg-[#1e293b] border-b border-gray-200 text-white">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-600" />
 
           {lesson.teacherNames.length > 0 && (
-            <div className="flex items-center gap-2 border-r border-slate-700 pr-4">
-              <div className="h-9 w-9  bg-blue-600 text-white grid place-items-center text-sm font-semibold shadow-sm">
+            <div className="flex items-center gap-2 border-r border-slate-700 pr-4 flex-shrink-0">
+              <div className="h-9 w-9 bg-blue-600 text-white grid place-items-center text-sm font-semibold shadow-sm rounded-full">
                 {lesson.teacherNames[0]
                   .split(" ")
                   .map((n) => n[0])
@@ -659,58 +734,40 @@ useEffect(() => {
             </div>
           )}
 
-          <div className="flex items-start gap-4 flex-1 text-left">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-600"></div>
-            {lesson.teacherNames.length > 0 && (
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9  bg-blue-600 text-white grid place-items-center text-sm font-semibold">
-                  {lesson.teacherNames[0]
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .slice(0, 2)
-                    .toUpperCase()}
-                </div>
-                <div className="text-sm text-slate-200 truncate max-w-[180px]">
-                  {lesson.teacherNames.join(", ")}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2 text-lg font-bold">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-base sm:text-lg font-bold">
               <span className="text-blue-400">{lesson.time}</span>
-              <span className="text-white">{lesson.className}</span>
-              <span className="text-slate-400 font-normal">
-                ({lesson.subject || lesson.classroom})sde
-              </span>
+              <span className="text-white truncate">{lesson.className}</span>
+              {(lesson.subject || lesson.classroom) && (
+                <span className="text-slate-400 font-normal text-sm">
+                  ({lesson.subject || lesson.classroom})
+                </span>
+              )}
             </div>
-            <span className="text-xs text-slate-400 mt-0.5 block font-mono uppercase">
-              {formattedSessionDate + " "}
-              #{lesson.id} 📍 {lesson.classroom}
+            <span className="text-xs text-slate-400 mt-0.5 block font-mono uppercase truncate">
+              {formattedSessionDate} #{lesson.id} 📍 {lesson.classroom}
             </span>
           </div>
         </div>
 
-        <button className="text-slate-400 hover:text-white transition-colors p-1" onClick={onClose}>
+        <button className="flex-shrink-0 text-slate-400 hover:text-white transition-colors p-1 ml-4" onClick={onClose}>
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_220px] gap-0 flex-1 overflow-hidden">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_220px] gap-0 flex-1 min-h-0 overflow-hidden">
         {/* MAIN AREA */}
-        <div className="flex flex-col bg-white overflow-hidden">
+        <div className="flex flex-col min-h-0 bg-white overflow-hidden">
           
           {/* 2. ACTIONS BAR (Light Gray Background) */}
-          <div className="px-6 py-3 bg-[#f1f5f9] border-b border-gray-300 flex items-center justify-between">
+          <div className="flex-shrink-0 px-6 py-3 bg-[#f1f5f9] border-b border-gray-300 flex flex-wrap items-center justify-between gap-2">
   <h3 className="text-sm font-bold text-slate-700">
     Students <span className="ml-1 px-1.5 py-0.5 bg-slate-200 text-xs">{sessionStudents.length}</span>
   </h3>
   
-  <div className="flex items-center gap-1.5">
+  <div className="flex flex-wrap items-center gap-1.5">
     <button
       onClick={toggleSelectAll}
       className="h-9 px-3 bg-white border border-gray-300 text-slate-600 text-xs font-semibold flex items-center gap-2 hover:bg-gray-50 transition shadow-sm rounded-sm"
@@ -756,15 +813,15 @@ useEffect(() => {
     })()}
   </div>
 </div>
-          <div className="p-6 overflow-y-auto bg-slate-50 flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 bg-slate-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {renderStudents()}
             </div>
           </div>
         </div>
 
         {/* 3. SIDEBAR (Slate background) */}
-        <aside className="border-l border-gray-300 p-5 bg-[#f8fafc] space-y-8">
+        <aside className="border-l border-gray-300 p-5 bg-[#f8fafc] space-y-8 overflow-y-auto min-h-0">
           <div>
             <div className="flex items-center gap-2 mb-3 text-slate-500">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

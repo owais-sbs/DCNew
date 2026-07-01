@@ -861,8 +861,8 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                 }) : dayString;
 
               return (
-  <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 px-4" onClick={() => setSelected(null)}>
-    <div className="w-full max-w-7xl h-[90vh] bg-[#f8fafc] -lg border border-gray-300 shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setSelected(null)}>
+    <div className="w-full max-w-7xl max-h-[92vh] min-h-0 bg-[#f8fafc] -lg border border-gray-300 shadow-2xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
       
       {/* 1. TOP HEADER (Dark Slate Style) */}
       <div className="flex-shrink-0 flex items-center justify-between px-6 py-3 bg-[#1e293b] border-b border-gray-200 text-white">
@@ -919,9 +919,9 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
         </div>
       </div>
 
-      <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0 overflow-hidden">
+      <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0 overflow-hidden">
         {/* Main content - Scrollable */}
-        <div className="p-6 overflow-y-auto bg-slate-50">
+        <div className="min-h-0 overflow-y-auto p-6 bg-slate-50">
           <div className="mb-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {isLoadingStudents ? (
@@ -1045,7 +1045,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
         </div>
 
         {/* 3. RIGHT SIDEBAR */}
-        <aside className="border-l border-gray-300 bg-[#f8fafc] overflow-y-auto p-5">
+        <aside className="border-l border-gray-300 bg-[#f8fafc] overflow-y-auto min-h-0 p-5">
           <div className="space-y-8">
             <div>
               <div className="flex items-center gap-2 mb-4 text-slate-400 uppercase tracking-widest text-[10px] font-bold">
