@@ -60,8 +60,8 @@ export default function Login() {
   useEffect(() => {
     // If the user is already authenticated (user object exists), redirect them.
     if (user) {
-      console.log('User is already authenticated, redirecting to /dashboard');
-      navigate('/dashboard');
+      const destination = user.role.toLowerCase() === 'student' ? '/student/dashboard' : '/dashboard';
+      navigate(destination);
     }
   }, [user, navigate]); // Dependencies for the effect
 
@@ -91,54 +91,62 @@ export default function Login() {
       if (data.IsSuccess && data.Data) {
         // Check if Data contains token (your API structure)
         if ((data.Data as any).token || data.Data.Token) {
-          const token = (data.Data as any).token || data.Data.Token;
-          
-          localStorage.setItem('token', token);
-          
-          // Extract user details from JWT token
-          try {
-            const tokenParts = token.split('.');
-            if (tokenParts.length === 3) {
-              const payload = JSON.parse(atob(tokenParts[1]));
-              console.log('JWT payload:', payload);
-              
-              const userId = payload.UserId || payload.userId || payload.sub || '1';
-              const branchId = payload.BranchId;
-              const userEmail = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || email;
-              const userRole = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || 'User';
-              const userName = userEmail.split('@')[0] || 'User';
-              
-              const roleId = payload.RoleId || payload.roleId || 
-                           (userRole === 'Admin' ? 1 : 2) || 1;
-              
-              localStorage.setItem('userID', userId.toString());
-              if (branchId) {
-                localStorage.setItem('branchId', branchId);
-              }
-              localStorage.setItem('roleId', roleId.toString());
+          const loginData = data.Data as any;
+          const token = loginData.token || loginData.Token;
 
-              const userData = {
-                id: parseInt(userId),
-                name: userName,
-                email: userEmail,
-                role: userRole,
-                roleId: parseInt(roleId),
-                branchId: branchId,
-                isActive: true 
-              };
-              
-              localStorage.setItem('userInfo', JSON.stringify(userData));
-              console.log('User logged in successfully (JWT extracted):', userData);
-              
-              login(userData);
-              navigate('/dashboard');
-            } else {
-              throw new Error('Invalid JWT token format');
-            }
-             } catch (jwtError) {
-            console.error('Error parsing JWT token:', jwtError);
-            setError('Error processing authentication token');
-          }
+          localStorage.setItem('token', token);
+
+          try {
+            const tokenParts = token.split('.');
+            if (tokenParts.length !== 3) {
+              throw new Error('Invalid JWT token format');
+            }
+
+            const payload = JSON.parse(atob(tokenParts[1]));
+            const account = loginData.account || loginData.Account;
+            const roles = loginData.roles || loginData.Roles || [];
+            const roleClaim = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+            const userId = payload.UserId || payload.userId || payload.sub || account?.Id;
+            const studentId = loginData.studentId ?? loginData.StudentId ?? payload.StudentId ?? payload.studentId ?? null;
+            const branchId = payload.BranchId || payload.branchId;
+            const userEmail = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || payload.email || account?.Email || email;
+            const userRole = roles[0] || (Array.isArray(roleClaim) ? roleClaim[0] : roleClaim) || 'User';
+            const userName = account?.Name || userEmail.split('@')[0] || 'User';
+            const roleId = payload.RoleId || payload.roleId || (userRole.toLowerCase() === 'admin' ? 1 : userRole.toLowerCase() === 'student' ? 3 : 2);
+
+            if (!userId) {
+              throw new Error('Login response is missing user identity');
+            }
+
+            localStorage.setItem('userID', userId.toString());
+            if (branchId) {
+              localStorage.setItem('branchId', branchId);
+            }
+            localStorage.setItem('roleId', roleId.toString());
+            if (studentId !== null) {
+              localStorage.setItem('studentId', studentId.toString());
+            } else {
+              localStorage.removeItem('studentId');
+            }
+
+            const userData = {
+              id: Number(userId),
+              name: userName,
+              email: userEmail,
+              role: userRole,
+              roleId: Number(roleId),
+              studentId: studentId === null ? null : Number(studentId),
+              branchId,
+              isActive: true
+            };
+
+            localStorage.setItem('userInfo', JSON.stringify(userData));
+            login(userData);
+            navigate(userRole.toLowerCase() === 'student' ? '/student/dashboard' : '/dashboard');
+          } catch (jwtError) {
+            console.error('Error processing login response:', jwtError);
+            setError('Error processing authentication token');
+          }
         } else {
           // Original structure with full user data
           const { Token, UserId, Email, Name, Role, RoleId } = data.Data;

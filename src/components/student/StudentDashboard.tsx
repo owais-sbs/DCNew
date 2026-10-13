@@ -1,28 +1,10 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Calendar, Star, Flag, Bell, MapPin, X, CheckSquare, BarChart, FileText, PenTool, Paperclip } from "lucide-react"
-import { useStudentClasses, STUDENT_PORTAL_ID } from "./useStudentClasses"
+import { useAuth } from "../AuthContext"
+import { useStudentClasses } from "./useStudentClasses"
 import { useStudentUpcomingSession, UpcomingSession } from "./useStudentUpcomingSession"
-import { useStudentCompletedSessions, CompletedSession } from "./useStudentCompletedSessions"
-
-const upcomingLessons = [
-  {
-    id: 1,
-    date: "28-11-2025",
-    time: "9:00 - 10:30",
-    title: "Advanced_AM_DCE1_PART 1",
-    location: "Limerick",
-    teacher: "Colm Delmar1",
-    attendance: "late",
-    attendanceText: "Abdul was late for this lesson",
-    goldStars: 0,
-    redFlags: 0,
-    grade: null,
-    lessonNotes: null,
-    personalNotes: null,
-    attachments: 0
-  }
-]
+import { useStudentAttendance } from "./useStudentAttendance"
 
 type Lesson = {
   id: number
@@ -46,13 +28,18 @@ type Lesson = {
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const studentId = user?.studentId ?? null
   const [lessonTab, setLessonTab] = useState<"upcoming" | "past">("upcoming")
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
-  const { classes: enrolledClasses, loading: classesLoading, error: classesError } = useStudentClasses(STUDENT_PORTAL_ID)
-  const { session: upcomingSession, loading: sessionLoading, error: sessionError } = useStudentUpcomingSession(STUDENT_PORTAL_ID)
-  const { sessions: completedSessions, loading: completedLoading, error: completedError } = useStudentCompletedSessions(
-    STUDENT_PORTAL_ID
-  )
+  const { classes: enrolledClasses, loading: classesLoading, error: classesError } = useStudentClasses(studentId)
+  const { session: upcomingSession, loading: sessionLoading, error: sessionError } = useStudentUpcomingSession(studentId)
+  const { attendance, loading: attendanceLoading, error: attendanceError } = useStudentAttendance(studentId)
+  const attendanceTotal = attendance.filter((record) => record.status !== "Excused").length
+  const presentCount = attendance.filter((record) => record.status === "Present").length
+  const absentCount = attendance.filter((record) => record.status === "Absent").length
+  const lateCount = attendance.filter((record) => record.status === "Late").length
+  const attendancePercentage = attendanceTotal ? Math.round((presentCount / attendanceTotal) * 100) : 0
 
   const { list: upcomingLessonList, message: upcomingMessage } = buildUpcomingLessonList(
     upcomingSession,
@@ -60,15 +47,28 @@ export default function StudentDashboard() {
     sessionError
   )
 
-  const lessons =
-    lessonTab === "upcoming"
-      ? upcomingLessonList
-      : buildPastLessonsList(completedSessions, completedLoading, completedError).list
+  const pastLessons: Lesson[] = attendance.map((record) => ({
+    id: record.attendanceId,
+    date: formatDateValue(record.date),
+    time: formatTimeRange(record.startTime, record.endTime),
+    title: record.classTitle || "Class",
+    location: record.dayOfWeek || "Day not provided",
+    teacher: "",
+    attendance: record.status || "Not marked",
+    attendanceText: record.status || "Not marked",
+    goldStars: 0,
+    redFlags: 0,
+    grade: null,
+    lessonNotes: null,
+    personalNotes: null,
+    attachments: 0,
+    classId: record.classId
+  }))
 
-  const lessonsMessage =
-    lessonTab === "upcoming"
-      ? upcomingMessage
-      : buildPastLessonsList(completedSessions, completedLoading, completedError).message
+  const lessons = lessonTab === "upcoming" ? upcomingLessonList : pastLessons
+  const lessonsMessage = lessonTab === "upcoming"
+    ? upcomingMessage
+    : attendanceError || (attendanceLoading ? "Loading attendance..." : "No attendance records found.")
 
   const handleLessonClick = (lesson: Lesson) => {
     setSelectedLesson(lesson)
@@ -222,13 +222,17 @@ export default function StudentDashboard() {
             <Calendar className="h-5 w-5 text-indigo-600" />
           </div>
           <div className="mt-4 h-32 w-32 mx-auto border-4 border-gray-200 rounded-full grid place-items-center text-gray-500 text-sm">
-            0%
+            {attendanceLoading ? "Loading" : attendanceError ? "—" : `${attendancePercentage}%`}
           </div>
-          <div className="mt-4 flex items-center justify-around text-xs text-gray-600">
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500"></span>Present</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500"></span>Absent</span>
-            <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-yellow-500"></span>Late</span>
-          </div>
+          {attendanceError ? (
+            <p className="mt-3 text-center text-xs text-red-500">{attendanceError}</p>
+          ) : (
+            <div className="mt-4 flex items-center justify-around text-xs text-gray-600">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500"></span>Present {presentCount}</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-red-500"></span>Absent {absentCount}</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-yellow-500"></span>Late {lateCount}</span>
+            </div>
+          )}
         </div>
         <div className="space-y-4">
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl p-6 shadow-sm">
@@ -295,7 +299,9 @@ export default function StudentDashboard() {
           </div>
           <div className="space-y-4">
             {lessons.length === 0 ? (
-              <div className="py-6 text-center text-sm text-gray-500">{lessonsMessage || "No lessons available."}</div>
+              <div className={`py-6 text-center text-sm ${lessonTab === "upcoming" && sessionError || lessonTab === "past" && attendanceError ? "text-red-500" : "text-gray-500"}`}>
+                {lessonTab === "past" && attendanceLoading ? "Loading attendance..." : lessonsMessage || "No lessons available."}
+              </div>
             ) : (
               lessons.map((lesson, idx) => (
                 <div
@@ -447,37 +453,4 @@ const buildUpcomingLessonList = (session: UpcomingSession | null, loading: boole
   return { list: [lesson], message: null }
 }
 
-const buildPastLessonsList = (sessions: CompletedSession[], loading: boolean, error: string | null) => {
-  if (loading) {
-    return { list: [], message: "Loading past lessons..." }
-  }
-  if (error) {
-    return { list: [], message: error }
-  }
-  if (!sessions.length) {
-    return { list: [], message: "No past lessons available." }
-  }
-
-  const list = sessions.map((session) => ({
-    id: session.id,
-    date: formatDateValue(session.startTime || session.date),
-    time: formatTimeRange(session.startTime, session.endTime),
-    title: `Class ID: ${session.classId ?? "—"}`,
-    location: session.dayOfWeek || "Day not provided",
-    teacher: session.teacherId ? `Teacher ID: ${session.teacherId}` : "Teacher not assigned",
-    attendance: "present",
-    attendanceText: "Abdul was present for this lesson",
-    goldStars: 0,
-    redFlags: 0,
-    grade: null,
-    lessonNotes: null,
-    personalNotes: null,
-    attachments: 0,
-    classId: session.classId,
-    teacherId: session.teacherId,
-    dayOfWeek: session.dayOfWeek
-  }))
-
-  return { list, message: null }
-}
 

@@ -1,8 +1,6 @@
 import { useEffect, useState, useCallback } from "react"
 import axiosInstance from "../axiosInstance"
 
-export const STUDENT_PORTAL_ID = 7
-
 export type StudentClass = {
   id: number
   title: string
@@ -19,12 +17,18 @@ type ApiResponse = {
   Message?: string
 }
 
-export function useStudentClasses(studentId: number) {
+export function useStudentClasses(studentId: number | null) {
   const [classes, setClasses] = useState<StudentClass[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchClasses = useCallback(async () => {
+    if (studentId === null) {
+      setClasses([])
+      setError("This student account is not linked to a student profile.")
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {

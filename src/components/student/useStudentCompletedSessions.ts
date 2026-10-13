@@ -18,12 +18,18 @@ export type CompletedSession = {
   raw: any
 }
 
-export function useStudentCompletedSessions(studentId: number) {
+export function useStudentCompletedSessions(studentId: number | null) {
   const [sessions, setSessions] = useState<CompletedSession[]>([])
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchSessions = useCallback(async () => {
+    if (studentId === null) {
+      setSessions([])
+      setError("This student account is not linked to a student profile.")
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {

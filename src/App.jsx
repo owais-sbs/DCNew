@@ -609,8 +609,15 @@ export default function App() {
                 }
               />
 
-              {/* Student portal (public demo) */}
-              <Route path="/student" element={<StudentPortalLayout />}>
+              {/* Student portal */}
+              <Route
+                path="/student"
+                element={
+                  <ProtectedRoute allowedRole="student">
+                    <StudentPortalLayout />
+                  </ProtectedRoute>
+                }
+              >
                 <Route index element={<Navigate to="/student/dashboard" replace />} />
                 <Route path="dashboard" element={<StudentDashboardPage />} />
                 <Route path="calendar" element={<StudentCalendarPage />} />

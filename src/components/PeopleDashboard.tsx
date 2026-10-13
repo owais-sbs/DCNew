@@ -72,13 +72,7 @@ const studentFilters = [
   { label: "Status", value: "Live" }
 ]
 
-const teacherRows: TeacherRow[] = [
-  { name: "Abbey teacher", phone: "0858330601", email: "elisabethsmiddy@hotmail.com" },
-  { name: "Adao Lopes Teacher", phone: "0831495753", email: "didina7@gmail.com" },
-  { name: "Anne Smiddy Elisabeth", phone: "0852014537", email: "dmytroolginxbocx_yns@indeedemail.com" },
-  { name: "Colm Delmar1", phone: "353", email: "ale201019@hotmail.com" },
-  { name: "Daiana Teacher", phone: "0852014537", email: "daiana.teacher@example.com" }
-]
+const teacherRows: TeacherRow[] = []
 
 const staffRows: StaffRow[] = [
   { name: "Lia Reception", email: "liasantosmarketing@gmail.com" },
@@ -104,6 +98,9 @@ export default function PeopleDashboard() {
   const [students, setStudents] = useState<StudentRow[]>([])
   const [isLoadingStudents, setIsLoadingStudents] = useState<boolean>(false)
   const [studentError, setStudentError] = useState<string | null>(null)
+  const [teachers, setTeachers] = useState<TeacherRow[]>([])
+  const [isLoadingTeachers, setIsLoadingTeachers] = useState<boolean>(false)
+  const [teacherError, setTeacherError] = useState<string | null>(null)
   const [pageNumber, setPageNumber] = useState(1)
   const pageSize = 5
   const [totalCount, setTotalCount] = useState(0)
@@ -218,6 +215,45 @@ const handleDelete = async (id: number) => {
     return () => controller.abort()
   }, [pageNumber])
 
+  useEffect(() => {
+    const controller = new AbortController()
+
+    const fetchTeachers = async () => {
+      setIsLoadingTeachers(true)
+      setTeacherError(null)
+      try {
+        const response = await axiosInstance.get("/Teacher/TeachersGetAll", {
+          signal: controller.signal
+        })
+
+        if (response.data?.IsSuccess && Array.isArray(response.data.Data?.data)) {
+          setTeachers(
+            response.data.Data.data.map((teacher: any) => ({
+              name: [teacher.Name, teacher.Surname].filter(Boolean).join(" ").trim() || "Unnamed teacher",
+              phone: teacher.Mobile ?? "",
+              email: teacher.Email ?? ""
+            }))
+          )
+        } else {
+          setTeachers([])
+          setTeacherError("No teacher data available.")
+        }
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return
+        console.error("Failed to load teachers", error)
+        setTeacherError("Failed to load teachers. Please try again.")
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsLoadingTeachers(false)
+        }
+      }
+    }
+
+    fetchTeachers()
+
+    return () => controller.abort()
+  }, [])
+
   
 
   const getStudentName = (student: StudentRow) => {
@@ -255,9 +291,11 @@ const handleDelete = async (id: number) => {
     return `€${numericValue.toFixed(2)}`
   }
 
-  const resolvedTabs = tabs.map((tab) =>
-    tab.id === "students" ? { ...tab, count: totalCount } : tab
-  )
+  const resolvedTabs = tabs.map((tab) => {
+    if (tab.id === "students") return { ...tab, count: totalCount }
+    if (tab.id === "teachers") return { ...tab, count: teachers.length }
+    return tab
+  })
 
   const renderStudentTableBody = () => {
     if (isLoadingStudents) {
@@ -490,7 +528,9 @@ const handleDelete = async (id: number) => {
       {activeTab === "teachers" && (
         <div className="mt-6">
           <div className="flex items-center justify-between">
-            <div className="text-xl font-semibold text-gray-800">41 Teachers</div>
+            <div className="text-xl font-semibold text-gray-800">
+              {isLoadingTeachers ? "Loading..." : `${teachers.length} Teachers`}
+            </div>
             <div className="flex items-center gap-3">
               <button className="h-10 px-3 inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm hover:bg-gray-50">
                 <Download size={16} /> Export
@@ -511,23 +551,43 @@ const handleDelete = async (id: number) => {
                 </tr>
               </thead>
               <tbody>
-                {teacherRows.map((teacher, idx) => (
-                  <tr key={teacher.name} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                    <td className="px-4 py-3"><input type="checkbox" /></td>
-                    <td className="px-4 py-3 text-indigo-700 flex items-center gap-3">
-                      <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}>
-                        {teacher.name.split(" ").map(w=>w[0]).slice(0,2).join("")}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-800">{teacher.name}</div>
-                        <div className="text-xs text-gray-500">Teacher</div>
-                      </div>
+                {isLoadingTeachers ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                      Loading teachers...
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{teacher.phone}</td>
-                    <td className="px-4 py-3 text-blue-600">{teacher.email}</td>
-                    <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"><MoreHorizontal size={18} /></button></td>
                   </tr>
-                ))}
+                ) : teacherError ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-red-600">
+                      {teacherError}
+                    </td>
+                  </tr>
+                ) : teachers.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
+                      No teachers available.
+                    </td>
+                  </tr>
+                ) : (
+                  teachers.map((teacher, idx) => (
+                    <tr key={`${teacher.email}-${idx}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                      <td className="px-4 py-3"><input type="checkbox" /></td>
+                      <td className="px-4 py-3 text-indigo-700 flex items-center gap-3">
+                        <div className={`h-8 w-8 rounded-full grid place-items-center text-white text-xs font-semibold ${avatarPalette[idx % avatarPalette.length]}`}>
+                          {teacher.name.split(" ").map(w=>w[0]).slice(0,2).join("")}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-800">{teacher.name}</div>
+                          <div className="text-xs text-gray-500">Teacher</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-gray-700">{teacher.phone}</td>
+                      <td className="px-4 py-3 text-blue-600">{teacher.email}</td>
+                      <td className="px-4 py-3"><button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100"><MoreHorizontal size={18} /></button></td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

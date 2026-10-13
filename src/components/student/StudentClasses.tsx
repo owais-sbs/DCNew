@@ -1,22 +1,45 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useStudentClasses, STUDENT_PORTAL_ID } from "./useStudentClasses"
-import { useStudentCompletedSessions } from "./useStudentCompletedSessions"
-
-const attendanceSummary = [
-  { label: "Present", time: "0", count: 0, percentage: 0, color: "bg-emerald-500" },
-  { label: "Absent", time: "0", count: 0, percentage: 0, color: "bg-rose-500" },
-  { label: "Late", time: "0", count: 0, percentage: 0, color: "bg-amber-400" },
-  { label: "Excused", time: "1 hour 30 minutes", count: 1, percentage: "-", color: "bg-gray-300" }
-]
+import { useAuth } from "../AuthContext"
+import { useStudentClasses } from "./useStudentClasses"
+import { useStudentAttendance } from "./useStudentAttendance"
 
 export default function StudentClasses() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const studentId = user?.studentId ?? null
   const [activeTab, setActiveTab] = useState<"classes" | "lessons" | "attendance" | "grades" | "assignments">("classes")
-  const { classes: studentClasses, loading: classesLoading, error: classesError } = useStudentClasses(STUDENT_PORTAL_ID)
-  const { sessions: completedSessions, loading: completedLoading, error: completedError } = useStudentCompletedSessions(
-    STUDENT_PORTAL_ID
-  )
+  const { classes: studentClasses, loading: classesLoading, error: classesError } = useStudentClasses(studentId)
+  const { attendance: attendanceRecords, loading: recordsLoading, error: recordsError } = useStudentAttendance(studentId)
+  const [attendanceClassId, setAttendanceClassId] = useState<number | undefined>()
+  const { attendance, loading: attendanceLoading, error: attendanceError } = useStudentAttendance(studentId, attendanceClassId)
+  const attendanceStatuses = ["Present", "Absent", "Late", "Excused"] as const
+  const attendanceColors: Record<(typeof attendanceStatuses)[number], string> = {
+    Present: "#10b981",
+    Absent: "#f43f5e",
+    Late: "#fbbf24",
+    Excused: "#9ca3af"
+  }
+  const attendanceCounts = Object.fromEntries(attendanceStatuses.map((status) => [
+    status,
+    attendance.filter((record) => record.status === status).length
+  ])) as Record<(typeof attendanceStatuses)[number], number>
+  const attendanceTotal = Object.values(attendanceCounts).reduce((total, count) => total + count, 0)
+  const attendanceDuration = (status: (typeof attendanceStatuses)[number]) => {
+    const minutes = attendance
+      .filter((record) => record.status === status && record.startTime && record.endTime)
+      .reduce((total, record) => total + Math.max(0, (new Date(record.endTime!).getTime() - new Date(record.startTime!).getTime()) / 60000), 0)
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = Math.round(minutes % 60)
+    return `${hours}h ${remainingMinutes}m`
+  }
+  const attendanceCircle = attendanceStatuses.reduce((segments, status) => {
+    const share = attendanceTotal ? (attendanceCounts[status] / attendanceTotal) * 565.48 : 0
+    const offset = segments.offset
+    segments.circles.push({ status, share, offset })
+    segments.offset += share
+    return segments
+  }, { offset: 0, circles: [] as { status: string; share: number; offset: number }[] }).circles
 
   const renderTabContent = () => {
     switch (activeTab) {
@@ -130,31 +153,34 @@ export default function StudentClasses() {
                 </tr>
               </thead>
               <tbody>
-                {lessons.map((lesson, idx) => (
-                  <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                {recordsError ? (
+                  <tr><td colSpan={6} className="px-4 py-10 text-center text-red-500">{recordsError}</td></tr>
+                ) : recordsLoading ? (
+                  <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-500">Loading attendance...</td></tr>
+                ) : attendanceRecords.length === 0 ? (
+                  <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-500">No attendance records found.</td></tr>
+                ) : attendanceRecords.map((record, idx) => (
+                  <tr key={record.attendanceId} className={idx % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
                     <td className="px-4 py-3 text-gray-700">
-                      <div>{lesson.date}</div>
-                      <div className="text-xs text-gray-500">{lesson.time}</div>
+                      <div>{formatDateValue(record.date)}</div>
+                      <div className="text-xs text-gray-500">{formatTimeValue(record.startTime)}{record.endTime ? ` - ${formatTimeValue(record.endTime)}` : ""}</div>
                     </td>
                     <td className="px-4 py-3 text-gray-700">
                       <div className="flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-red-500"></span>
-                        <div>
-                          <div className="text-indigo-600 font-medium">{lesson.title}</div>
-                          <div className="text-xs text-gray-500">General English with Exam Preparation, C1</div>
-                        </div>
+                        <span className="h-2 w-2 rounded-full bg-indigo-500"></span>
+                        <div className="text-indigo-600 font-medium">{record.classTitle || "Class"}</div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{lesson.attendance}</td>
-                    <td className="px-4 py-3 text-gray-700">{lesson.behaviour}</td>
-                    <td className="px-4 py-3 text-gray-700">{lesson.grade}</td>
-                    <td className="px-4 py-3 text-gray-700">{lesson.notes || "—"}</td>
+                    <td className="px-4 py-3 text-gray-700">{record.status || "Not marked"}</td>
+                    <td className="px-4 py-3 text-gray-400">—</td>
+                    <td className="px-4 py-3 text-gray-400">—</td>
+                    <td className="px-4 py-3 text-gray-400">—</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <div className="p-4 flex items-center justify-between border-t border-gray-100 text-xs text-gray-500">
-              <div>Showing 1 - 25 of {lessons.length} entries</div>
+              <div>Showing {attendanceRecords.length} recorded entries</div>
               <div className="flex items-center gap-2">
                 <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">‹</button>
                 <span className="text-gray-900 font-medium">1</span>
@@ -172,50 +198,71 @@ export default function StudentClasses() {
                 <p className="text-xs text-gray-500">Check your classes attendance here</p>
               </div>
               <div className="flex items-center gap-3">
-                <select className="h-9 px-3 rounded-xl border border-gray-200 text-sm text-gray-600">
-                  <option>Class: All</option>
+                <select
+                  value={attendanceClassId ?? "all"}
+                  onChange={(event) => setAttendanceClassId(event.target.value === "all" ? undefined : Number(event.target.value))}
+                  className="h-9 px-3 rounded-xl border border-gray-200 text-sm text-gray-600"
+                >
+                  <option value="all">Class: All</option>
+                  {studentClasses.map((cls) => <option key={cls.id} value={cls.id}>{cls.title || `Class ${cls.id}`}</option>)}
                 </select>
-                <select className="h-9 px-3 rounded-xl border border-gray-200 text-sm text-gray-600">
-                  <option>Date: Total</option>
-                </select>
-                <button className="h-9 w-9 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50">↻</button>
+                <span className="h-9 px-3 grid place-items-center rounded-xl border border-gray-200 text-sm text-gray-600">All dates</span>
               </div>
             </div>
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="flex-1 min-h-[200px] border border-gray-200 rounded-2xl flex items-center justify-center">
-                <svg viewBox="0 0 200 200" className="w-48 h-48 text-gray-200">
-                  <circle cx="100" cy="100" r="90" stroke="currentColor" strokeWidth="12" fill="none" />
-                  <circle cx="100" cy="100" r="90" stroke="#d946ef" strokeWidth="12" fill="none" strokeDasharray="565.48" strokeDashoffset="420" />
-                  <circle cx="100" cy="100" r="90" stroke="#f97316" strokeWidth="12" fill="none" strokeDasharray="565.48" strokeDashoffset="480" />
-                  <circle cx="100" cy="100" r="90" stroke="#10b981" strokeWidth="12" fill="none" strokeDasharray="565.48" strokeDashoffset="530" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <table className="w-full text-sm border border-gray-200 rounded-2xl overflow-hidden">
-                  <thead className="bg-gray-50 text-gray-500 text-xs">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium">Attendance</th>
-                      <th className="px-4 py-3 text-left font-medium">Time</th>
-                      <th className="px-4 py-3 text-left font-medium">Count</th>
-                      <th className="px-4 py-3 text-left font-medium">Percentage (%)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attendanceSummary.map((item) => (
-                      <tr key={item.label} className="border-t border-gray-100">
-                        <td className="px-4 py-3 flex items-center gap-2 text-gray-700">
-                          <span className={`h-2 w-2 rounded-full ${item.color}`}></span>
-                          {item.label}
-                        </td>
-                        <td className="px-4 py-3 text-gray-700">{item.time}</td>
-                        <td className="px-4 py-3 text-gray-700">{item.count}</td>
-                        <td className="px-4 py-3 text-gray-700">{item.percentage}</td>
-                      </tr>
+            {attendanceError ? (
+              <div className="py-8 text-center text-sm text-red-500">{attendanceError}</div>
+            ) : attendanceLoading ? (
+              <div className="py-8 text-center text-sm text-gray-500">Loading attendance...</div>
+            ) : attendanceTotal === 0 ? (
+              <div className="py-8 text-center text-sm text-gray-500">No attendance records found.</div>
+            ) : (
+              <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex-1 min-h-[200px] border border-gray-200 rounded-2xl flex items-center justify-center">
+                  <svg viewBox="0 0 200 200" className="w-48 h-48">
+                    <circle cx="100" cy="100" r="90" stroke="#e5e7eb" strokeWidth="12" fill="none" />
+                    {attendanceCircle.map((segment) => (
+                      <circle
+                        key={segment.status}
+                        cx="100"
+                        cy="100"
+                        r="90"
+                        stroke={attendanceColors[segment.status as keyof typeof attendanceColors]}
+                        strokeWidth="12"
+                        fill="none"
+                        strokeDasharray={`${segment.share} ${565.48 - segment.share}`}
+                        strokeDashoffset={-segment.offset}
+                        transform="rotate(-90 100 100)"
+                      />
                     ))}
-                  </tbody>
-                </table>
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <table className="w-full text-sm border border-gray-200 rounded-2xl overflow-hidden">
+                    <thead className="bg-gray-50 text-gray-500 text-xs">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium">Attendance</th>
+                        <th className="px-4 py-3 text-left font-medium">Time</th>
+                        <th className="px-4 py-3 text-left font-medium">Count</th>
+                        <th className="px-4 py-3 text-left font-medium">Percentage (%)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {attendanceStatuses.map((status) => (
+                        <tr key={status} className="border-t border-gray-100">
+                          <td className="px-4 py-3 flex items-center gap-2 text-gray-700">
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: attendanceColors[status] }}></span>
+                            {status}
+                          </td>
+                          <td className="px-4 py-3 text-gray-700">{attendanceDuration(status)}</td>
+                          <td className="px-4 py-3 text-gray-700">{attendanceCounts[status]}</td>
+                          <td className="px-4 py-3 text-gray-700">{Math.round((attendanceCounts[status] / attendanceTotal) * 100)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )
       case "grades":
@@ -308,5 +355,12 @@ const formatDateValue = (value?: string | null) => {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return "—"
   return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+}
+
+const formatTimeValue = (value?: string | null) => {
+  if (!value) return "—"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "—"
+  return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
 }
 

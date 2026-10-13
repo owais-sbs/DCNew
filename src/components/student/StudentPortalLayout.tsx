@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom"
+import { useAuth } from "../AuthContext"
 
 const navLinks = [
   { label: "Dashboard", to: "/student/dashboard" },
@@ -7,6 +8,15 @@ const navLinks = [
 ]
 
 export default function StudentPortalLayout() {
+  const { user } = useAuth()
+  const studentName = user?.name || user?.email || "Student"
+  const initials = studentName
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("")
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
@@ -38,11 +48,11 @@ export default function StudentPortalLayout() {
           <div className="text-lg font-semibold text-gray-900">DCE English Language School</div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="text-sm font-medium text-gray-900">Abdullah Jan</div>
+              <div className="text-sm font-medium text-gray-900">{studentName}</div>
               <div className="text-xs text-gray-500">Student</div>
             </div>
             <div className="h-10 w-10 rounded-full bg-indigo-500 text-white grid place-items-center text-sm font-semibold">
-              AJ
+              {initials}
             </div>
           </div>
         </header>

@@ -7,7 +7,8 @@ interface User {
   name: string;
   email: string;
   role: string;
-  roleId: number; // Add this
+  roleId: number;
+  studentId?: number | null;
   isActive: boolean;
 }
 

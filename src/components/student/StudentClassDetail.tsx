@@ -1,26 +1,22 @@
 import { useState, useMemo } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { RefreshCw, ChevronLeft } from "lucide-react"
-import { STUDENT_PORTAL_ID, useStudentClasses } from "./useStudentClasses"
-
-const lessons = Array.from({ length: 25 }, (_, index) => ({
-  id: index + 1,
-  date: `${25 + index}-11-2023`,
-  time: "9:00-10:30",
-  class: "Advanced_AM_DCE1_PART 1 General English with Exam Preparation, C1",
-  attendance: index < 3 ? ["Present", "Tardy", "Late", "Missed", "Absent"][index] : "",
-  behaviour: "",
-  grade: "",
-  notes: ""
-}))
+import { useAuth } from "../AuthContext"
+import { useStudentClasses } from "./useStudentClasses"
+import { useStudentAttendance } from "./useStudentAttendance"
 
 export default function StudentClassDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<"lessons" | "class-notes" | "attachments" | "assignments" | "gradebook">("lessons")
-  const { classes, loading, error } = useStudentClasses(STUDENT_PORTAL_ID)
+  const { classes, loading, error } = useStudentClasses(user?.studentId ?? null)
   const numericId = Number(id)
   const classData = useMemo(() => classes.find((cls) => cls.id === numericId), [classes, numericId])
+  const { attendance, loading: attendanceLoading, error: attendanceError, refresh } = useStudentAttendance(
+    user?.studentId ?? null,
+    classData?.id
+  )
   const rawClass = classData?.raw
 
   const getAttendanceButtonClass = (status: string) => {
@@ -64,6 +60,13 @@ export default function StudentClassDetail() {
     const date = new Date(value)
     if (Number.isNaN(date.getTime())) return "—"
     return date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+  }
+
+  const formatTime = (value?: string | null) => {
+    if (!value) return "—"
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) return "—"
+    return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
   }
 
   return (
@@ -185,8 +188,8 @@ export default function StudentClassDetail() {
             <div className="mb-4 flex items-center justify-between">
               <p className="text-sm text-gray-600">Your attendance, notes and performance for each lesson of the class.</p>
             <div className="flex items-center gap-3">
-                <span className="text-sm text-gray-500">01-01-2023 - 01-01-2000</span>
-                <button className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">
+                <span className="text-sm text-gray-500">{formatDate(classData.startDate)} - {formatDate(classData.endDate)}</span>
+                <button onClick={refresh} className="h-8 w-8 grid place-items-center rounded-lg hover:bg-gray-100 border border-gray-200">
                   <RefreshCw size={16} className="text-gray-600" />
                 </button>
               </div>
@@ -205,28 +208,30 @@ export default function StudentClassDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {lessons.map((lesson) => (
-                    <tr key={lesson.id} className="border-t border-gray-100 hover:bg-gray-50">
+                  {attendanceError ? (
+                    <tr><td colSpan={6} className="px-4 py-10 text-center text-red-500">{attendanceError}</td></tr>
+                  ) : attendanceLoading ? (
+                    <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-500">Loading attendance...</td></tr>
+                  ) : attendance.length === 0 ? (
+                    <tr><td colSpan={6} className="px-4 py-10 text-center text-gray-500">No attendance records found for this class.</td></tr>
+                  ) : attendance.map((record) => (
+                    <tr key={record.attendanceId} className="border-t border-gray-100 hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <div className="text-gray-900">{lesson.date}</div>
-                        <div className="text-xs text-gray-500">{lesson.time}</div>
+                        <div className="text-gray-900">{formatDate(record.date)}</div>
+                        <div className="text-xs text-gray-500">{formatTime(record.startTime)} - {formatTime(record.endTime)}</div>
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-red-500"></span>
-                          <span className="text-gray-700">{lesson.class}</span>
+                          <span className="h-2 w-2 rounded-full bg-indigo-500"></span>
+                          <span className="text-gray-700">{record.classTitle || classData.title}</span>
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        {lesson.attendance ? (
-                          <button
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${getAttendanceButtonClass(lesson.attendance)}`}
-                          >
-                            {lesson.attendance}
-                          </button>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
+                        {record.status ? (
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getAttendanceButtonClass(record.status)}`}>
+                            {record.status}
+                          </span>
+                        ) : <span className="text-gray-400">—</span>}
                       </td>
                       <td className="px-4 py-3 text-gray-400">—</td>
                       <td className="px-4 py-3 text-gray-400">—</td>

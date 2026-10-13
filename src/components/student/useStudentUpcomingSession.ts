@@ -18,12 +18,18 @@ export type UpcomingSession = {
   raw: any
 }
 
-export function useStudentUpcomingSession(studentId: number) {
+export function useStudentUpcomingSession(studentId: number | null) {
   const [session, setSession] = useState<UpcomingSession | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchSession = useCallback(async () => {
+    if (studentId === null) {
+      setSession(null)
+      setError("This student account is not linked to a student profile.")
+      return
+    }
+
     setLoading(true)
     setError(null)
     try {
