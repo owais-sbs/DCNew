@@ -56,7 +56,6 @@ type StudentFormState = {
   numberOfWeeks: string;
   hoursPerWeek: string;
   tuitionFees: string;
-  attendance: string;
   
   // Payment / Exam Extras
   externalExam: string;
@@ -122,7 +121,6 @@ const emptyForm: StudentFormState = {
   numberOfWeeks: "",
   hoursPerWeek: "",
   tuitionFees: "",
-  attendance: "",
 
   externalExam: "",
   externalExamDate: "",
@@ -215,7 +213,6 @@ export default function EditStudent() {
           courseStartDate: toDateInput(data.CourseStartDate),
           courseEndDate: toDateInput(data.CourseEndDate),
           finishedCourseDate: toDateInput(data.FinishedCourseDate),
-          attendance: data.Attendance ?? "",
           numberOfWeeks: data.NumberOfWeeks?.toString() ?? "",
           hoursPerWeek: data.HoursPerWeek?.toString() ?? "",
           tuitionFees: data.TuitionFees?.toString() ?? "",
@@ -310,7 +307,6 @@ export default function EditStudent() {
         CourseStartDate: form.courseStartDate || null,
         CourseEndDate: form.courseEndDate || null,
         FinishedCourseDate: form.finishedCourseDate || null,
-        Attendance: form.attendance || null,
         NumberOfWeeks: form.numberOfWeeks ? parseInt(form.numberOfWeeks) : null,
         HoursPerWeek: form.hoursPerWeek ? parseFloat(form.hoursPerWeek) : null,
         TuitionFees: form.tuitionFees ? parseFloat(form.tuitionFees) : null,
@@ -570,7 +566,7 @@ export default function EditStudent() {
                     <input type="date" name="courseStartDate" value={form.courseStartDate} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date (calculated when course weeks are set)</label>
                     <input type="date" name="courseEndDate" value={form.courseEndDate} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
                 </div>
                 <div>
@@ -625,10 +621,6 @@ export default function EditStudent() {
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Schedule</label>
                     <input name="schedule" value={form.schedule} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Attendance</label>
-                    <input name="attendance" value={form.attendance} onChange={handleChange} className="w-full h-10 px-3 rounded-lg border border-gray-300" />
                 </div>
             </div>
         </div>

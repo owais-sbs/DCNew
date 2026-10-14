@@ -21,12 +21,14 @@ type ApiResponse = {
 
 export function useStudentAttendance(studentId: number | null, classId?: number) {
   const [attendance, setAttendance] = useState<StudentAttendance[]>([])
+  const [percentage, setPercentage] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchAttendance = useCallback(async () => {
     if (studentId === null) {
       setAttendance([])
+      setPercentage(0)
       setError("This student account is not linked to a student profile.")
       return
     }
@@ -50,12 +52,24 @@ export function useStudentAttendance(studentId: number | null, classId?: number)
           endTime: item.EndTime,
           status: item.AttendanceStatus
         })))
+        if (classId === undefined) {
+          const summary = await axiosInstance.get<ApiResponse>("/Dashboard/GetStudentAttendanceStats", { params: { studentId } })
+          const overall = Array.isArray(summary.data?.Data) ? summary.data.Data[0] : null
+          setPercentage(summary.data?.IsSuccess ? Number(overall?.OverallPercentage) || 0 : 0)
+        } else {
+          const relevant = response.data.Data as any[]
+          const eligible = relevant.filter((item) => ["Present", "Late", "Absent"].includes(item.AttendanceStatus))
+          const attended = eligible.filter((item) => ["Present", "Late"].includes(item.AttendanceStatus)).length
+          setPercentage(eligible.length ? Math.round(attended / eligible.length * 100) : 0)
+        }
       } else {
         setAttendance([])
+        setPercentage(0)
         setError(response.data?.Message || "Failed to load attendance.")
       }
     } catch (err: any) {
       setAttendance([])
+      setPercentage(0)
       setError(err?.message || "Unable to load attendance.")
     } finally {
       setLoading(false)
@@ -66,5 +80,5 @@ export function useStudentAttendance(studentId: number | null, classId?: number)
     fetchAttendance()
   }, [fetchAttendance])
 
-  return { attendance, loading, error, refresh: fetchAttendance }
+  return { attendance, percentage, loading, error, refresh: fetchAttendance }
 }

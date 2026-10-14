@@ -41,7 +41,6 @@ interface StudentApiPayload {
     CourseLevel: string | null;
     CourseEndDate: string | null;
     HoursPerWeek: number | null;
-    Attendance: string | null;
     CourseCode: string | null;
     CourseTitle: string | null;
     ModeOfStudy: string | null;
@@ -98,7 +97,6 @@ interface FormDataState {
     passportExpiryDate: string;
     courseStartDate: string;
     courseEndDate: string;
-    attendance: string;
     courseTitle: string;
     modeOfStudy: string;
     numberOfWeeks: string;
@@ -159,7 +157,6 @@ const initialFormData: FormDataState = {
     passportExpiryDate: "",
     courseStartDate: "",
     courseEndDate: "",
-    attendance: "",
     courseTitle: "",
     modeOfStudy: "",
     numberOfWeeks: "",
@@ -263,7 +260,6 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>): StudentApiPayl
         CourseLevel: formData.courseLevel || null,
         CourseEndDate: parseDate(formData.courseEndDate),
         HoursPerWeek: parseDecimal(formData.hoursPerWeek),
-        Attendance: formData.attendance || null,
         CourseCode: formData.courseCode || null,
         CourseTitle: formData.courseTitle || null,
         ModeOfStudy: formData.modeOfStudy || null,
@@ -745,7 +741,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Course End Date</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Course End Date (calculated when course weeks are set)</label>
                                 <input
                                     type="text"
                                     value={formData.courseEndDate}
@@ -759,15 +755,6 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     type="text"
                                     value={formData.hoursPerWeek}
                                     onChange={(e) => handleInputChange('hoursPerWeek', e.target.value)}
-                                    className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Attendance</label>
-                                <input
-                                    type="text"
-                                    value={formData.attendance}
-                                    onChange={(e) => handleInputChange('attendance', e.target.value)}
                                     className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-white text-sm"
                                 />
                             </div>

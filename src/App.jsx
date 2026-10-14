@@ -49,6 +49,9 @@ import StudentDashboardPage from "./components/student/StudentDashboard";
 import StudentCalendarPage from "./components/student/StudentCalendar";
 import StudentClassesPage from "./components/student/StudentClasses";
 import StudentClassDetailPage from "./components/student/StudentClassDetail";
+import StudentHolidaysPage from "./components/student/StudentHolidays";
+import StudentRequestsPage from "./components/student/StudentRequests";
+import StudentRequestQueue from "./components/StudentRequestQueue";
 
 import "react-datepicker/dist/react-datepicker.css";
 
@@ -125,6 +128,17 @@ export default function App() {
                   <ProtectedRoute>
                     <PrivateLayout>
                       <PeopleDashboard />
+                    </PrivateLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              <Route
+                path="/student-requests"
+                element={
+                  <ProtectedRoute allowedRole="Admin">
+                    <PrivateLayout>
+                      <StudentRequestQueue />
                     </PrivateLayout>
                   </ProtectedRoute>
                 }
@@ -623,6 +637,8 @@ export default function App() {
                 <Route path="calendar" element={<StudentCalendarPage />} />
                 <Route path="classes" element={<StudentClassesPage />} />
                 <Route path="classes/:id" element={<StudentClassDetailPage />} />
+                <Route path="holidays" element={<StudentHolidaysPage />} />
+                <Route path="requests" element={<StudentRequestsPage />} />
               </Route>
 
             </Routes>

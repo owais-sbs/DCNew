@@ -2,6 +2,7 @@
 import { ChevronDown, Plus, Download, MoreHorizontal, CheckCircle, Clock, FileText, User, Calendar, DollarSign, Receipt, Users, StickyNote, Paperclip, BookOpen, Award, FilePlus, Sun, Archive, Trash2, CreditCard, Mail, Megaphone, BarChart3, Calendar as CalendarIcon, FileCheck } from "lucide-react"
 import { useState, useEffect, useRef } from "react"
 import axiosInstance from "./axiosInstance"
+import { useAuth } from "./AuthContext"
 import html2canvas from "html2canvas"
 import { jsPDF } from "jspdf"
 
@@ -63,12 +64,23 @@ const slugify = (text: string) =>
 export default function StudentProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   const [activeTab, setActiveTab] = useState("profile")
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const [openModal, setOpenModal] = useState<string | null>(null)
   const [portalInviteOpen, setPortalInviteOpen] = useState(false)
   const [studentdetails, setStudent] = useState<any>(null)
+  const [attendanceRecords, setAttendanceRecords] = useState<any[]>([])
+  const [attendanceStats, setAttendanceStats] = useState<any[]>([])
+  const [attendanceHistory, setAttendanceHistory] = useState<any[]>([])
+  const [studentHolidayRequests, setStudentHolidayRequests] = useState<any[]>([])
+  const [holidayReviewNote, setHolidayReviewNote] = useState("")
+  const [holidayReviewMessage, setHolidayReviewMessage] = useState("")
+  const [documentActionMessage, setDocumentActionMessage] = useState("")
+  const [documentActionBusy, setDocumentActionBusy] = useState(false)
+  const [adjustment, setAdjustment] = useState({ attendanceId: "", status: "Excused", reason: "", evidenceUrl: "", medical: false })
+  const [adjustmentMessage, setAdjustmentMessage] = useState("")
   const [openDocumentId, setOpenDocumentId] = useState<string | null>(null)
   const documentContentRef = useRef<HTMLDivElement | null>(null)
 
@@ -89,6 +101,90 @@ export default function StudentProfile() {
     };
     fetchStudent();
   }, [id]);
+
+  const reloadAttendance = async () => {
+    if (!id) return
+    try {
+      const [records, stats] = await Promise.all([
+        axiosInstance.get("/Student/GetAttendance", { params: { studentId: id } }),
+        axiosInstance.get("/Dashboard/GetStudentAttendanceStats", { params: { studentId: id } })
+      ])
+      setAttendanceRecords(records.data?.IsSuccess && Array.isArray(records.data.Data) ? records.data.Data : [])
+      setAttendanceStats(stats.data?.IsSuccess && Array.isArray(stats.data.Data) ? stats.data.Data : [])
+      if (user?.role?.toLowerCase() === "admin") {
+        try {
+          const history = await axiosInstance.get("/AttendanceAdjustment/GetByStudent", { params: { studentId: id } })
+          setAttendanceHistory(history.data?.IsSuccess && Array.isArray(history.data.Data) ? history.data.Data : [])
+        } catch {
+          setAttendanceHistory([])
+        }
+      } else {
+        setAttendanceHistory([])
+      }
+    } catch {
+      setAttendanceRecords([])
+      setAttendanceStats([])
+      setAttendanceHistory([])
+    }
+  }
+
+  useEffect(() => { void reloadAttendance() }, [id, user?.role])
+
+  const reloadStudentHolidayRequests = async () => {
+    if (!id || user?.role?.toLowerCase() !== "admin") return
+    try {
+      const response = await axiosInstance.get("/Holiday/GetStudentHolidays", { params: { studentId: id } })
+      setStudentHolidayRequests(response.data?.IsSuccess && Array.isArray(response.data.Data) ? response.data.Data : [])
+    } catch {
+      setStudentHolidayRequests([])
+    }
+  }
+
+  useEffect(() => { void reloadStudentHolidayRequests() }, [id, user?.role])
+
+  const reviewStudentHoliday = async (requestId: number, decision: "Approved" | "Rejected") => {
+    setHolidayReviewMessage("")
+    try {
+      const response = await axiosInstance.post("/StudentHolidayWorkflow/Review", {
+        requestId,
+        decision,
+        reviewNote: holidayReviewNote || null
+      })
+      if (!response.data?.IsSuccess) {
+        setHolidayReviewMessage(response.data?.Message || "Request review could not be saved.")
+        return
+      }
+      setHolidayReviewNote("")
+      setHolidayReviewMessage(`Holiday request ${decision.toLowerCase()}.`)
+      await Promise.all([reloadStudentHolidayRequests(), axiosInstance.get(`/Student/GetById/${id}`).then((result) => {
+        if (result.data?.IsSuccess) setStudent(result.data.Data)
+      })])
+    } catch (error: any) {
+      setHolidayReviewMessage(error?.response?.data?.Message || "Request review could not be saved.")
+    }
+  }
+
+  const applyAttendanceAdjustment = async () => {
+    setAdjustmentMessage("")
+    try {
+      const response = await axiosInstance.post("/AttendanceAdjustment/Apply", {
+        attendanceId: Number(adjustment.attendanceId),
+        newStatus: adjustment.status,
+        reason: adjustment.reason,
+        evidenceUrl: adjustment.evidenceUrl || null,
+        isMedicalApproval: adjustment.medical
+      })
+      if (!response.data?.IsSuccess) {
+        setAdjustmentMessage(response.data?.Message || "Adjustment could not be saved.")
+        return
+      }
+      setAdjustmentMessage("Attendance adjustment saved.")
+      setAdjustment({ attendanceId: "", status: "Excused", reason: "", evidenceUrl: "", medical: false })
+      await reloadAttendance()
+    } catch (error: any) {
+      setAdjustmentMessage(error?.response?.data?.Message || "Adjustment could not be saved.")
+    }
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -507,92 +603,49 @@ export default function StudentProfile() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Attendance</h2>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
-            Class: <ChevronDown size={14} />
-          </button>
-          <button className="h-10 px-3 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-1">
-            Date: Total <ChevronDown size={14} />
-          </button>
-          <button className="h-10 w-10 rounded-xl border border-gray-200 bg-white text-gray-700 flex items-center justify-center">
-            <Clock size={16} />
-          </button>
+          <p className="text-sm text-gray-500 mt-1">Calculated from recorded sessions. Approved medical absences are excluded.</p>
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Donut Chart Placeholder */}
-        <div className="flex items-center justify-center">
-          <div className="relative">
-            <div className="h-48 w-48 rounded-full border-8 border-gray-200 flex items-center justify-center">
-              <div className="h-32 w-32 rounded-full border-8 border-green-500 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-gray-900">88.8%</div>
-                  <div className="text-sm text-gray-600">Present</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        {/* Attendance Details Table */}
-        <div>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Attendance</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Time</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Count</th>
-                <th className="text-left py-3 px-4 font-medium text-gray-700">Percentage (%)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b border-gray-100">
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-green-500" />
-                    <span className="text-gray-700">Present</span>
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-gray-700">167 hours</td>
-                <td className="py-3 px-4 text-gray-700">111</td>
-                <td className="py-3 px-4 text-gray-700">88.80</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-red-500" />
-                    <span className="text-gray-700">Absent</span>
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-gray-700">21 hours</td>
-                <td className="py-3 px-4 text-gray-700">14</td>
-                <td className="py-3 px-4 text-gray-700">11.20</td>
-              </tr>
-              <tr className="border-b border-gray-100">
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-yellow-500" />
-                    <span className="text-gray-700">Late</span>
-                  </div>
-                </td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-              </tr>
-              <tr>
-                <td className="py-3 px-4">
-                  <span className="text-gray-700">Excused</span>
-                </td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-                <td className="py-3 px-4 text-gray-700">0</td>
-                <td className="py-3 px-4 text-gray-700">-</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <div className="mb-6 rounded-xl bg-emerald-50 p-5">
+        <div className="text-sm text-emerald-800">Current calculated attendance</div>
+        <div className="text-3xl font-semibold text-emerald-900">{Number(studentdetails.CalculatedAttendancePercentage ?? 0).toFixed(2)}%</div>
+        <div className="text-sm text-emerald-800">{attendanceStats.find((row) => row.Status === "Present")?.AttendedTotal ?? 0} attended of {attendanceStats.find((row) => row.Status === "Present")?.EligibleTotal ?? 0} eligible sessions · {attendanceStats.find((row) => row.Status === "Present")?.Excluded ?? 0} excluded · {attendanceStats.find((row) => row.Status === "Present")?.Pending ?? 0} pending</div>
       </div>
+
+      <div className="overflow-x-auto mb-8">
+        <table className="w-full text-sm">
+          <thead><tr className="border-b text-left text-gray-600"><th className="py-3 px-3">Date</th><th className="py-3 px-3">Class</th><th className="py-3 px-3">Status</th></tr></thead>
+          <tbody>{attendanceRecords.map((record) => <tr key={record.AttendanceId} className="border-b border-gray-100">
+            <td className="py-3 px-3">{formatDateValue(record.Date)}</td><td className="py-3 px-3">{record.ClassTitle || "Class"}</td><td className="py-3 px-3">{record.AttendanceStatus || "Pending"}</td>
+          </tr>)}{attendanceRecords.length === 0 && <tr><td className="py-4 text-gray-500" colSpan={3}>No attendance records found.</td></tr>}</tbody>
+        </table>
+      </div>
+
+      {user?.role?.toLowerCase() === "admin" && <section className="border-t border-gray-200 pt-6">
+        <h3 className="font-semibold text-gray-900 mb-3">Administrative correction or medical approval</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <select className="h-10 rounded-lg border px-3" value={adjustment.attendanceId} onChange={(event) => setAdjustment({ ...adjustment, attendanceId: event.target.value })}>
+            <option value="">Select recorded session</option>{attendanceRecords.map((record) => <option key={record.AttendanceId} value={record.AttendanceId}>{formatDateValue(record.Date)} · {record.ClassTitle} · {record.AttendanceStatus}</option>)}
+          </select>
+          <select className="h-10 rounded-lg border px-3" value={adjustment.status} onChange={(event) => setAdjustment({ ...adjustment, status: event.target.value, medical: event.target.value === "Excused" ? adjustment.medical : false })}>
+            {["Present", "Absent", "Late", "Excused"].map((status) => <option key={status}>{status}</option>)}
+          </select>
+          <input className="h-10 rounded-lg border px-3" placeholder="Reason for correction" value={adjustment.reason} onChange={(event) => setAdjustment({ ...adjustment, reason: event.target.value })} />
+          <input className="h-10 rounded-lg border px-3" placeholder="Medical certificate evidence URL (required for medical approval)" value={adjustment.evidenceUrl} onChange={(event) => setAdjustment({ ...adjustment, evidenceUrl: event.target.value })} />
+        </div>
+        <label className="flex items-center gap-2 text-sm mt-3"><input type="checkbox" checked={adjustment.medical} onChange={(event) => setAdjustment({ ...adjustment, medical: event.target.checked, status: event.target.checked ? "Excused" : adjustment.status })} />Approve as a medical absence (excluded from percentage)</label>
+        <button onClick={applyAttendanceAdjustment} disabled={!adjustment.attendanceId || !adjustment.reason.trim() || (adjustment.medical && !adjustment.evidenceUrl.trim())} className="mt-3 h-10 px-4 rounded-lg bg-blue-600 text-white text-sm disabled:opacity-50">Save audited adjustment</button>
+        {adjustmentMessage && <p className="text-sm mt-2 text-gray-600">{adjustmentMessage}</p>}
+      </section>}
+
+      {user?.role?.toLowerCase() === "admin" && <section className="border-t border-gray-200 mt-6 pt-6">
+        <h3 className="font-semibold text-gray-900 mb-3">Adjustment history</h3>
+        <div className="space-y-2">{attendanceHistory.map((item) => <div key={item.Id} className="rounded-lg bg-gray-50 p-3 text-sm">
+          <div className="font-medium">{item.PreviousStatus || "Unmarked"} → {item.NewStatus}{item.IsMedicalApproval ? " · Approved medical absence" : ""}</div>
+          <div className="text-gray-600">{item.Reason} · {formatDateValue(item.ApprovedOn)} · Approved by account {item.ApprovedBy}</div>
+          {item.EvidenceUrl && <a className="text-blue-600 underline" href={item.EvidenceUrl} target="_blank" rel="noreferrer">View evidence</a>}
+        </div>)}{attendanceHistory.length === 0 && <p className="text-sm text-gray-500">No adjustments have been recorded.</p>}</div>
+      </section>}
     </div>
   )
 
@@ -836,10 +889,8 @@ export default function StudentProfile() {
     </div>
   )
 
-  const handlePrintDocument = async () => {
-    if (!documentContentRef.current || !activeDocumentTemplate) return
-
-    try {
+  const createDocumentPdf = async () => {
+    if (!documentContentRef.current || !activeDocumentTemplate) throw new Error("Choose a document first.")
       const canvas = await html2canvas(documentContentRef.current, {
         scale: 2,
         useCORS: true
@@ -865,12 +916,54 @@ export default function StudentProfile() {
       const offsetY = (pageHeight - renderHeight) / 2
 
       pdf.addImage(imgData, "PNG", offsetX, offsetY, renderWidth, renderHeight)
-
       const sanitizedTitle = activeDocumentTemplate.heading.replace(/[^a-z0-9]+/gi, "-").toLowerCase()
-      pdf.save(`${sanitizedTitle || "student-document"}.pdf`)
+      return { blob: pdf.output("blob") as Blob, fileName: `${sanitizedTitle || "student-document"}.pdf`, pdf }
+  }
+
+  const handlePrintDocument = async () => {
+    try {
+      const generated = await createDocumentPdf()
+      generated.pdf.save(generated.fileName)
     } catch (error) {
       console.error("Failed to generate PDF", error)
       alert("Unable to generate PDF. Please try again.")
+    }
+  }
+
+  const handleSaveStudentDocument = async (sendEmail: boolean) => {
+    setDocumentActionMessage("")
+    setDocumentActionBusy(true)
+    try {
+      const generated = await createDocumentPdf()
+      const file = new File([generated.blob], generated.fileName, { type: "application/pdf" })
+      const payload = new FormData()
+      if (sendEmail) {
+        payload.append("attachment.FileDetails", file)
+        payload.append("attachment.FileType", "pdf")
+        payload.append("attachment.StudentID", String(studentdetails.Id))
+        payload.append("attachment.StudentName", studentName)
+        const response = await axiosInstance.post("/Account/UploadPdfAndSendEmail", payload, {
+          headers: { "Content-Type": "multipart/form-data" }
+        })
+        if (!response.data?.IsSuccess) throw new Error(response.data?.Message || "Document email could not be sent.")
+        setDocumentActionMessage(response.data?.Data?.EmailSent === false
+          ? response.data?.Message || "Document saved, but email delivery failed."
+          : "Document saved to the student profile and sent by email.")
+      } else {
+        payload.append("documents[0].FileDetails", file)
+        payload.append("documents[0].FileType", "pdf")
+        payload.append("documents[0].StudentID", String(studentdetails.Id))
+        const response = await axiosInstance.post("/Attachment/AddDocuments", payload, {
+          headers: { "Content-Type": "multipart/form-data" }
+        })
+        if (!response.data?.IsSuccess) throw new Error(response.data?.Message || "Document could not be saved.")
+        setDocumentActionMessage("Document saved to the student profile.")
+      }
+    } catch (error: any) {
+      console.error("Failed to save student document", error)
+      setDocumentActionMessage(error?.response?.data?.Message || error?.message || "Document action failed.")
+    } finally {
+      setDocumentActionBusy(false)
     }
   }
 
@@ -940,10 +1033,11 @@ export default function StudentProfile() {
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <button className="h-10 px-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2">
+            {documentActionMessage && <span className="mr-auto text-sm text-indigo-700" role="status">{documentActionMessage}</span>}
+            <button disabled={documentActionBusy} onClick={() => void handleSaveStudentDocument(false)} className="h-10 px-4 rounded-lg border border-blue-200 bg-blue-50 text-blue-700 text-sm inline-flex items-center gap-2 disabled:opacity-50">
               <FilePlus size={16} /> Save to students profile
             </button>
-            <button className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2">
+            <button disabled={documentActionBusy} onClick={() => void handleSaveStudentDocument(true)} className="h-10 px-4 rounded-lg border border-gray-200 bg-white text-gray-700 text-sm inline-flex items-center gap-2 disabled:opacity-50">
               <Mail size={16} /> Send document
             </button>
             <button
@@ -965,16 +1059,31 @@ export default function StudentProfile() {
   }
 
   const renderHolidaysContent = () => (
-    <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-      <div className="text-center py-12">
-        <div className="h-16 w-16 mx-auto mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-          <Sun size={32} className="text-blue-600" />
+    <div className="space-y-5">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-11 w-11 rounded-xl bg-blue-100 flex items-center justify-center"><Sun size={22} className="text-blue-600" /></div>
+          <div><h3 className="text-lg font-semibold text-gray-900">Holiday requests for {studentName}</h3><p className="text-sm text-gray-500">Requests require at least 85% calculated attendance and an administrator decision.</p></div>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">Add a holiday for {studentName}</h3>
-        <p className="text-gray-600 mb-4">Holidays for {studentName} will appear here.</p>
-        <button className="h-10 px-4 rounded-lg bg-blue-600 text-white text-sm inline-flex items-center gap-2">
-          <Plus size={16} /> Add holiday
-        </button>
+        {holidayReviewMessage && <p className="mb-3 text-sm text-indigo-700">{holidayReviewMessage}</p>}
+        {studentHolidayRequests.length === 0 ? <p className="text-sm text-gray-500">No holiday requests recorded.</p> : <div className="divide-y divide-gray-100">
+          {studentHolidayRequests.map((request) => <article key={request.Id} className="py-4 first:pt-0 last:pb-0">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div><div className="font-medium text-gray-900">{formatDateValue(request.FromDate)} – {formatDateValue(request.ToDate)}</div>
+                {request.Note && <p className="mt-1 text-sm text-gray-600">{request.Note}</p>}
+                {request.ReviewNote && <p className="mt-1 text-sm text-gray-600">Admin note: {request.ReviewNote}</p>}
+                <p className="mt-1 text-xs text-gray-500">Status: {request.Status || "Approved"}{request.RequestedOn ? ` · Requested ${formatDateValue(request.RequestedOn)}` : ""}</p>
+              </div>
+              {user?.role?.toLowerCase() === "admin" && request.Status === "Pending" && <div className="flex gap-2">
+                <button onClick={() => void reviewStudentHoliday(request.Id, "Approved")} className="h-9 px-3 rounded-lg bg-emerald-600 text-white text-sm">Approve</button>
+                <button onClick={() => void reviewStudentHoliday(request.Id, "Rejected")} className="h-9 px-3 rounded-lg bg-rose-600 text-white text-sm">Reject</button>
+              </div>}
+            </div>
+          </article>)}
+        </div>}
+        {user?.role?.toLowerCase() === "admin" && studentHolidayRequests.some((request) => request.Status === "Pending") && <label className="block mt-4 text-sm text-gray-700">Review note
+          <textarea className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2" rows={2} value={holidayReviewNote} onChange={(event) => setHolidayReviewNote(event.target.value)} maxLength={1000} />
+        </label>}
       </div>
     </div>
   )
@@ -1062,7 +1171,7 @@ export default function StudentProfile() {
             </div>
             <div>
               <div className="text-sm text-gray-500">Attendance</div>
-              <div className="text-sm text-gray-900 mt-1">{studentdetails.Attendance}</div>
+              <div className="text-sm text-gray-900 mt-1">{Number(studentdetails.CalculatedAttendancePercentage ?? 0).toFixed(2)}%</div>
             </div>
             <div>
               <div className="text-sm text-gray-500">Course Level</div>

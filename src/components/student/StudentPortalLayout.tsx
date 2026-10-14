@@ -4,7 +4,9 @@ import { useAuth } from "../AuthContext"
 const navLinks = [
   { label: "Dashboard", to: "/student/dashboard" },
   { label: "Calendar", to: "/student/calendar" },
-  { label: "Classes", to: "/student/classes" }
+  { label: "Classes", to: "/student/classes" },
+  { label: "Holidays", to: "/student/holidays" },
+  { label: "Requests", to: "/student/requests" }
 ]
 
 export default function StudentPortalLayout() {
@@ -21,7 +23,7 @@ export default function StudentPortalLayout() {
     <div className="min-h-screen bg-gray-50 flex">
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
         <div className="h-16 px-6 flex items-center border-b border-gray-200">
-          <span className="text-lg font-semibold text-gray-900">Teach ’n Go</span>
+          <img src="/src/assets/logo.webp" alt="DCE English Language School" className="h-12 w-12 object-contain" />
         </div>
         <nav className="flex-1 py-4">
           {navLinks.map((link) => (

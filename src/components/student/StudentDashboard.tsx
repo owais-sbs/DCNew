@@ -34,12 +34,10 @@ export default function StudentDashboard() {
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null)
   const { classes: enrolledClasses, loading: classesLoading, error: classesError } = useStudentClasses(studentId)
   const { session: upcomingSession, loading: sessionLoading, error: sessionError } = useStudentUpcomingSession(studentId)
-  const { attendance, loading: attendanceLoading, error: attendanceError } = useStudentAttendance(studentId)
-  const attendanceTotal = attendance.filter((record) => record.status !== "Excused").length
+  const { attendance, loading: attendanceLoading, error: attendanceError, percentage: attendancePercentage } = useStudentAttendance(studentId)
   const presentCount = attendance.filter((record) => record.status === "Present").length
   const absentCount = attendance.filter((record) => record.status === "Absent").length
   const lateCount = attendance.filter((record) => record.status === "Late").length
-  const attendancePercentage = attendanceTotal ? Math.round((presentCount / attendanceTotal) * 100) : 0
 
   const { list: upcomingLessonList, message: upcomingMessage } = buildUpcomingLessonList(
     upcomingSession,
