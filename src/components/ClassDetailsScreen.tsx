@@ -515,7 +515,7 @@ function LessonsContent({
           onClick={() => setSelectedLessonIdx(null)}
         >
           <div
-            className="w-full max-w-7xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden"
+            className="w-full max-w-5xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

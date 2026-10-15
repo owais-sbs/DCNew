@@ -812,7 +812,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                 }) : dayString;
 
               return (
-                <div className="w-full max-w-7xl h-[90vh] bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
+                <div className="w-full max-w-5xl h-[85vh] bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden flex flex-col" onClick={(e) => e.stopPropagation()}>
                   {/* Header */}
                   <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200">
                     <div className="flex items-center gap-4">
@@ -838,7 +838,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                     </div>
                   </div>
 
-                  <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0 overflow-hidden">
+                  <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-0 overflow-hidden">
                     {/* Main content - now scrollable */}
                     <div className="p-6 overflow-y-auto">
                       {/* Students section */}
@@ -892,7 +892,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                                     <div className="text-[16px] font-semibold text-gray-900 truncate">{student.name}</div>
 
                                     {/* Attendance Status Pill */}
-                                    <div className="relative mt-3 group w-[260px]">
+                                    <div className="relative mt-3 group w-[220px]">
                                       <button
                                         className={`w-full h-12 rounded-full border text-[15px] font-semibold transition-all
                                           ${student.status === "Present" ? "bg-green-100 text-green-700 border-green-300"
