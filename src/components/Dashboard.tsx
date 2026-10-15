@@ -50,6 +50,9 @@ type Lesson = {
   accent: string
 }
 
+const formatLocalDate = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+
 
 type ApiSession = {
   ClassId: number
@@ -59,6 +62,9 @@ type ApiSession = {
   StartTime: string
   EndTime: string
   DayOfWeek: string
+  TotalStudents?: number
+  PresentCount?: number
+  AbsentCount?: number
 }
 
 type ApiResponse = {
@@ -183,8 +189,7 @@ export default function Dashboard() {
   const [showAddStudent, setShowAddStudent] = useState(false)
   // date state for "Today" + date picker
   const [currentDate, setCurrentDate] = useState<string>(() => {
-    const d = new Date()
-    return d.toISOString().slice(0, 10) // yyyy-mm-dd
+    return formatLocalDate(new Date())
   })
   // datepicker dropdown open
   const [dateOpen, setDateOpen] = useState(false)
@@ -302,9 +307,9 @@ export default function Dashboard() {
         setIsLoading(true)
         setError(null)
 
-        // TODO: Update this endpoint to use `currentDate`
-        // e.g. /Class/GetSessionsFlattened?date=${currentDate}
-        const response = await axiosInstance.get<ApiResponse>("/Class/GetTodaySessionFlattened")
+        const response = await axiosInstance.get<ApiResponse>(
+          `/Class/GetTodaySessionFlatteneddate?date=${currentDate}`
+        )
 
         if (response.data && response.data.IsSuccess) {
           // Map API data to our Lesson[] type
@@ -321,8 +326,12 @@ export default function Dashboard() {
               initials: "TBD",
               color: index % 2 === 0 ? "bg-blue-500" : "bg-purple-500"
             },
-            students: 0, // API doesn't provide this
-            stats: { green: 0, red: 0, gray: 0 }, // API doesn't provide this
+            students: item.TotalStudents ?? 0,
+            stats: {
+              green: item.PresentCount ?? 0,
+              red: item.AbsentCount ?? 0,
+              gray: Math.max(0, (item.TotalStudents ?? 0) - (item.PresentCount ?? 0) - (item.AbsentCount ?? 0))
+            },
             accent: "border-l-2 border-blue-500" // Hardcoded accent
             // --- End Placeholder data ---
           }))
@@ -419,7 +428,7 @@ export default function Dashboard() {
                   onClick={() => {
                     const d = new Date(currentDate)
                     d.setDate(d.getDate() - 1)
-                    setCurrentDate(d.toISOString().slice(0, 10))
+                    setCurrentDate(formatLocalDate(d))
                   }}
                 >
                   <ArrowLeft size={18} />
@@ -430,7 +439,7 @@ export default function Dashboard() {
                   onClick={() => {
                     const d = new Date(currentDate)
                     d.setDate(d.getDate() + 1)
-                    setCurrentDate(d.toISOString().slice(0, 10))
+                    setCurrentDate(formatLocalDate(d))
                   }}
                 >
                   <ArrowRight size={18} />
@@ -449,11 +458,11 @@ export default function Dashboard() {
                   {dateOpen && (
                     <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-gray-200 shadow-lg z-30 p-4">
                       <div className="flex items-center justify-between mb-4">
-                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() - 1); setCurrentDate(d.toISOString().slice(0, 10)) }} className="p-1 hover:bg-gray-100 rounded">
+                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() - 1); setCurrentDate(formatLocalDate(d)) }} className="p-1 hover:bg-gray-100 rounded">
                           <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                         </button>
                         <div className="text-lg font-semibold text-gray-800">{new Date(currentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</div>
-                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() + 1); setCurrentDate(d.toISOString().slice(0, 10)) }} className="p-1 hover:bg-gray-100 rounded">
+                        <button onClick={() => { const d = new Date(currentDate); d.setMonth(d.getMonth() + 1); setCurrentDate(formatLocalDate(d)) }} className="p-1 hover:bg-gray-100 rounded">
                           <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                         </button>
                       </div>
@@ -462,13 +471,13 @@ export default function Dashboard() {
                         {(() => {
                           const date = new Date(currentDate); const year = date.getFullYear(); const month = date.getMonth(); const firstDay = new Date(year, month, 1); const startDate = new Date(firstDay); startDate.setDate(startDate.getDate() - firstDay.getDay() + 1);
                           const days: any[] = [];
-                          for (let i = 0; i < 42; i++) { const currentDay = new Date(startDate); currentDay.setDate(startDate.getDate() + i); const isCurrentMonth = currentDay.getMonth() === month; const isSelected = currentDay.toISOString().slice(0, 10) === currentDate; const isToday = currentDay.toDateString() === new Date().toDateString();
-                            days.push(<button key={i} onClick={() => { setCurrentDate(currentDay.toISOString().slice(0, 10)); setDateOpen(false) }} className={`h-8 w-8 rounded-full text-sm ${isSelected ? 'bg-blue-600 text-white' : isToday ? 'bg-blue-100 text-blue-600 font-semibold' : isCurrentMonth ? 'text-gray-900 hover:bg-gray-100' : 'text-gray-400'}`}>{currentDay.getDate()}</button>) }
+                          for (let i = 0; i < 42; i++) { const currentDay = new Date(startDate); currentDay.setDate(startDate.getDate() + i); const isCurrentMonth = currentDay.getMonth() === month; const isSelected = formatLocalDate(currentDay) === currentDate; const isToday = currentDay.toDateString() === new Date().toDateString();
+                            days.push(<button key={i} onClick={() => { setCurrentDate(formatLocalDate(currentDay)); setDateOpen(false) }} className={`h-8 w-8 rounded-full text-sm ${isSelected ? 'bg-blue-600 text-white' : isToday ? 'bg-blue-100 text-blue-600 font-semibold' : isCurrentMonth ? 'text-gray-900 hover:bg-gray-100' : 'text-gray-400'}`}>{currentDay.getDate()}</button>) }
                           return days;
                         })()}
                       </div>
                       <div className="flex justify-center">
-                        <button onClick={() => { const today = new Date(); setCurrentDate(today.toISOString().slice(0, 10)); setDateOpen(false) }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Today</button>
+                        <button onClick={() => { setCurrentDate(formatLocalDate(new Date())); setDateOpen(false) }} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Today</button>
                       </div>
                     </div>
                   )}
@@ -802,7 +811,7 @@ export default function Dashboard() {
       {/* Lesson details modal (click on a lesson card) */}
       {selected && (
   <div
-    className="fixed inset-0 z-50 grid place-items-center bg-black/30 px-4"
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 sm:p-6 overflow-hidden"
     onClick={() => setSelected(null)}
   >
     {(() => {
@@ -811,11 +820,11 @@ export default function Dashboard() {
 
       return (
         <div
-          className="w-full max-w-5xl bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden"
+          className="w-full max-w-5xl h-[88vh] max-h-[88vh] bg-white rounded-2xl border border-gray-200 shadow-2xl overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div className="flex-shrink-0 flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
             <div className="flex items-center gap-4">
               <div className="h-9 w-9 rounded-full bg-indigo-500 text-white grid place-items-center text-sm font-semibold">
                 {lesson.teacher.initials}
@@ -831,7 +840,10 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button className="text-gray-500 hover:text-gray-700" onClick={() => setSelected(null)}>
+              <button
+                className="text-gray-500 hover:text-gray-700 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                onClick={() => setSelected(null)}
+              >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -839,9 +851,9 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0">
-            {/* Main content */}
-            <div className="p-6">
+          <div className="flex-1 min-h-0 grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-0 overflow-y-auto xl:overflow-hidden">
+            {/* Main content - now scrollable */}
+            <div className="p-6 overflow-y-auto">
               {/* Students section */}
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
@@ -894,97 +906,81 @@ export default function Dashboard() {
                           <img
                             src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
                             alt={student.name}
-                            className="h-12 w-12 rounded-full object-cover border border-gray-200"
+                            className="h-11 w-11 rounded-full object-cover border border-gray-200 flex-shrink-0"
                             onError={(e) => {
                               const target = e.currentTarget as HTMLImageElement
                               target.style.display = 'none'
                             }}
                           />
                           <div className="flex-1 min-w-0">
-          <div className="text-[16px] font-semibold text-gray-900 truncate">{student.name}</div>
+                            <div className="text-[15px] font-semibold text-gray-900 truncate">{student.name}</div>
 
                             {/* Attendance Status Pill */}
-                             <div className="relative mt-3 group w-[260px]">
-  {/* Default pill */}
- {/* ✅ Attendance Pill */}
-<button
-              className={`w-full h-12 rounded-full border text-[15px] font-semibold transition-all
-                ${student.status === "Present" ? "bg-green-100 text-green-700 border-green-300"
-                : student.status === "Absent" ? "bg-red-100 text-red-700 border-red-300"
-                : student.status === "Late" ? "bg-yellow-100 text-yellow-700 border-yellow-300"
-                : student.status === "Excused" ? "bg-gray-200 text-gray-600 border-gray-300 cursor-not-allowed"
-                : "bg-white text-gray-700 border-gray-300" }
-              `}
-              disabled={student.status === "Excused" || updatingStudent === student.id}
-            >
-              {updatingStudent === student.id ? (
-                <Loader2 className="animate-spin w-5 h-5 mx-auto" />
-              ) : (
-                student.status || "Take attendance"
-              )}
-            </button>
-{student.status !== "Excused" && (
-              <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto">
-                <div className="w-full h-12 rounded-full border border-gray-300 bg-white overflow-hidden flex text-[15px] font-medium">
+                            <div className="relative mt-2 group w-full max-w-[180px]">
+                              {/* Default pill */}
+                              <button
+                                className={`w-full h-8 rounded-full border text-xs font-medium transition-all px-2 flex items-center justify-center
+                                  ${student.status === "Present" ? "bg-green-100 text-green-700 border-green-300"
+                                  : student.status === "Absent" ? "bg-red-100 text-red-700 border-red-300"
+                                  : student.status === "Late" ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+                                  : student.status === "Excused" ? "bg-gray-200 text-gray-600 border-gray-300 cursor-not-allowed"
+                                  : "bg-white text-gray-700 border-gray-300 hover:border-gray-400" }
+                                `}
+                                disabled={student.status === "Excused" || updatingStudent === student.id}
+                              >
+                                {updatingStudent === student.id ? (
+                                  <Loader2 className="animate-spin w-4 h-4 mx-auto" />
+                                ) : (
+                                  student.status || "Take attendance"
+                                )}
+                              </button>
+                              {student.status !== "Excused" && (
+                                <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto">
+                                  <div className="w-full h-8 rounded-full border border-gray-300 bg-white overflow-hidden flex text-xs font-medium shadow-sm">
+                                    {/* Present */}
+                                    <button
+                                      className="flex-1 hover:bg-green-50 text-green-700 transition-colors flex items-center justify-center"
+                                      onClick={() => {
+                                        const toggle = student.status === "Present" ? "None" : "Present";
+                                        markAttendance(student.classId, student.id, toggle);
+                                      }}
+                                    >
+                                      Present
+                                    </button>
+                                    <div className="w-px bg-gray-200" />
 
-                  {/* Present */}
-                  <button
-                    className="flex-1 hover:bg-green-50 text-green-700"
-                    onClick={() => {
-  const toggle = student.status === "Present" ? "None" : "Present";
-  markAttendance(student.classId, student.id, toggle);
-}}
+                                    {/* Absent */}
+                                    <button
+                                      className="flex-1 hover:bg-red-50 text-red-700 transition-colors flex items-center justify-center"
+                                      onClick={() => {
+                                        const toggle = student.status === "Absent" ? "None" : "Absent";
+                                        markAttendance(student.classId, student.id, toggle);
+                                      }}
+                                    >
+                                      Absent
+                                    </button>
+                                    <div className="w-px bg-gray-200" />
 
-                  >
-                    Present
-                  </button>
-                  <div className="w-px bg-gray-300" />
-
-                  {/* Absent */}
-                  <button
-                    className="flex-1 hover:bg-red-50 text-red-700"
-                    onClick={() => {
-  const toggle = student.status === "Absent" ? "None" : "Absent";
-  markAttendance(student.classId, student.id, toggle);
-}}
-
-                  >
-                    Absent
-                  </button>
-                  <div className="w-px bg-gray-300" />
-
-                  {/* Late */}
-                  <button
-                    className="flex-1 hover:bg-yellow-50 text-yellow-700"
-                    onClick={() => {
-  const toggle = student.status === "Late" ? "None" : "Late";
-  markAttendance(student.classId, student.id, toggle);
-}}
-
-                  >
-                    Late
-                  </button>
-                  <div className="w-px bg-gray-300" />
-
-                  {/* Excused */}
-                  {/* <button
-                    className="flex-1 hover:bg-gray-100 text-gray-700"
-                    onClick={() => markAttendance(student.classId, student.id, "Excused")}
-                  >
-                    Excused
-                  </button> */}
-
-                </div>
-              </div>
-            )}
-</div>
-
+                                    {/* Late */}
+                                    <button
+                                      className="flex-1 hover:bg-yellow-50 text-yellow-700 transition-colors flex items-center justify-center"
+                                      onClick={() => {
+                                        const toggle = student.status === "Late" ? "None" : "Late";
+                                        markAttendance(student.classId, student.id, toggle);
+                                      }}
+                                    >
+                                      Late
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <button className="h-8 w-8 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600">
                               <svg
-                                className="w-4 h-4 text-indigo-600"
+                                className="w-3.5 h-3.5 text-indigo-600"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -998,12 +994,12 @@ export default function Dashboard() {
                               </svg>
                             </button>
                             <div className="relative">
-  <button
-    className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
-    onClick={() => setMenuOpenFor(menuOpenFor === student.id ? null : student.id)}
-  >
-    ⋯
-  </button>
+                              <button
+                                className="h-8 w-8 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700"
+                                onClick={() => setMenuOpenFor(menuOpenFor === student.id ? null : student.id)}
+                              >
+                                ⋯
+                              </button>
 
   {/* Dropdown */}
   {menuOpenFor === student.id && (
@@ -1139,8 +1135,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Right sidebar */}
-            <aside className="border-l border-gray-200 p-6 bg-gray-50">
+            {/* Right sidebar - scrollable */}
+            <aside className="border-t xl:border-t-0 xl:border-l border-gray-200 p-6 bg-gray-50 overflow-y-auto">
               <div className="space-y-6">
                 {/* Edit section */}
                 <div>
@@ -1230,7 +1226,7 @@ export default function Dashboard() {
                   <X size={18} />
                 </button>
               </div>
-              <div className="p-6">
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
                 <p className="text-gray-600 mb-4">Select the date and students to enroll in this class.</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                   <div>

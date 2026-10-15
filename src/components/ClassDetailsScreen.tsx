@@ -624,10 +624,10 @@ function LessonsContent({
                             <div className="text-[16px] font-semibold text-gray-900 truncate">
                               {student.name}
                             </div>
-                            <div className="relative mt-3 group w-[260px]">
+                            <div className="relative mt-2 group w-full max-w-[180px]">
                               {/* Default pill */}
                               <button
-                                className={`w-full h-12 rounded-full border text-[15px] font-semibold transition-all
+                                className={`w-full h-8 rounded-full border text-xs font-medium transition-all px-2 flex items-center justify-center
                              ${
                                student.status === "Present"
                                  ? "bg-green-100 text-green-700 border-green-300"
@@ -637,7 +637,7 @@ function LessonsContent({
                                  ? "bg-yellow-100 text-yellow-700 border-yellow-300"
                                  : student.status === "Excused"
                                  ? "bg-gray-200 text-gray-600 border-gray-300 cursor-not-allowed"
-                                 : "bg-white text-gray-700 border-gray-300"
+                                 : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"
                              }
                            `}
                                 disabled={
@@ -646,7 +646,7 @@ function LessonsContent({
                                 }
                               >
                                 {updatingStudent === student.id ? (
-                                  <Loader2 className="animate-spin w-5 h-5 mx-auto" />
+                                  <Loader2 className="animate-spin w-4 h-4 mx-auto" />
                                 ) : (
                                   student.status || "Take attendance"
                                 )}
@@ -655,10 +655,10 @@ function LessonsContent({
                               {/* Hover actions - hidden if Excused */}
                               {student.status !== "Excused" && (
                                 <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto">
-                                  <div className="w-full h-12 rounded-full border border-gray-300 bg-white overflow-hidden flex text-[15px] font-medium">
+                                  <div className="w-full h-8 rounded-full border border-gray-300 bg-white overflow-hidden flex text-xs font-medium shadow-sm">
                                     {/* Present */}
                                     <button
-                                      className="flex-1 hover:bg-green-50 text-green-700"
+                                      className="flex-1 hover:bg-green-50 text-green-700 transition-colors flex items-center justify-center"
                                        onClick={() => {
   const toggle = student.status === "Present" ? "None" : "Present";
   markAttendance(student.classId, student.id, toggle);
@@ -667,11 +667,11 @@ function LessonsContent({
                                     >
                                       Present
                                     </button>
-                                    <div className="w-px bg-gray-300" />
+                                    <div className="w-px bg-gray-200" />
 
                                     {/* Absent */}
                                     <button
-                                      className="flex-1 hover:bg-red-50 text-red-700"
+                                      className="flex-1 hover:bg-red-50 text-red-700 transition-colors flex items-center justify-center"
                                          onClick={() => {
   const toggle = student.status === "Absent" ? "None" : "Absent";
   markAttendance(student.classId, student.id, toggle);
@@ -679,11 +679,11 @@ function LessonsContent({
                                     >
                                       Absent
                                     </button>
-                                    <div className="w-px bg-gray-300" />
+                                    <div className="w-px bg-gray-200" />
 
                                     {/* Late */}
                                     <button
-                                      className="flex-1 hover:bg-yellow-50 text-yellow-700"
+                                      className="flex-1 hover:bg-yellow-50 text-yellow-700 transition-colors flex items-center justify-center"
                                       onClick={() => {
   const toggle = student.status === "Late" ? "None" : "Late";
   markAttendance(student.classId, student.id, toggle);
@@ -691,15 +691,6 @@ function LessonsContent({
                                     >
                                       Late
                                     </button>
-                                    <div className="w-px bg-gray-300" />
-
-                                    {/* Excused */}
-                                    {/* <button
-                    className="flex-1 hover:bg-gray-100 text-gray-700"
-                    onClick={() => markAttendance(student.classId, student.id, "Excused")}
-                  >
-                    Excused
-                  </button> */}
                                   </div>
                                 </div>
                               )}

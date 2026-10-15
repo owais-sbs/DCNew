@@ -45,7 +45,8 @@ const hours = [
 ]
 
 // --- HELPERS ---
-const getApiDateString = (date: Date): string => date.toISOString().split('T')[0];
+const getApiDateString = (date: Date): string =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 const getEventTime = (isoString: string): string => {
   const date = new Date(isoString);
@@ -82,7 +83,7 @@ const eventsByDate = (events: Event[]) => {
   events.forEach(ev => {
     if (!ev.isoStart) return;
     const d = new Date(ev.isoStart);
-    const key = d.toISOString().split('T')[0];
+    const key = getApiDateString(d);
     if (!map[key]) map[key] = [];
     map[key].push(ev);
   });
@@ -676,9 +677,9 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                 {events.map((ev, idx) => {
                   if (!ev.isoStart) return null;
                   const evDate = new Date(ev.isoStart);
-                  const dayKey = evDate.toISOString().split('T')[0];
+                  const dayKey = getApiDateString(evDate);
                   // find index within weekDates
-                  const dayIndex = weekDates.findIndex(d => d.toISOString().split('T')[0] === dayKey);
+                  const dayIndex = weekDates.findIndex(d => getApiDateString(d) === dayKey);
                   if (dayIndex === -1) return null;
 
                   const [startHour, startMinute] = ev.start.split(":").map(Number)
@@ -756,7 +757,7 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
 
             <div className="grid grid-cols-7 gap-2">
               {monthMatrix.map((cellDate) => {
-                const key = cellDate.toISOString().split('T')[0];
+                const key = getApiDateString(cellDate);
                 const isCurrentMonth = cellDate.getMonth() === currentDate.getMonth();
                 const cellEvents = (eventsMap[key] || []).sort((a,b) => a.start.localeCompare(b.start));
                 
@@ -885,26 +886,26 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
                                   <img
                                     src={`https://i.pravatar.cc/80?img=${(i % 70) + 1}`}
                                     alt={student.name}
-                                    className="h-12 w-12 rounded-full object-cover border border-gray-200"
+                                    className="h-11 w-11 rounded-full object-cover border border-gray-200 flex-shrink-0"
                                     onError={(e) => { const t = e.currentTarget as HTMLImageElement; t.style.display = 'none' }}
                                   />
                                   <div className="flex-1 min-w-0">
-                                    <div className="text-[16px] font-semibold text-gray-900 truncate">{student.name}</div>
+                                    <div className="text-[15px] font-semibold text-gray-900 truncate">{student.name}</div>
 
                                     {/* Attendance Status Pill */}
-                                    <div className="relative mt-3 group w-[220px]">
+                                    <div className="relative mt-2 group w-full max-w-[180px]">
                                       <button
-                                        className={`w-full h-12 rounded-full border text-[15px] font-semibold transition-all
+                                        className={`w-full h-8 rounded-full border text-xs font-medium transition-all px-2 flex items-center justify-center
                                           ${student.status === "Present" ? "bg-green-100 text-green-700 border-green-300"
                                           : student.status === "Absent" ? "bg-red-100 text-red-700 border-red-300"
                                           : student.status === "Late" ? "bg-yellow-100 text-yellow-700 border-yellow-300"
                                           : student.status === "Excused" ? "bg-gray-200 text-gray-600 border-gray-300 cursor-not-allowed"
-                                          : "bg-white text-gray-700 border-gray-300" }
+                                          : "bg-white text-gray-700 border-gray-300 hover:border-gray-400" }
                                         `}
                                         disabled={student.status === "Excused" || updatingStudent === student.id}
                                       >
                                         {updatingStudent === student.id ? (
-                                          <Loader2 className="animate-spin w-5 h-5 mx-auto" />
+                                          <Loader2 className="animate-spin w-4 h-4 mx-auto" />
                                         ) : (
                                           student.status ?? "Take attendance"
                                         )}
@@ -912,25 +913,25 @@ export default function Calendar({ showTeacher = false }: { showTeacher?: boolea
 
                                       {student.status !== "Excused" && (
                                         <div className="absolute inset-0 hidden group-hover:flex z-20 pointer-events-auto">
-                                          <div className="w-full h-12 rounded-full border border-gray-300 bg-white overflow-hidden flex text-[15px] font-medium">
-                                            <button className="flex-1 hover:bg-green-50 text-green-700" onClick={() => markAttendance(student.classId, student.id, "Present")}>Present</button>
-                                            <div className="w-px bg-gray-300" />
-                                            <button className="flex-1 hover:bg-red-50 text-red-700" onClick={() => markAttendance(student.classId, student.id, "Absent")}>Absent</button>
-                                            <div className="w-px bg-gray-300" />
-                                            <button className="flex-1 hover:bg-yellow-50 text-yellow-700" onClick={() => markAttendance(student.classId, student.id, "Late")}>Late</button>
+                                          <div className="w-full h-8 rounded-full border border-gray-300 bg-white overflow-hidden flex text-xs font-medium shadow-sm">
+                                            <button className="flex-1 hover:bg-green-50 text-green-700 transition-colors flex items-center justify-center" onClick={() => markAttendance(student.classId, student.id, "Present")}>Present</button>
+                                            <div className="w-px bg-gray-200" />
+                                            <button className="flex-1 hover:bg-red-50 text-red-700 transition-colors flex items-center justify-center" onClick={() => markAttendance(student.classId, student.id, "Absent")}>Absent</button>
+                                            <div className="w-px bg-gray-200" />
+                                            <button className="flex-1 hover:bg-yellow-50 text-yellow-700 transition-colors flex items-center justify-center" onClick={() => markAttendance(student.classId, student.id, "Late")}>Late</button>
                                           </div>
                                         </div>
                                       )}
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center gap-2">
-                                    <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">
-                                      <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                                    <button className="h-8 w-8 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-600">
+                                      <svg className="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                       </svg>
                                     </button>
-                                    <button className="h-9 w-9 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50">⋯</button>
+                                    <button className="h-8 w-8 grid place-items-center rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700">⋯</button>
                                   </div>
                                 </div>
                               </div>
