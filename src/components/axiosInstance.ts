@@ -3,7 +3,7 @@ import axios from "axios";
 
 // Create an Axios instance
 const axiosInstance = axios.create({
-  baseURL: 'https://dc.nuzum.tech/api', // Production API
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://dc.nuzum.tech/api',
 
        
     timeout: 1000000, // Optional timeout setting d    m
@@ -18,6 +18,9 @@ export const handleLogout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('userID');
   localStorage.removeItem('userInfo');
+  localStorage.removeItem('studentId');
+  localStorage.removeItem('roleId');
+  localStorage.removeItem('branchId');
   
   
   // Remove the redirect - let React Router handle navigation
