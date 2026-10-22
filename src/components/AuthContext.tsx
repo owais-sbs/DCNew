@@ -117,11 +117,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     console.log("Logout called - clearing localStorage");
     handleLogout(); // this clears all tokens + saved userInfo
-
-    console.log("Logout completed, redirecting...");
-
-    // Redirect user to login page
-    window.location.href = "/login";
+    console.log("Logout completed; protected routes will redirect to login.");
   };
 
 
@@ -160,4 +156,4 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-}; 
+};
