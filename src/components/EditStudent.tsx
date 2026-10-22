@@ -51,7 +51,6 @@ type StudentFormState = {
   numberOfWeeks: string;
   hoursPerWeek: string;
   tuitionFees: string;
-  attendance: string;
   
   // Payment / Exam Extras
   externalExam: string;
@@ -114,7 +113,6 @@ const emptyForm: StudentFormState = {
   numberOfWeeks: "",
   hoursPerWeek: "",
   tuitionFees: "",
-  attendance: "",
   externalExam: "",
   externalExamDate: "",
   scoreExternalExam: "",
@@ -261,7 +259,6 @@ useEffect(() => {
         courseStartDate: toDateInput(data.CourseStartDate),
         courseEndDate: toDateInput(data.CourseEndDate),
         finishedCourseDate: toDateInput(data.FinishedCourseDate),
-        attendance: data.Attendance ?? "",
         numberOfWeeks: data.NumberOfWeeks?.toString() ?? "",
         hoursPerWeek: data.HoursPerWeek?.toString() ?? "",
         tuitionFees: data.TuitionFees?.toString() ?? "",
@@ -388,7 +385,6 @@ useEffect(() => {
         CourseStartDate: form.courseStartDate || null,
         CourseEndDate: form.courseEndDate || null,
         FinishedCourseDate: form.finishedCourseDate || null,
-        Attendance: form.attendance || null,
         NumberOfWeeks: form.numberOfWeeks ? parseInt(form.numberOfWeeks) : null,
         HoursPerWeek: form.hoursPerWeek ? parseFloat(form.hoursPerWeek) : null,
         TuitionFees: form.tuitionFees || null,
@@ -655,7 +651,7 @@ useEffect(() => {
                   <input type="date" name="courseStartDate" value={form.courseStartDate} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
                </div>
                <div>
-                  <label className="block text-[13px] text-gray-700 mb-1">End Date</label>
+                  <label className="block text-[13px] text-gray-700 mb-1">End Date (calculated when course weeks are set)</label>
                   <input type="date" name="courseEndDate" value={form.courseEndDate} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
                </div>
                <div>
@@ -745,10 +741,6 @@ useEffect(() => {
                <div>
                   <label className="block text-[13px] text-gray-700 mb-1">Schedule</label>
                   <input name="schedule" value={form.schedule} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
-               </div>
-               <div>
-                  <label className="block text-[13px] text-gray-700 mb-1">Attendance</label>
-                  <input name="attendance" value={form.attendance} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
                </div>
             </div>
           </div>

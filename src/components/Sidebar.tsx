@@ -11,6 +11,7 @@ import {
   Mail,
   CreditCard,
   MessageSquare,
+  ClipboardList,
   X
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -26,6 +27,7 @@ const adminTeacherItems = [
   { id: "people", icon: Users, label: "People", path: "/people" },
   { id: "notes", icon: BookOpen, label: "Classes & events", path: "/notes" },
   { id: "email", icon: Mail, label: "Email", path: "/email" },
+  { id: "student-requests", icon: ClipboardList, label: "Student Requests", path: "/student-requests" },
   // { id: "payments", icon: CreditCard, label: "Payments", path: "/payments" },
   // { id: "messaging", icon: MessageSquare, label: "Group Messaging", path: "/messaging" },
   // { id: "reports", icon: FileText, label: "Reports", path: "/reports" },
@@ -36,6 +38,8 @@ const studentItems = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/student/dashboard" },
   { id: "calendar", icon: Calendar, label: "Calendar", path: "/student/calendar" },
   { id: "classes", icon: BookOpen, label: "Classes", path: "/student/classes" },
+  { id: "holidays", icon: Calendar, label: "Holiday requests", path: "/student/holidays" },
+  { id: "requests", icon: ClipboardList, label: "Requests", path: "/student/requests" },
   { id: "files", icon: FileText, label: "Files", path: "/student/files" },
   { id: "profile", icon: User, label: "Profile", path: "/student/profile" },
 ];
@@ -54,7 +58,7 @@ export default function Sidebar() {
     return adminTeacherItems;
   };
 
-  const items = getMenuItems();
+  const items = getMenuItems().filter((item) => item.id !== "student-requests" || user?.role?.toLowerCase() === "admin");
   const active = items.find((i) => location.pathname.startsWith(i.path))?.id || "dashboard";
 
   const logo = "/src/assets/logo-icon.png";

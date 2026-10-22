@@ -19,7 +19,7 @@ type LessonRow = {
 export default function StudentDashboard() {
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [attendanceStats, setAttendanceStats] = useState<{ Status: string; Percentage: number }[]>([])
+  const [attendanceStats, setAttendanceStats] = useState<{ Status: string; Percentage: number; OverallPercentage: number }[]>([])
   const [loadingAttendance, setLoadingAttendance] = useState(false)
   const [attendanceError, setAttendanceError] = useState<string | null>(null)
   const [studentData, setStudentData] = useState<any>(null)
@@ -38,8 +38,7 @@ export default function StudentDashboard() {
 
   const { classes: enrolledClasses, loading: classesLoading } = useStudentClasses(studentId || 0)
 
-  const presentStat = attendanceStats.find((s) => s.Status === "Present")
-  const attendancePercentage = presentStat?.Percentage ?? null
+  const attendancePercentage = attendanceStats[0]?.OverallPercentage ?? null
 
   // GetStudentAttendanceStats
   useEffect(() => {
@@ -263,7 +262,7 @@ export default function StudentDashboard() {
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <div className="text-xl sm:text-2xl font-bold">{attendancePercentage ?? 0}%</div>
-                  <div className="text-[10px] sm:text-xs text-gray-500">Present</div>
+                  <div className="text-[10px] sm:text-xs text-gray-500">Overall</div>
                 </div>
               </div>
             </div>
