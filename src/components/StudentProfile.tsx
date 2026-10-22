@@ -181,8 +181,7 @@ export default function StudentProfile() {
   const [loadingAttendanceStats, setLoadingAttendanceStats] = useState(false)
   const [attendanceStatsError, setAttendanceStatsError] = useState<string | null>(null)
 
-  const presentStat = attendanceStats.find((stat: any) => stat.Status === "Present");
-  const percentage = presentStat?.Percentage ?? 0;
+  const percentage = Number(attendanceStats[0]?.OverallPercentage ?? 0);
   const [attendanceMode, setAttendanceMode] = useState<"single" | "bulk" | null>(null)
 
 
@@ -207,7 +206,7 @@ export default function StudentProfile() {
 const [activities, setActivities] = useState<any[]>([]);
 const [loadingActivity, setLoadingActivity] = useState(false);
 
-const [selectedSessions, setSelectedSessions] = useState<{ sessionId: number ; attendanceDate: string}[]>([])
+const [selectedSessions, setSelectedSessions] = useState<{ sessionId: number; attendanceDate: string; attendanceId?: number | null; attendance?: string | null }[]>([])
 
 
 const isSessionSelected = (sessionId: number, attendanceDate: string) => {
@@ -216,7 +215,7 @@ const isSessionSelected = (sessionId: number, attendanceDate: string) => {
   )
 }
 
-const toggleSession = (sessionId: number, attendanceDate: string) => {
+const toggleSession = (sessionId: number, attendanceDate: string, attendanceId?: number | null, attendance?: string | null) => {
   setSelectedSessions(prev => {
     const exist = prev.some(
       s => s.sessionId == sessionId && s.attendanceDate == attendanceDate
@@ -228,7 +227,7 @@ const toggleSession = (sessionId: number, attendanceDate: string) => {
       )
     }
 
-    return [...prev, { sessionId, attendanceDate }]
+    return [...prev, { sessionId, attendanceDate, attendanceId, attendance }]
   })
 }
 
@@ -304,7 +303,9 @@ const toggleSelectAll = (checked: boolean) => {
   if(checked){
     const all = lessons.map((l: any) => ({
       sessionId: l.scheduleId,
-      attendanceDate: l.date
+      attendanceDate: l.date,
+      attendanceId: l.attendanceId,
+      attendance: l.attendance,
     }))
 
     setSelectedSessions(all)
@@ -362,8 +363,6 @@ const getOverallAttendanceStats = () => {
   if (!attendanceStats || attendanceStats.length === 0) return { percentage: 0, label: "No Data" };
 
   // 1. Find the Present stat
-  const presentStat = attendanceStats.find(s => s.Status === "Present");
-  
   // 2. Filter out "None" or "NotTaken" for the visual table
   const displayStats = attendanceStats.filter(s => s.Status !== "None" && s.Status !== "NotTaken");
 
@@ -372,8 +371,8 @@ const getOverallAttendanceStats = () => {
   const totalCount = displayStats.reduce((acc, curr) => acc + (curr.Count || 0), 0);
   
   return {
-    percentage: presentStat?.Percentage || 0,
-    label: "Present",
+    percentage: Number(attendanceStats[0]?.OverallPercentage ?? 0),
+    label: "Overall",
     totalLessons: totalCount,
     displayStats
   };
@@ -880,6 +879,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
                     className: s.ClassTitle || "—",
                     dayOfWeek: s.SessionDayOfWeek || null,
                     attendance: s.AttendanceStatus || null,
+                    attendanceId: s.AttendanceId ?? null,
                 }))
                 
                 setLessons(mapped)
@@ -1112,17 +1112,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
     "Name": () => studentName || "—",
     "Student ID": () => studentdetails?.IdNumber || "—",
     "Date of Birth": () => formatDateValue(studentdetails?.DateOfBirth),
-    "Attendance": () => {
-      // Try to get attendance percentage from stats or calculate it
-      if (attendanceStats && attendanceStats.length > 0) {
-        const presentStat = attendanceStats.find((stat: any) => stat.Status?.toLowerCase() === "present");
-        if (presentStat?.Percentage !== undefined) {
-          return `${presentStat.Percentage.toFixed(1)}%`;
-        }
-      }
-      // Fallback to attendance field if available
-      return studentdetails?.Attendance?.toString() || "—";
-    },
+    "Attendance": () => `${percentage.toFixed(1)}%`,
     
     "Course Start Date": () => formatDateValue(studentdetails?.CourseStartDate),
     "Finished Course Date": () => formatDateValue(studentdetails?.FinishedCourseDate),
@@ -1130,17 +1120,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
 
 
     "Nationality": () => studentdetails?.Nationality || "—",
-    "Attendance": () => {
-      // Try to get attendance percentage from stats or calculate it
-      if (attendanceStats && attendanceStats.length > 0) {
-        const presentStat = attendanceStats.find((stat: any) => stat.Status?.toLowerCase() === "present");
-        if (presentStat?.Percentage !== undefined) {
-          return `${presentStat.Percentage.toFixed(1)}%`;
-        }
-      }
-      // Fallback to attendance field if available
-      return studentdetails?.Attendance?.toString() || "—";
-    },
+    "Attendance": () => `${percentage.toFixed(1)}%`,
 
     "External Exam": () => studentdetails?.ExternalExam || "—",
     "Date of External Exam": () => formatDateValue(studentdetails?.ExternalExamDate),
@@ -1215,15 +1195,7 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
         return formatCurrency(fees);
       })())
       .replace(/\{CourseCode\}/g, studentdetails.CourseCode || "—")
-      .replace(/\{Attendance\}/g, (() => {
-        if (attendanceStats && attendanceStats.length > 0) {
-          const presentStat = attendanceStats.find((stat: any) => stat.Status?.toLowerCase() === "present");
-          if (presentStat?.Percentage !== undefined) {
-            return `${presentStat.Percentage.toFixed(1)}%`;
-          }
-        }
-        return studentdetails?.Attendance?.toString() || "—";
-      })())
+      .replace(/\{Attendance\}/g, `${percentage.toFixed(1)}%`)
       .replace(/\{FinishedCourseDate\}/g, formatDateValue(studentdetails.FinishedCourseDate))
       .replace(/\{ExternalExam\}/g, studentdetails.ExternalExam || "—")
       .replace(/\{ExternalExamDate\}/g, formatDateValue(studentdetails.ExternalExamDate))
@@ -1576,7 +1548,9 @@ const renderContent = () => {
   onChange={() =>
     toggleSession(
       lesson.scheduleId,
-      lesson.date
+      lesson.date,
+      lesson.attendanceId,
+      lesson.attendance
     )
   }
 />
@@ -1948,18 +1922,29 @@ const renderContent = () => {
   }
 
  const renderAttendanceContent = () => {
-  // 1️⃣ Extract data
-  const present = attendanceStats.find(s => s.Status === "Present")?.Percentage || 0;
-  const absent = attendanceStats.find(s => s.Status === "Absent")?.Percentage || 0;
-  const late = attendanceStats.find(s => s.Status === "Late")?.Percentage || 0;
-  const excused = attendanceStats.find(s => s.Status === "Excused")?.Percentage || 0;
-
-  // 2️⃣ Pie Data
+  const statusStats = attendanceStats.filter((stat) => stat.Status !== "None" && stat.Status !== "NotTaken");
+  const categorizedExcluded = statusStats
+    .filter((stat) => ["Excused", "Holiday", "AppealWeek"].includes(stat.Status))
+    .reduce((total, stat) => total + Number(stat.Count || 0), 0);
+  const additionalExcluded = Math.max(0, Number(attendanceStats[0]?.Excluded || 0) - categorizedExcluded);
+  const distributionTotal = statusStats.reduce((total, stat) => total + Number(stat.Count || 0), 0) + additionalExcluded;
+  const colorByStatus: Record<string, string> = {
+    Present: "#4d8b31", Absent: "#c92a2a", Late: "#ff9800", Excused: "#1e64f0",
+    Holiday: "#7e57c2", AppealWeek: "#f9a825", Excluded: "#607d8b",
+  };
   const pieData = [
-    { label: "Present", value: present, color: "#4d8b31" },
-    { label: "Absent", value: absent, color: "#c92a2a" },
-    { label: "Late", value: late, color: "#ff9800" },
-    { label: "Excused", value: excused, color: "#1e64f0" }
+    ...statusStats.map((stat) => ({
+      label: stat.Status,
+      count: Number(stat.Count || 0),
+      value: distributionTotal ? Number(stat.Count || 0) / distributionTotal * 100 : 0,
+      color: colorByStatus[stat.Status] || "#607d8b",
+    })),
+    ...(additionalExcluded > 0 ? [{
+      label: "Authorized absence",
+      count: additionalExcluded,
+      value: distributionTotal ? additionalExcluded / distributionTotal * 100 : 0,
+      color: colorByStatus.Excluded,
+    }] : []),
   ];
 
   // 3️⃣ Conic Gradient
@@ -1987,8 +1972,11 @@ const renderContent = () => {
     <div className="bg-white border border-gray-200 p-6 shadow-sm rounded">
       {/* HEADER */}
       <h2 className="text-xl font-semibold text-gray-900 mb-6">
-        Attendance Distribution
+        Attendance calculation and record outcomes
       </h2>
+      <p className="mb-6 text-sm text-gray-700">
+        Calculated attendance: <strong>{percentage.toFixed(2)}%</strong> from attended and absent sessions. Approved leave, school holidays, medical excusals, and other excluded sessions are not included in that denominator.
+      </p>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
 
@@ -2048,9 +2036,7 @@ const renderContent = () => {
             </thead>
 
             <tbody>
-              {attendanceStats
-                .filter(s => s.Status !== "None" && s.Status !== "NotTaken")
-                .map((stat: any, index: number) => (
+              {pieData.map((stat: any, index: number) => (
                   <tr
                     key={index}
                     className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition"
@@ -2060,29 +2046,23 @@ const renderContent = () => {
                         <span
                           className="w-2.5 h-2.5 rounded-full"
                           style={{
-                            backgroundColor:
-                              stat.Status === "Present" ? "#4d8b31" :
-                              stat.Status === "Absent" ? "#c92a2a" :
-                              stat.Status === "Late" ? "#ff9800" :
-                              "#1e64f0"
+                            backgroundColor: stat.color
                           }}
                         />
                         <span className="font-medium text-gray-700">
-                          {stat.Status}
+                          {stat.label}
                         </span>
                       </div>
                     </td>
 
-                    <td className="py-4 px-2 text-gray-500">
-                      {stat.Time !== "0" ? stat.Time : "—"}
-                    </td>
+                    <td className="py-4 px-2 text-gray-500">—</td>
 
                     <td className="py-4 px-2 text-center text-gray-700">
-                      {stat.Count}
+                      {stat.count}
                     </td>
 
                     <td className="py-4 px-2 text-right font-bold text-gray-900">
-                      {stat.Percentage}%
+                      {distributionTotal ? `${(stat.count / distributionTotal * 100).toFixed(1)}%` : "0%"}
                     </td>
                   </tr>
                 ))}
@@ -3405,7 +3385,7 @@ const renderContent = () => {
         label1="Finished Course Date"
         value1={formatDateValue(studentdetails?.FinishedCourseDate)}
         label2="Attendance"
-        value2={studentdetails?.Attendance}
+        value2={loadingAttendanceStats ? "..." : `${percentage.toFixed(1)}%`}
         label3="Course Title"
         value3={studentdetails?.CourseTitle}
       />
@@ -3594,9 +3574,9 @@ const renderContent = () => {
           Stats Breakdown
         </div>
         
-        {/* Present (Default) */}
+        {/* Overall calculation */}
         <div className="px-4 py-2 flex justify-between hover:bg-gray-50">
-          <span className="text-sm text-gray-700">Present</span>
+          <span className="text-sm text-gray-700">Overall attendance</span>
           <span className="text-sm font-bold text-green-600">{stats.percentage}%</span>
         </div>
 
@@ -3610,10 +3590,16 @@ const renderContent = () => {
                 stat.Status === 'Absent' ? 'text-red-600' : 
                 stat.Status === 'Late' ? 'text-orange-500' : 'text-blue-600'
               }`}>
-                {stat.Percentage}%
+                {stat.Count}
               </span>
             </div>
           ))}
+        {(attendanceStats[0]?.Excluded ?? 0) > 0 && (
+          <div className="px-4 py-2 flex justify-between hover:bg-gray-50 border-t border-gray-50">
+            <span className="text-sm text-gray-700">Excluded sessions</span>
+            <span className="text-sm font-bold text-blue-600">{attendanceStats[0].Excluded}</span>
+          </div>
+        )}
       </div>
     )}
   </div>
@@ -4163,7 +4149,7 @@ function StudentAttendanceModal({
   studentName: string
   mode: "single" | "bulk"
   lesson?: any
-  lessons?: { sessionId: number, attendanceDate: number }[]
+  lessons?: { sessionId: number; attendanceDate: string; attendanceId?: number | null; attendance?: string | null }[]
   onClose: () => void
   onSuccess: () => void
   refreshStats: () => void
@@ -4182,6 +4168,7 @@ function StudentAttendanceModal({
   const [loading, setLoading] = useState(false)
   const [loadingAttendance, setLoadingAttendance] = useState(true)
   const [attendanceData, setAttendanceData] = useState<any>(null)
+  const [adjustmentReason, setAdjustmentReason] = useState("")
 
   // Fetch attendance data when modal opens
   // useEffect(() => {
@@ -4323,19 +4310,31 @@ const lessonTime =
       Swal.fire("Notice", "Please select an attendance status (Present, Absent, Late) or mark as excused.", "info")
       return
     }
+    const isAdjustment = Boolean(attendanceData?.AttendanceId) && statusToSave !== attendanceData.AttendanceStatus
+    if (isAdjustment && !adjustmentReason.trim()) {
+      Swal.fire("Reason required", "Enter a reason to record this attendance adjustment.", "info")
+      return
+    }
     setLoading(true)
     try {
-      const response = await axiosInstance.post("/Class/MarkAttendance", null, {
-        params: {
-          classId: lesson.classId,
-          scheduleId: lesson.scheduleId,
-          studentId: studentId,
-          date: formatDateForAPI(lesson.date || lesson.startTime),
-          attendanceStatus: statusToSave,
-        },
-      })
+      const response = isAdjustment
+        ? await axiosInstance.post("/AttendanceAdjustment/Apply", {
+            attendanceId: attendanceData.AttendanceId,
+            newStatus: statusToSave,
+            reason: adjustmentReason.trim(),
+            isMedicalApproval: false,
+          })
+        : await axiosInstance.post("/Class/MarkAttendance", null, {
+            params: {
+              classId: lesson.classId,
+              scheduleId: lesson.scheduleId,
+              studentId: studentId,
+              date: formatDateForAPI(lesson.date || lesson.startTime),
+              attendanceStatus: statusToSave,
+            },
+          })
       if (response.data?.IsSuccess) {
-        Swal.fire({ icon: "success", title: "Attendance Saved", text: `Status updated to ${statusToSave} successfully.`, timer: 1500, showConfirmButton: false })
+        Swal.fire({ icon: "success", title: isAdjustment ? "Adjustment Recorded" : "Attendance Saved", text: `Status updated to ${statusToSave} successfully.`, timer: 1500, showConfirmButton: false })
         refreshStats()
         onSuccess()
         onClose()
@@ -4362,22 +4361,40 @@ const lessonTime =
       Swal.fire("Notice", "Please select an attendance status (Present, Absent, Late) or mark as excused.", "info")
       return
     }
+    const corrections = lessons.filter((item) => item.attendanceId && item.attendance !== statusToSave)
+    const newRecords = lessons.filter((item) => !item.attendanceId)
+    if (corrections.length > 0 && !adjustmentReason.trim()) {
+      Swal.fire("Reason required", "Enter a reason to record these attendance adjustments.", "info")
+      return
+    }
+    if (corrections.length === 0 && newRecords.length === 0) {
+      Swal.fire("No changes", "The selected attendance records already have this status.", "info")
+      return
+    }
     setLoading(true)
     try {
-      const payload = {
-        studentId,
-        attendanceStatus: statusToSave,
-        items: lessons.map(l => ({ scheduleId: l.sessionId, date: l.attendanceDate }))
+      const adjustmentResponses = await Promise.all(corrections.map((item) =>
+        axiosInstance.post("/AttendanceAdjustment/Apply", {
+          attendanceId: item.attendanceId,
+          newStatus: statusToSave,
+          reason: adjustmentReason.trim(),
+          isMedicalApproval: false,
+        })
+      ))
+      if (adjustmentResponses.some((response) => !response.data?.IsSuccess))
+        throw new Error("One or more attendance adjustments could not be saved.")
+      if (newRecords.length > 0) {
+        const response = await axiosInstance.post("/Class/MarkAttendanceBulk", {
+          studentId,
+          attendanceStatus: statusToSave,
+          items: newRecords.map((item) => ({ scheduleId: item.sessionId, date: item.attendanceDate })),
+        })
+        if (response.data?.IsSuccess === false) throw new Error(response.data?.Message)
       }
-      const response = await axiosInstance.post("/Class/MarkAttendanceBulk", payload)
-      if (response.data?.IsSuccess !== false) {
-        Swal.fire({ icon: "success", title: "Attendance Updated", text: `Marked ${lessons.length} lesson(s) as ${statusToSave}`, timer: 1500, showConfirmButton: false })
-        refreshStats()
-        onSuccess()
-        onClose()
-      } else {
-        throw new Error(response.data?.Message)
-      }
+      Swal.fire({ icon: "success", title: "Attendance Updated", text: `Updated ${lessons.length} lesson(s) as ${statusToSave}`, timer: 1500, showConfirmButton: false })
+      refreshStats()
+      onSuccess()
+      onClose()
     } catch (err) {
       console.error(err)
       Swal.fire("Error", "Bulk attendance update failed", "error")
@@ -4474,6 +4491,21 @@ const lessonTime =
                 </div>
               ) : null}
             </div>
+            {((mode === "single" && attendanceData?.AttendanceId && attendanceStatus !== attendanceData.AttendanceStatus) ||
+              (mode === "bulk" && lessons?.some((item) => item.attendanceId && item.attendance !== attendanceStatus))) && (
+              <label className="block text-sm font-medium text-gray-700">
+                Reason for attendance adjustment
+                <textarea
+                  required
+                  maxLength={1000}
+                  rows={2}
+                  value={adjustmentReason}
+                  onChange={(event) => setAdjustmentReason(event.target.value)}
+                  className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2"
+                  placeholder="Explain why this recorded attendance is being corrected."
+                />
+              </label>
+            )}
             <div className="flex items-center gap-4 mb-4">
               <button
                 onClick={() => {
