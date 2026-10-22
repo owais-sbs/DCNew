@@ -720,15 +720,11 @@ const enrolledClassName = classes.length > 0
 
         const d = detailRes.data?.Data || {}
         const attendanceData = attendanceRes.data?.IsSuccess && Array.isArray(attendanceRes.data.Data) ? attendanceRes.data.Data : []
-       const presentStat = attendanceData.find(
-  (s: { Status?: string }) => (s.Status || "").toLowerCase() === "present"
-)
-
 const absentStat = attendanceData.find(
   (s: { Status?: string }) => (s.Status || "").toLowerCase() === "absent"
 )
 
-const presentPercentage = presentStat?.Percentage ?? 0
+const attendancePercentage = Number(attendanceData[0]?.OverallPercentage ?? 0)
 const absentPercentage = absentStat?.Percentage ?? 0
 
 
@@ -744,7 +740,7 @@ const absentPercentage = absentStat?.Percentage ?? 0
           CourseStartDate: d.CourseStartDate ?? "",
             enrolledclassname: enrolledClassName,
           CourseTitle: d.CourseTitle ?? "",
-          "Present %": `${presentPercentage}%`,
+          "Attendance %": `${attendancePercentage}%`,
   "Absent %": `${absentPercentage}%`
         })
       }
@@ -813,7 +809,7 @@ XLSX.utils.sheet_add_json(ws, rows, {
       CourseStartDate: s.CourseStartDate ?? "",
       enrolledclassname: s.EnrolledClassName ?? "",
       CourseTitle: s.CourseTitle ?? "",
-      "Present %": `${s.PresentPercentage ?? 0}%`,
+      "Attendance %": `${s.PresentPercentage ?? 0}%`,
       "Absent %": `${s.AbsentPercentage ?? 0}%`
     }))
     const reportTitle = "Student Report"

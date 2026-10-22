@@ -11,13 +11,15 @@ import {
   Mail,
   CreditCard,
   MessageSquare,
+  ClipboardList,
   X
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useSidebar } from "../contexts/SidebarContext";
 import { useAuth } from "./AuthContext";
 import { useIsMobile } from "../hooks/useMediaQuery";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import axiosInstance from "./axiosInstance";
 
 // YOUR ORIGINAL LINKS & TEXT PRESERVED
 const adminTeacherItems = [
@@ -26,6 +28,7 @@ const adminTeacherItems = [
   { id: "people", icon: Users, label: "People", path: "/people" },
   { id: "notes", icon: BookOpen, label: "Classes & events", path: "/notes" },
   { id: "email", icon: Mail, label: "Email", path: "/email" },
+  { id: "student-requests", icon: ClipboardList, label: "Student Requests", path: "/student-requests" },
   // { id: "payments", icon: CreditCard, label: "Payments", path: "/payments" },
   // { id: "messaging", icon: MessageSquare, label: "Group Messaging", path: "/messaging" },
   // { id: "reports", icon: FileText, label: "Reports", path: "/reports" },
@@ -36,6 +39,8 @@ const studentItems = [
   { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", path: "/student/dashboard" },
   { id: "calendar", icon: Calendar, label: "Calendar", path: "/student/calendar" },
   { id: "classes", icon: BookOpen, label: "Classes", path: "/student/classes" },
+  { id: "holidays", icon: Calendar, label: "Holiday requests", path: "/student/holidays" },
+  { id: "requests", icon: ClipboardList, label: "Requests", path: "/student/requests" },
   { id: "files", icon: FileText, label: "Files", path: "/student/files" },
   { id: "profile", icon: User, label: "Profile", path: "/student/profile" },
 ];
@@ -45,6 +50,7 @@ export default function Sidebar() {
   const location = useLocation();
   const { isExpanded, setIsExpanded, isMobileMenuOpen, setMobileMenuOpen } = useSidebar();
   const { user } = useAuth();
+  const [pendingStudentRequestCount, setPendingStudentRequestCount] = useState(0);
   const isMobile = useIsMobile();
   const isStudent = user?.role === "Student";
 
@@ -54,8 +60,35 @@ export default function Sidebar() {
     return adminTeacherItems;
   };
 
-  const items = getMenuItems();
+  const items = getMenuItems().filter((item) => item.id !== "student-requests" || user?.role?.toLowerCase() === "admin");
   const active = items.find((i) => location.pathname.startsWith(i.path))?.id || "dashboard";
+
+  useEffect(() => {
+    if (user?.role?.toLowerCase() !== "admin") {
+      setPendingStudentRequestCount(0);
+      return;
+    }
+    let activeRequest = true;
+    const loadCount = async () => {
+      try {
+        const [requestResponse, holidayResponse] = await Promise.all([
+          axiosInstance.get("/StudentPortalRequests/GetPending"),
+          axiosInstance.get("/StudentHolidayWorkflow/GetPendingRequests"),
+        ]);
+        if (!activeRequest) return;
+        const requests = requestResponse.data?.IsSuccess && Array.isArray(requestResponse.data.Data)
+          ? requestResponse.data.Data.length : 0;
+        const holidays = holidayResponse.data?.IsSuccess && Array.isArray(holidayResponse.data.Data)
+          ? holidayResponse.data.Data.length : 0;
+        setPendingStudentRequestCount(requests + holidays);
+      } catch {
+        if (activeRequest) setPendingStudentRequestCount(0);
+      }
+    };
+    void loadCount();
+    const interval = window.setInterval(loadCount, 30_000);
+    return () => { activeRequest = false; window.clearInterval(interval); };
+  }, [user?.role]);
 
   const logo = "/src/assets/logo-icon.png";
 
@@ -121,7 +154,7 @@ export default function Sidebar() {
               key={id}
               onClick={() => handleNav(path)}
               // DESIGN LOGIC: If Expanded -> Row layout. If Collapsed -> Column (Stacked) layout (MATCHING IMAGE 2)
-              className={`group transition-all duration-200 
+              className={`group transition-all duration-200 relative
                 ${isExpanded 
                   ? 'flex items-center gap-4 px-6 py-3 min-h-[50px] text-left' 
                   : 'flex flex-col items-center justify-center gap-1 py-4 px-1 min-h-[85px] text-center'
@@ -141,7 +174,15 @@ export default function Sidebar() {
                  isActive ? "text-[#1a73e8]" : "text-[#888888] group-hover:text-gray-700"
               } ${isExpanded ? 'text-sm' : 'text-[11px] max-w-[80px]'}`}>
                 {label}
+                {id === "student-requests" && pendingStudentRequestCount > 0 && isExpanded && (
+                  <span className="grid h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-[10px] text-white">
+                    {pendingStudentRequestCount}
+                  </span>
+                )}
               </span>
+              {!isExpanded && id === "student-requests" && pendingStudentRequestCount > 0 && (
+                <span className="absolute right-5 top-4 h-2.5 w-2.5 rounded-full bg-rose-500" />
+              )}
             </button>
           );
         })}

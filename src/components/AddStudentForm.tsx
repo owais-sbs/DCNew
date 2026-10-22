@@ -42,7 +42,6 @@ interface StudentApiPayload {
     CourseLevel: string | null;
     CourseEndDate: string | null;
     HoursPerWeek: number | null;
-    Attendance: string | null;
     CourseCode: string | null;
     CourseTitle: string | null;
     ModeOfStudy: string | null;
@@ -106,7 +105,6 @@ interface FormDataState {
     passportExpiryDate: string;
     courseStartDate: string;
     courseEndDate: string;
-    attendance: string;
     courseTitle: string;
     modeOfStudy: string;
     numberOfWeeks: string;
@@ -170,7 +168,6 @@ const initialFormData: FormDataState = {
     passportExpiryDate: "",
     courseStartDate: "",
     courseEndDate: "",
-    attendance: "",
     courseTitle: "",
     modeOfStudy: "",
     numberOfWeeks: "",
@@ -313,7 +310,6 @@ const mapToApiPayload = (formData: Omit<FormDataState, 'photo'>, photoBase64?: s
         CourseLevel: formData.courseLevel || null,
         CourseEndDate: parseDate(formData.courseEndDate),
         HoursPerWeek: parseDecimal(formData.hoursPerWeek),
-        Attendance: formData.attendance || null,
         CourseCode: formData.courseCode || null,
         CourseTitle: formData.courseTitle || null,
         ModeOfStudy: formData.modeOfStudy || null,
@@ -895,7 +891,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     dateFormat="dd-MM-yyyy"
                                     className="w-full h-[34px] px-2 border border-gray-300 text-[13px]"
                                 /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Course End Date</label>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Course End Date (calculated when course weeks are set)</label>
                                 <DatePicker
                                     selected={formData.courseEndDate ? (() => {
                                         const parts = formData.courseEndDate.split('-');
@@ -916,7 +912,6 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                 /></div>
 
                             <div><label className="block text-[13px] text-gray-700 mb-1">Finished Course Date</label><input type="date" value={formData.finishedCourseDate} onChange={(e)=>handleInputChange('finishedCourseDate', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Attendance</label><input type="text" value={formData.attendance} onChange={(e)=>handleInputChange('attendance', e.target.value)} className="w-full h-[34px] px-2 border border-gray-300 text-[13px] bg-white" /></div>
 <div>
   <label className="block text-[13px] text-gray-700 mb-1">Course Title</label>
 

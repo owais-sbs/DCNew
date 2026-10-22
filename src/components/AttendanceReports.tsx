@@ -1,9 +1,24 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import axiosInstance from "./axiosInstance"
 
 type AttendanceView = "student" | "absence" | "pending" | "hours"
 
 export default function AttendanceReports() {
   const [active, setActive] = useState<AttendanceView>("student")
+  const [studentRows, setStudentRows] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let activeRequest = true
+    axiosInstance.get("/Student/GetAllStudentsSorted")
+      .then((response) => {
+        if (activeRequest)
+          setStudentRows(response.data?.IsSuccess && Array.isArray(response.data.Data) ? response.data.Data : [])
+      })
+      .catch(() => { if (activeRequest) setStudentRows([]) })
+      .finally(() => { if (activeRequest) setLoading(false) })
+    return () => { activeRequest = false }
+  }, [])
 
   const titleMap: Record<AttendanceView, string> = {
     student: "Student attendance report",
@@ -48,7 +63,7 @@ export default function AttendanceReports() {
         {/* Right content */}
         <section>
           <div className="text-2xl font-semibold text-gray-800 mb-1">{titleMap[active]}</div>
-          <div className="text-sm text-gray-500 mb-4">{active==="student"?"7597 / 302646 Attendance records":""}</div>
+          <div className="text-sm text-gray-500 mb-4">{active === "student" ? `${studentRows.length} students · calculated from attendance records` : ""}</div>
 
           {/* Filters row */}
           <div className="mb-3 flex items-center gap-3">
@@ -69,7 +84,7 @@ export default function AttendanceReports() {
 
           {/* Tables */}
           <div className="bg-white border border-gray-200 rounded-xl overflow-auto">
-            {active === "student" && <StudentAttendanceTable />}
+            {active === "student" && <StudentAttendanceTable rows={studentRows} loading={loading} />}
             {active === "absence" && <StudentAbsenceTable />}
             {active === "pending" && <PendingAttendanceTable />}
             {active === "hours" && <AttendanceHoursTable />}
@@ -80,51 +95,26 @@ export default function AttendanceReports() {
   )
 }
 
-function StudentAttendanceTable() {
-  const rows = Array.from({ length: 8 }).map((_, i) => ({
-    cls: "PM A2",
-    subject: "",
-    level: "A2",
-    type: "",
-    teacher: "Walid Teacher",
-    student: [
-      "Rejane Costa Pereira",
-      "Julio Cesar Hernandez Silvestre",
-      "Reginaldo Ferreira De Oliveira",
-      "Rodolfo Do Nascimento Rosas",
-      "Lidiane Patricia Franca Da Silva",
-    ][i % 5],
-    date: "01-10-2025",
-    time: "13:00-15:00",
-    dur: "2hours",
-    attendance: ["Present", "Absent"][i % 2],
-  }))
+function StudentAttendanceTable({ rows, loading }: { rows: any[]; loading: boolean }) {
   return (
     <table className="w-full text-sm min-w-[1200px]">
       <thead className="bg-gray-50 text-gray-600">
         <tr>
-          {["Class","Subject","Level","Class type","Teacher","Student","Lesson Date","Lesson Time","Duration","Attendance","Excused","Personal student notes"].map(h => (
+          {["Student ID","Student","Course","Calculated attendance"].map(h => (
             <th key={h} className="text-left px-4 py-3 border-b border-gray-200 font-medium">{h}</th>
           ))}
         </tr>
       </thead>
       <tbody>
-        {rows.map((r, i) => (
-          <tr key={i} className="border-b last:border-0 border-gray-100">
-            <td className="px-4 py-3 text-indigo-700">{r.cls}</td>
-            <td className="px-4 py-3">{r.subject}</td>
-            <td className="px-4 py-3">{r.level}</td>
-            <td className="px-4 py-3">{r.type}</td>
-            <td className="px-4 py-3 text-blue-600">{r.teacher}</td>
-            <td className="px-4 py-3">{r.student}</td>
-            <td className="px-4 py-3">{r.date}</td>
-            <td className="px-4 py-3">{r.time}</td>
-            <td className="px-4 py-3">{r.dur}</td>
-            <td className="px-4 py-3">{r.attendance}</td>
-            <td className="px-4 py-3"></td>
-            <td className="px-4 py-3"></td>
+        {loading ? <tr><td className="px-4 py-6 text-gray-500" colSpan={4}>Loading calculated attendance…</td></tr> : rows.map((row) => (
+          <tr key={row.Id} className="border-b last:border-0 border-gray-100">
+            <td className="px-4 py-3 text-indigo-700">{row.Id}</td>
+            <td className="px-4 py-3">{`${row.FirstName ?? ""} ${row.Surname ?? ""}`.trim()}</td>
+            <td className="px-4 py-3">{row.CourseTitle || row.CourseLevel || "—"}</td>
+            <td className="px-4 py-3 font-medium">{Number(row.CalculatedAttendancePercentage ?? 0).toFixed(2)}%</td>
           </tr>
         ))}
+        {!loading && rows.length === 0 && <tr><td className="px-4 py-6 text-gray-500" colSpan={4}>No student attendance data available.</td></tr>}
       </tbody>
     </table>
   )

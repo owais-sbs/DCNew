@@ -11,6 +11,8 @@ const ALLOWED_STUDENT_PATHS = [
   "/student/classes",
   "/student/files",
   "/student/profile",
+  "/student/holidays",
+  "/student/requests",
 ]
 
 function isAllowedStudentPath(pathname: string): boolean {
