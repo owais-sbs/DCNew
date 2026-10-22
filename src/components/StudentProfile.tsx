@@ -3087,6 +3087,18 @@ const renderContent = () => {
       Swal.fire({ title: "Required", text: "Please enter From date and To date.", icon: "warning" })
       return
     }
+    if (!editingHoliday && !loadingAttendanceStats && attendanceStats.length > 0 && percentage < 85) {
+      const confirmation = await Swal.fire({
+        title: "Low attendance",
+        text: `This student's attendance is ${percentage.toFixed(1)}%, below the required 85%. Do you still want to create this holiday?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Create holiday",
+        cancelButtonText: "Cancel",
+        confirmButtonColor: "#2563eb",
+      })
+      if (!confirmation.isConfirmed) return
+    }
     setSavingHoliday(true)
     try {
       const payload = {
@@ -3105,7 +3117,14 @@ const renderContent = () => {
         if (res.data?.IsSuccess && Array.isArray(res.data.Data)) setHolidays(res.data.Data)
       }
     } catch (err: any) {
-      Swal.fire({ title: "Error", text: err?.message ?? "Failed to save holiday.", icon: "error" })
+      const status = err?.response?.status
+      const serverMessage = err?.response?.data?.Message ?? err?.response?.data?.message
+      const message = status === 401
+        ? "Your admin session is missing or expired. Sign in again, then retry creating the holiday."
+        : typeof serverMessage === "string"
+          ? serverMessage
+          : err?.message ?? "Failed to save holiday."
+      Swal.fire({ title: "Error", text: message, icon: "error" })
     } finally {
       setSavingHoliday(false)
     }

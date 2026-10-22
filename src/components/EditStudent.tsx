@@ -51,6 +51,7 @@ type StudentFormState = {
   numberOfWeeks: string;
   hoursPerWeek: string;
   tuitionFees: string;
+  attendance: string;
   
   // Payment / Exam Extras
   externalExam: string;
@@ -113,6 +114,7 @@ const emptyForm: StudentFormState = {
   numberOfWeeks: "",
   hoursPerWeek: "",
   tuitionFees: "",
+  attendance: "",
   externalExam: "",
   externalExamDate: "",
   scoreExternalExam: "",
@@ -259,6 +261,7 @@ useEffect(() => {
         courseStartDate: toDateInput(data.CourseStartDate),
         courseEndDate: toDateInput(data.CourseEndDate),
         finishedCourseDate: toDateInput(data.FinishedCourseDate),
+        attendance: (data.ManualAttendance ?? data.Attendance)?.toString() ?? "",
         numberOfWeeks: data.NumberOfWeeks?.toString() ?? "",
         hoursPerWeek: data.HoursPerWeek?.toString() ?? "",
         tuitionFees: data.TuitionFees?.toString() ?? "",
@@ -385,6 +388,8 @@ useEffect(() => {
         CourseStartDate: form.courseStartDate || null,
         CourseEndDate: form.courseEndDate || null,
         FinishedCourseDate: form.finishedCourseDate || null,
+        Attendance: form.attendance !== "" ? parseInt(form.attendance, 10) : null,
+        UpdateManualAttendance: true,
         NumberOfWeeks: form.numberOfWeeks ? parseInt(form.numberOfWeeks) : null,
         HoursPerWeek: form.hoursPerWeek ? parseFloat(form.hoursPerWeek) : null,
         TuitionFees: form.tuitionFees || null,
@@ -741,6 +746,10 @@ useEffect(() => {
                <div>
                   <label className="block text-[13px] text-gray-700 mb-1">Schedule</label>
                   <input name="schedule" value={form.schedule} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
+               </div>
+               <div>
+                  <label className="block text-[13px] text-gray-700 mb-1">Attendance (%)</label>
+                  <input type="number" min="0" max="100" step="1" name="attendance" value={form.attendance} onChange={handleChange} className="w-full h-[34px] px-2 border border-gray-300 bg-white text-[13px]" />
                </div>
             </div>
           </div>
