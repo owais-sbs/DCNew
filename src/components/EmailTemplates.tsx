@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "./axiosInstance";
 
 export default function EmailTemplates() {
   const navigate = useNavigate();
@@ -13,9 +13,7 @@ export default function EmailTemplates() {
 
   const fetchTemplates = async () => {
     try {
-      const res = await axios.get(
-        "http://localhost:5249/api/EmailTemplate/GetAllEmailTemplates"
-      );
+      const res = await axiosInstance.get("/EmailTemplate/GetAllEmailTemplates");
 
       if (res.data?.IsSuccess) {
         setTemplates(res.data.Data);
