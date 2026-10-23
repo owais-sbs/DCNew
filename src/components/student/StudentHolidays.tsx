@@ -105,7 +105,7 @@ export default function StudentHolidays() {
           <div className="flex items-start gap-3">
             {eligibility.EligibleToRequest ? <CheckCircle2 className="mt-0.5 text-emerald-700" /> : <XCircle className="mt-0.5 text-amber-700" />}
             <div className="flex-1">
-              <h2 className="font-semibold text-gray-900">{eligibility.EligibleToRequest ? "You meet the general eligibility requirements" : "You are not currently eligible to request a holiday"}</h2>
+              <h2 className="font-semibold text-gray-900">{eligibility.EligibleToRequest ? "You meet the general eligibility requirements" : "You can still send a request, but note the warning below"}</h2>
               <p className="mt-1 text-sm text-gray-700">Calculated attendance: <strong>{eligibility.AttendancePercentage.toFixed(2)}%</strong> · Minimum required: {eligibility.RequiredAttendancePercentage}%</p>
               <p className="mt-1 text-sm text-gray-700">Course period: {formatDate(eligibility.CourseStartDate)} – {formatDate(eligibility.CourseEndDate)}</p>
               <p className="mt-1 text-sm text-gray-700">Allowed request dates: {formatDate(eligibility.EarliestAllowedDate)} – {formatDate(eligibility.LatestAllowedDate)}</p>
