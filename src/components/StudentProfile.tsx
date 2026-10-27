@@ -132,7 +132,7 @@ export default function StudentProfile() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-blue-900 flex items-center gap-2">
             <CalendarIcon size={20} className="text-blue-600" /> 
-            Course Journey (25 Weeks Base)
+            Course End Date Calculation
           </h3>
           {/* <span className="px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-full shadow-sm">
             STATUS: ACTIVE
@@ -146,25 +146,40 @@ export default function StudentProfile() {
           </div>
 
           <div className="bg-white p-3 rounded-lg border border-red-100 shadow-sm text-center">
-            <p className="text-[10px] text-red-500 uppercase font-bold tracking-wider text-nowrap">Leaves (Added)</p>
-            <p className="text-md font-bold text-red-600">+{courseExtension.TotalLeaveDays} Days</p>
+            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider text-nowrap">Baseline End Date</p>
+            <p className="text-md font-bold text-gray-900">{formatDateValue(courseExtension.BaselineEndDate)}</p>
           </div>
 
           <div className="bg-white p-3 rounded-lg border border-orange-100 shadow-sm text-center">
-            <p className="text-[10px] text-orange-500 uppercase font-bold tracking-wider text-nowrap">Holidays (Added)</p>
-            <p className="text-md font-bold text-orange-600">+{courseExtension.TotalHolidayDays} Days</p>
+            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider text-nowrap">Calculation Mode</p>
+            <p className="text-md font-bold text-gray-900">{courseExtension.AutoCalculate ? "Automatic" : "Manual final date"}</p>
           </div>
 
           <div className="bg-emerald-600 p-3 rounded-lg shadow-md text-center text-white">
-            <p className="text-[10px] opacity-90 uppercase font-bold tracking-wider">Projected End Date</p>
+            <p className="text-[10px] opacity-90 uppercase font-bold tracking-wider">Current Course End Date</p>
             <p className="text-md font-black">{formatDateValue(courseExtension.ExtendedEndDate)}</p>
           </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2 text-sm font-medium text-blue-800 bg-white/50 p-2 rounded-lg border border-blue-100/50">
           <Clock size={16} className="animate-pulse" />
-          The original course date has been extended by <span className="font-bold underline">{courseExtension.TotalExtension} days</span>.
+          {courseExtension.AutoCalculate
+            ? <>The baseline date has been extended by <span className="font-bold underline">{courseExtension.TotalExtension} days</span>. Future events are excluded until their dates have passed.</>
+            : <>This date was set manually and is final; automatic course extensions are disabled.</>}
         </div>
+        {courseExtension.Events?.length > 0 && (
+          <div className="mt-4 rounded-lg border border-blue-100 bg-white p-4">
+            <h4 className="mb-2 text-sm font-bold text-gray-800">Events included in the calculation</h4>
+            <div className="divide-y divide-gray-100">
+              {courseExtension.Events.map((event: any, index: number) => (
+                <div key={`${event.Type}-${event.Date}-${index}`} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
+                  <span className="font-medium text-gray-800">{event.Type}: {event.Description}</span>
+                  <span className="text-gray-600">{formatDateValue(event.Date)} · +{event.DaysAdded} day</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   };

@@ -5,7 +5,7 @@ import axios from "axios";
 const axiosInstance = axios.create({
   baseURL: "https://dc.nuzum.tech/api", // Production API
   //  baseURL: 'https://localhost:7027/api', // Your API base URL
-  // baseURL: "http://localhost:5249/api", // Local API
+  // baseURL: "http://localhost:5000/api", // Local API
 
   timeout: 1000000, // Optional timeout setting d    m
   headers: {

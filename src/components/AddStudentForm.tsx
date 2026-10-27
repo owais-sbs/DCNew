@@ -891,7 +891,7 @@ export default function AddStudentForm({ isOpen, onClose, asPage }: AddStudentFo
                                     dateFormat="dd-MM-yyyy"
                                     className="w-full h-[34px] px-2 border border-gray-300 text-[13px]"
                                 /></div>
-                            <div><label className="block text-[13px] text-gray-700 mb-1">Course End Date (calculated when course weeks are set)</label>
+                            <div><label className="block text-[13px] text-gray-700 mb-1">Course End Date (baseline; later events may extend it)</label>
                                 <DatePicker
                                     selected={formData.courseEndDate ? (() => {
                                         const parts = formData.courseEndDate.split('-');
