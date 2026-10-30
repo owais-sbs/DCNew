@@ -3,9 +3,11 @@ import axios from "axios";
 
 // Create an Axios instance
 const axiosInstance = axios.create({
-  baseURL: "https://dc.nuzum.tech/api", // Production API
-  //  baseURL: 'https://localhost:7027/api', // Your API base URL
-  // baseURL: "http://localhost:5000/api", // Local API
+  baseURL:
+    import.meta.env.VITE_API_BASE_URL ||
+    (import.meta.env.DEV
+      ? "http://localhost:5000/api"
+      : "https://dc.nuzum.tech/api"),
 
   timeout: 1000000, // Optional timeout setting d    m
   headers: {

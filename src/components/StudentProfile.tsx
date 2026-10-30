@@ -809,7 +809,17 @@ const [showAttendanceDropdown, setShowAttendanceDropdown] = useState(false);
       })
       .catch((err) => {
         console.error("Failed to load holidays", err)
-        setHolidaysError(err?.message || "Failed to load holidays.")
+        const status = err?.response?.status
+        const responseMessage = err?.response?.data?.Message ?? err?.response?.data?.message
+        setHolidaysError(
+          status === 401
+            ? "The API rejected this request as unauthorised. Your login token may be missing or expired; sign in again and retry."
+            : typeof responseMessage === "string"
+              ? responseMessage
+              : status
+                ? `Failed to load holidays (HTTP ${status}).`
+                : err?.message || "Failed to load holidays."
+        )
         setHolidays([])
       })
       .finally(() => setLoadingHolidays(false))
